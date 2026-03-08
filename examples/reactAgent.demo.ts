@@ -1,36 +1,47 @@
-import {ReActAgent} from "../agent/react-agent/ReActAgent";
-import {LLMClient} from "../core/llm";
-import {ToolExecutor} from "../tools/ToolExecutor";
-import {search} from "../tools/builtin/search";
+import "dotenv/config";
+import {z} from "zod";
+import {ReActAgent} from "../src/agent/react-agent/ReActAgent";
+import {LLMClient} from "../src/core/llm";
+import {defineFunctionTool} from "../src/tools/Tool";
+import {search} from "../src/tools/builtin/search";
 import * as readline from "node:readline/promises";
 import {stdin as input, stdout as output} from "node:process";
 
+const searchTool = defineFunctionTool({
+  name: "search",
+  description: "联网搜索信息并返回摘要",
+  schema: z.object({
+    input: z.string().min(1).describe("要检索的问题或关键词"),
+  }),
+  func: async (args) => search(args.input),
+});
+
 async function main() {
-  const llmClient = new LLMClient({
+  const llm = new LLMClient({
     model: process.env.LLM_MODEL,
     apiKey: process.env.LLM_API_KEY,
     baseURL: process.env.LLM_BASE_URL,
   });
 
-  const toolExecutor = new ToolExecutor();
-
-  toolExecutor.registerTool({
-    name: "search",
-    description: "Search the web for information",
-    execute: search,
+  const reactAgent = new ReActAgent({
+    name: "react-agent-demo",
+    llm,
+    tools: [searchTool],
+    maxSteps: 5,
   });
-
-  const reactAgent = new ReActAgent(llmClient, toolExecutor);
 
   const rl = readline.createInterface({input, output});
 
   while (true) {
-    const input = await rl.question("请输入问题: ");
-    if (!input) {
+    const question = await rl.question("请输入问题(回车退出): ");
+    if (!question.trim()) {
       break;
     }
-    await reactAgent.run(input);
+
+    const answer = await reactAgent.run(question);
+    console.log(`\n最终回答: ${answer}\n`);
   }
+
   rl.close();
 }
 
