@@ -1,17 +1,23 @@
 import "dotenv/config";
-import {LLMClient} from "../core/llm";
-import {ReflectionAgent} from "../agent/reflection-agent/ReflectionAgent";
+import {Agent} from "../src/core/agent";
+import {LLMClient} from "../src/core/llm";
+import {ReflectionAgent} from "../src/agent/reflection-agent/ReflectionAgent";
 import * as readline from "node:readline/promises";
 import {stdin as input, stdout as output} from "node:process";
 
 async function main() {
   const llmClient = new LLMClient({
-    model: process.env.LLM_MODEL,
+    model: process.env.LLM_MODEL_ID,
     apiKey: process.env.LLM_API_KEY,
     baseURL: process.env.LLM_BASE_URL,
   });
 
-  const agent = new ReflectionAgent(llmClient, 3);
+  const agent = new ReflectionAgent({
+    name: "ReflectionAgentDemo",
+    llm: llmClient as unknown as Agent["llm"],
+    maxIterations: 3,
+  });
+
   const rl = readline.createInterface({input, output});
 
   while (true) {
@@ -20,7 +26,9 @@ async function main() {
       break;
     }
 
-    await agent.run(task);
+    const result = await agent.run(task);
+    console.log("\n=== 最终结果 ===");
+    console.log(result);
   }
 
   rl.close();
