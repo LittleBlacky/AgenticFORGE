@@ -10,6 +10,18 @@ export interface MemoryToolOptions {
   memoryConfig?: Partial<MemoryConfig>;
   memoryTypes?: MemoryType[];
   expandable?: boolean;
+  autoRecordRules?: AutoRecordRules;
+}
+
+export interface AutoRecordRules {
+  enabled?: boolean;
+  includeUser?: boolean;
+  includeAssistant?: boolean;
+  enableEpisodic?: boolean;
+  workingImportance?: number;
+  episodicImportance?: number;
+  minLengthForEpisodic?: number;
+  keywordsForEpisodic?: string[];
 }
 
 type MemoryAction =
@@ -26,6 +38,7 @@ type MemoryAction =
 export class MemoryTool extends Tool {
   private readonly memoryTypes: MemoryType[];
   private readonly memoryManager: MemoryManager;
+  private readonly autoRecordRules: Required<AutoRecordRules>;
 
   private currentSessionId: string | null = null;
   private conversationCount = 0;
@@ -50,6 +63,18 @@ export class MemoryTool extends Tool {
       enableSemantic: this.memoryTypes.includes("semantic"),
       enablePerceptual: this.memoryTypes.includes("perceptual"),
     });
+
+    this.autoRecordRules = {
+      enabled: true,
+      includeUser: true,
+      includeAssistant: true,
+      enableEpisodic: true,
+      workingImportance: 0.6,
+      episodicImportance: 0.8,
+      minLengthForEpisodic: 100,
+      keywordsForEpisodic: ["重要", "记住"],
+      ...(options.autoRecordRules ?? {}),
+    };
   }
 
   async run(parameters: Record<string, unknown>): Promise<string> {
@@ -433,18 +458,45 @@ export class MemoryTool extends Tool {
     agentResponse: string,
   ): Promise<void> {
     this.conversationCount += 1;
-    await this.addMemory(`用户: ${userInput}`, "working", 0.6);
-    await this.addMemory(`助手: ${agentResponse}`, "working", 0.7);
-    if (
-      agentResponse.length > 100 ||
-      userInput.includes("重要") ||
-      userInput.includes("记住")
-    ) {
+
+    if (!this.autoRecordRules.enabled) return;
+
+    const workingImportance = this.clamp01(
+      this.autoRecordRules.workingImportance,
+      0.6,
+    );
+    const episodicImportance = this.clamp01(
+      this.autoRecordRules.episodicImportance,
+      0.8,
+    );
+
+    if (this.autoRecordRules.includeUser) {
+      await this.addMemory(`用户: ${userInput}`, "working", workingImportance);
+    }
+    if (this.autoRecordRules.includeAssistant) {
       await this.addMemory(
-        `对话 - 用户: ${userInput}\n助手: ${agentResponse}`,
-        "episodic",
-        0.8,
+        `助手: ${agentResponse}`,
+        "working",
+        workingImportance,
       );
+    }
+
+    if (this.autoRecordRules.enableEpisodic) {
+      const minLength = Math.max(0, this.autoRecordRules.minLengthForEpisodic);
+      const keywords = this.autoRecordRules.keywordsForEpisodic;
+      const hitKeyword = keywords.some((k) =>
+        userInput.includes(k) || agentResponse.includes(k),
+      );
+      const hitLength =
+        userInput.length + agentResponse.length >= Math.max(1, minLength);
+
+      if (hitKeyword || hitLength) {
+        await this.addMemory(
+          `对话 - 用户: ${userInput}\n助手: ${agentResponse}`,
+          "episodic",
+          episodicImportance,
+        );
+      }
     }
   }
 
@@ -492,6 +544,11 @@ export class MemoryTool extends Tool {
 
   private toNumber(value: unknown, fallback: number): number {
     return this.toOptionalNumber(value) ?? fallback;
+  }
+
+  private clamp01(value: number | undefined, fallback: number): number {
+    if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+    return Math.max(0, Math.min(1, value));
   }
 }
 
