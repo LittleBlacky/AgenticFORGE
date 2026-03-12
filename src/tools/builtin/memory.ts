@@ -52,7 +52,7 @@ export class MemoryTool extends Tool {
     });
   }
 
-  run(parameters: Record<string, unknown>): string {
+  async run(parameters: Record<string, unknown>): Promise<string> {
     const validation = this.validateAndNormalizeParameters(parameters);
     if (!validation.success) {
       return `❌ 参数验证失败: ${validation.error}`;
@@ -227,13 +227,13 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_add", "添加新记忆")
-  addMemory(
+  async addMemory(
     content = "",
     memoryType: MemoryType = "working",
     importance = 0.5,
     filePath?: string,
     modality?: string,
-  ): string {
+  ): Promise<string> {
     try {
       if (!this.currentSessionId) {
         this.currentSessionId = `session_${new Date()
@@ -252,7 +252,7 @@ export class MemoryTool extends Tool {
         metadata.modality = modality ?? inferModality(filePath);
       }
 
-      const memoryId = this.memoryManager.addMemory({
+      const memoryId = await this.memoryManager.addMemory({
         content,
         memoryType,
         importance,
@@ -266,15 +266,15 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_search", "搜索相关记忆")
-  searchMemory(
+  async searchMemory(
     query: string,
     limit = 5,
     memoryType?: string,
     minImportance = 0.1,
-  ): string {
+  ): Promise<string> {
     try {
       const mt = asMemoryType(memoryType);
-      const results = this.memoryManager.retrieveMemories({
+      const results = await this.memoryManager.retrieveMemories({
         query,
         limit,
         memoryTypes: mt ? [mt] : undefined,
@@ -300,9 +300,9 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_summary", "获取记忆摘要")
-  getSummary(limit = 10): string {
+  async getSummary(limit = 10): Promise<string> {
     try {
-      const stats = this.memoryManager.getMemoryStats();
+      const stats = await this.memoryManager.getMemoryStats();
       const lines = [
         "📊 记忆系统摘要",
         `总记忆数: ${stats.totalMemories}`,
@@ -314,12 +314,16 @@ export class MemoryTool extends Tool {
 
       for (const [type, typeStats] of Object.entries(stats.memoriesByType)) {
         if (!typeStats) continue;
+        const record = typeStats as {count?: number; avgImportance?: number};
+        const avgImportance =
+          typeof record.avgImportance === "number" ? record.avgImportance : 0;
+        const count = typeof record.count === "number" ? record.count : 0;
         lines.push(
-          `  • ${memoryTypeLabel(type as MemoryType)}: ${typeStats.count} 条 (平均重要性: ${typeStats.avgImportance.toFixed(2)})`,
+          `  • ${memoryTypeLabel(type as MemoryType)}: ${count} 条 (平均重要性: ${avgImportance.toFixed(2)})`,
         );
       }
 
-      const important = this.memoryManager.retrieveMemories({
+      const important = await this.memoryManager.retrieveMemories({
         query: "",
         limit: Math.max(1, limit),
         minImportance: 0.5,
@@ -342,9 +346,9 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_stats", "获取记忆统计")
-  getStats(): string {
+  async getStats(): Promise<string> {
     try {
-      const stats = this.memoryManager.getMemoryStats();
+      const stats = await this.memoryManager.getMemoryStats();
       return [
         "📈 记忆系统统计",
         `总记忆数: ${stats.totalMemories}`,
@@ -358,32 +362,35 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_update", "更新记忆")
-  updateMemory(
+  async updateMemory(
     memoryId?: string,
     content?: string,
     importance?: number,
-  ): string {
+  ): Promise<string> {
     if (!memoryId) return "❌ 更新记忆失败: 缺少 memory_id";
-    const ok = this.memoryManager.updateMemory({memoryId, content, importance});
+    const ok = await this.memoryManager.updateMemory({
+      memoryId,
+      content,
+      importance,
+    });
     return ok ? "✅ 记忆已更新" : "⚠️ 未找到要更新的记忆";
   }
 
   @toolAction("memory_remove", "删除记忆")
-  removeMemory(memoryId?: string): string {
+  async removeMemory(memoryId?: string): Promise<string> {
     if (!memoryId) return "❌ 删除记忆失败: 缺少 memory_id";
-    return this.memoryManager.removeMemory(memoryId)
-      ? "✅ 记忆已删除"
-      : "⚠️ 未找到要删除的记忆";
+    const ok = await this.memoryManager.removeMemory(memoryId);
+    return ok ? "✅ 记忆已删除" : "⚠️ 未找到要删除的记忆";
   }
 
   @toolAction("memory_forget", "批量遗忘")
-  forget(
+  async forget(
     strategy = "importance_based",
     threshold = 0.1,
     maxAgeDays = 30,
-  ): string {
+  ): Promise<string> {
     try {
-      const count = this.memoryManager.forgetMemories({
+      const count = await this.memoryManager.forgetMemories({
         strategy: strategy as
           | "importance_based"
           | "time_based"
@@ -398,13 +405,13 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_consolidate", "整合记忆")
-  consolidate(
+  async consolidate(
     fromType = "working",
     toType = "episodic",
     importanceThreshold = 0.7,
-  ): string {
+  ): Promise<string> {
     try {
-      const count = this.memoryManager.consolidateMemories({
+      const count = await this.memoryManager.consolidateMemories({
         fromType: asMemoryType(fromType) ?? "working",
         toType: asMemoryType(toType) ?? "episodic",
         importanceThreshold,
@@ -416,21 +423,24 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_clear", "清空所有记忆")
-  clearAll(): string {
-    this.memoryManager.clearAllMemories();
+  async clearAll(): Promise<string> {
+    await this.memoryManager.clearAllMemories();
     return "🧽 已清空所有记忆";
   }
 
-  autoRecordConversation(userInput: string, agentResponse: string): void {
+  async autoRecordConversation(
+    userInput: string,
+    agentResponse: string,
+  ): Promise<void> {
     this.conversationCount += 1;
-    this.addMemory(`用户: ${userInput}`, "working", 0.6);
-    this.addMemory(`助手: ${agentResponse}`, "working", 0.7);
+    await this.addMemory(`用户: ${userInput}`, "working", 0.6);
+    await this.addMemory(`助手: ${agentResponse}`, "working", 0.7);
     if (
       agentResponse.length > 100 ||
       userInput.includes("重要") ||
       userInput.includes("记住")
     ) {
-      this.addMemory(
+      await this.addMemory(
         `对话 - 用户: ${userInput}\n助手: ${agentResponse}`,
         "episodic",
         0.8,
@@ -438,12 +448,12 @@ export class MemoryTool extends Tool {
     }
   }
 
-  addKnowledge(content: string, importance = 0.9): string {
+  async addKnowledge(content: string, importance = 0.9): Promise<string> {
     return this.addMemory(content, "semantic", importance);
   }
 
-  getContextForQuery(query: string, limit = 3): string {
-    const results = this.memoryManager.retrieveMemories({
+  async getContextForQuery(query: string, limit = 3): Promise<string> {
+    const results = await this.memoryManager.retrieveMemories({
       query,
       limit,
       minImportance: 0.3,
@@ -452,13 +462,13 @@ export class MemoryTool extends Tool {
     return ["相关记忆:", ...results.map((m) => `- ${m.content}`)].join("\n");
   }
 
-  clearSession(): void {
+  async clearSession(): Promise<void> {
     this.currentSessionId = null;
     this.conversationCount = 0;
-    this.memoryManager.clearAllMemories();
+    await this.memoryManager.clearAllMemories();
   }
 
-  forgetOldMemories(maxAgeDays = 30): string {
+  async forgetOldMemories(maxAgeDays = 30): Promise<string> {
     return this.forget("time_based", 0.1, maxAgeDays);
   }
 
@@ -515,4 +525,3 @@ function inferModality(filePath: string): "text" | "image" | "audio" {
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-

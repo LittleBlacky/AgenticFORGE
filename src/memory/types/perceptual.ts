@@ -1,5 +1,6 @@
 import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
 import {HashTextEmbedder} from "../rag/pipeline";
+import type {BlobStoreAdapter, KVStoreAdapter, VectorStoreAdapter} from "../storage";
 
 export type PerceptualModality =
   | "text"
@@ -18,19 +19,37 @@ export interface Perception {
   dataHash: string;
 }
 
+export interface PerceptualStorageAdapters {
+  vectorStore?: VectorStoreAdapter;
+  vectorStores?: Partial<Record<PerceptualModality, VectorStoreAdapter>>;
+  blobStore?: BlobStoreAdapter;
+  kvStore?: KVStoreAdapter<MemoryItem>;
+}
+
 export class PerceptualMemory extends BaseMemory {
   private readonly perceptions = new Map<string, Perception>();
   private readonly perceptualMemories: MemoryItem[] = [];
   private readonly modalityIndex = new Map<PerceptualModality, string[]>();
   private readonly supportedModalities: Set<string>;
   private readonly embedder = new HashTextEmbedder(384);
+  private readonly vectorStore?: VectorStoreAdapter;
+  private readonly vectorStores: Partial<Record<PerceptualModality, VectorStoreAdapter>>;
+  private readonly blobStore?: BlobStoreAdapter;
+  private readonly kvStore?: KVStoreAdapter<MemoryItem>;
 
-  constructor(config: Partial<MemoryConfig> = {}) {
+  constructor(
+    config: Partial<MemoryConfig> = {},
+    adapters: PerceptualStorageAdapters = {},
+  ) {
     super(config);
     this.supportedModalities = new Set(this.config.perceptualMemoryModalities);
+    this.vectorStore = adapters.vectorStore;
+    this.vectorStores = adapters.vectorStores ?? {};
+    this.blobStore = adapters.blobStore;
+    this.kvStore = adapters.kvStore;
   }
 
-  add(memoryItem: MemoryItem): string {
+  async add(memoryItem: MemoryItem): Promise<string> {
     const modality =
       (memoryItem.metadata.modality as PerceptualModality) ?? "text";
     if (!this.supportedModalities.has(modality)) {
@@ -49,14 +68,40 @@ export class PerceptualMemory extends BaseMemory {
     memoryItem.metadata.modality = modality;
     this.perceptualMemories.push(memoryItem);
 
+    if (this.kvStore) {
+      await this.kvStore.put(memoryItem.id, memoryItem);
+    }
+
+    const store = this.getVectorStoreForModality(modality);
+    if (store) {
+      await store.upsertVector({
+        id: memoryItem.id,
+        vector: perception.encoding,
+        payload: {
+          content: memoryItem.content,
+          memoryType: memoryItem.memoryType,
+          userId: memoryItem.userId,
+          importance: memoryItem.importance,
+          timestamp: memoryItem.timestamp.toISOString(),
+          metadata: memoryItem.metadata,
+        },
+      });
+    }
+
+    if (this.blobStore) {
+      await this.blobStore.putBlob(memoryItem.id, rawData as Buffer | string, {
+        modality,
+      });
+    }
+
     return memoryItem.id;
   }
 
-  retrieve(
+  async retrieve(
     query: string,
     limit = 5,
     options: Record<string, unknown> = {},
-  ): MemoryItem[] {
+  ): Promise<MemoryItem[]> {
     const targetModality =
       (options.targetModality as PerceptualModality | undefined) ?? undefined;
     const queryModality =
@@ -65,6 +110,22 @@ export class PerceptualMemory extends BaseMemory {
       "text";
 
     const queryEncoding = this.encodeData(query, queryModality);
+
+    const store = this.getVectorStoreForModality(targetModality ?? queryModality);
+    const vectorResults = store
+      ? await store.queryVector({
+          vector: queryEncoding,
+          limit: Math.max(limit * 5, 20),
+          filter: {
+            ...(options.userId ? {userId: options.userId} : {}),
+            ...(targetModality ? {"metadata.modality": targetModality} : {}),
+          },
+        })
+      : [];
+
+    if (vectorResults.length) {
+      return this.mergeAdapterResults(vectorResults, limit, targetModality);
+    }
 
     const scored = this.perceptualMemories
       .filter((m) =>
@@ -89,12 +150,12 @@ export class PerceptualMemory extends BaseMemory {
     }));
   }
 
-  update(
+  async update(
     memoryId: string,
     content?: string,
     importance?: number,
     metadata?: Record<string, unknown>,
-  ): boolean {
+  ): Promise<boolean> {
     const idx = this.perceptualMemories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
 
@@ -113,13 +174,39 @@ export class PerceptualMemory extends BaseMemory {
       const perception = this.encodePerception(raw, modality, memoryId);
       this.perceptions.set(perception.perceptionId, perception);
       next.metadata.perception_id = perception.perceptionId;
+
+      const store = this.getVectorStoreForModality(modality);
+      if (store) {
+        await store.upsertVector({
+          id: memoryId,
+          vector: perception.encoding,
+          payload: {
+            content: next.content,
+            memoryType: next.memoryType,
+            userId: next.userId,
+            importance: next.importance,
+            timestamp: next.timestamp.toISOString(),
+            metadata: next.metadata,
+          },
+        });
+      }
+
+      if (this.blobStore) {
+        await this.blobStore.putBlob(memoryId, raw as Buffer | string, {
+          modality,
+        });
+      }
+    }
+
+    if (this.kvStore) {
+      await this.kvStore.put(memoryId, next);
     }
 
     this.perceptualMemories[idx] = next;
     return true;
   }
 
-  remove(memoryId: string): boolean {
+  async remove(memoryId: string): Promise<boolean> {
     const idx = this.perceptualMemories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
 
@@ -134,20 +221,32 @@ export class PerceptualMemory extends BaseMemory {
       modality,
       arr.filter((x) => x !== pid),
     );
+
+    const store = this.getVectorStoreForModality(modality);
+    if (store) {
+      await store.deleteVector(memoryId);
+    }
+    if (this.blobStore) {
+      await this.blobStore.deleteBlob(memoryId);
+    }
+    if (this.kvStore) {
+      await this.kvStore.delete(memoryId);
+    }
+
     return true;
   }
 
-  hasMemory(memoryId: string): boolean {
+  async hasMemory(memoryId: string): Promise<boolean> {
     return this.perceptualMemories.some((m) => m.id === memoryId);
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.perceptualMemories.length = 0;
     this.perceptions.clear();
     this.modalityIndex.clear();
   }
 
-  getStats(): Record<string, unknown> {
+  async getStats(): Promise<Record<string, unknown>> {
     const modalityCounts: Record<string, number> = {};
     for (const [mod, ids] of this.modalityIndex.entries()) {
       modalityCounts[mod] = ids.length;
@@ -168,31 +267,34 @@ export class PerceptualMemory extends BaseMemory {
     };
   }
 
-  crossModalSearch(
+  async crossModalSearch(
     query: unknown,
     queryModality: PerceptualModality,
     targetModality?: PerceptualModality,
     limit = 5,
-  ): MemoryItem[] {
+  ): Promise<MemoryItem[]> {
     return this.retrieve(String(query ?? ""), limit, {
       queryModality,
       targetModality,
     });
   }
 
-  getByModality(modality: PerceptualModality, limit = 10): MemoryItem[] {
+  async getByModality(
+    modality: PerceptualModality,
+    limit = 10,
+  ): Promise<MemoryItem[]> {
     return this.perceptualMemories
       .filter((m) => m.metadata.modality === modality)
       .slice(0, Math.max(1, Math.floor(limit)));
   }
 
-  generateContent(
+  async generateContent(
     prompt: string,
     targetModality: PerceptualModality,
-  ): string | null {
+  ): Promise<string | null> {
     if (!this.supportedModalities.has(targetModality)) return null;
 
-    const relevant = this.retrieve(prompt, 3, {targetModality});
+    const relevant = await this.retrieve(prompt, 3, {targetModality});
     if (!relevant.length) return null;
 
     if (targetModality === "text") {
@@ -231,6 +333,70 @@ export class PerceptualMemory extends BaseMemory {
     }
     // lightweight deterministic hash embedding for non-text modalities
     return hashToVector(String(data ?? ""), 384);
+  }
+
+  private getVectorStoreForModality(
+    modality?: PerceptualModality,
+  ): VectorStoreAdapter | undefined {
+    const key = modality ?? "text";
+    return this.vectorStores[key] ?? this.vectorStore;
+  }
+
+  private mergeAdapterResults(
+    vectorResults: Array<{id: string; score: number; payload: Record<string, unknown>}>,
+    limit: number,
+    targetModality?: PerceptualModality,
+  ): MemoryItem[] {
+    const nowMs = Date.now();
+    const items = vectorResults
+      .map((result) => {
+        const payload = result.payload;
+        const timestamp = payload.timestamp
+          ? new Date(String(payload.timestamp))
+          : new Date();
+        const importance =
+          typeof payload.importance === "number" ? payload.importance : 0.5;
+        const ageDays = Math.max(0, (nowMs - timestamp.getTime()) / 86400000);
+        const recencyScore = 1 / (1 + ageDays);
+        const base = result.score * 0.8 + recencyScore * 0.2;
+        const weight = 0.8 + importance * 0.4;
+        const combined = base * weight;
+
+        const item: MemoryItem = {
+          id: String(result.id),
+          content: String(payload.content ?? ""),
+          memoryType: (payload.memoryType as MemoryItem["memoryType"]) ?? "perceptual",
+          userId: String(payload.userId ?? ""),
+          timestamp,
+          importance,
+          metadata: {
+            ...(payload.metadata as Record<string, unknown>),
+          },
+        };
+
+        return {
+          score: combined,
+          vectorScore: result.score,
+          recencyScore,
+          item,
+        };
+      })
+      .filter((entry) =>
+        targetModality ? entry.item.metadata.modality === targetModality : true,
+      )
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, Math.floor(limit)))
+      .map((entry) => ({
+        ...entry.item,
+        metadata: {
+          ...entry.item.metadata,
+          relevance_score: entry.score,
+          vector_score: entry.vectorScore,
+          recency_score: entry.recencyScore,
+        },
+      }));
+
+    return items;
   }
 }
 

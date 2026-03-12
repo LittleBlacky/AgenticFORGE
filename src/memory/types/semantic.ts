@@ -1,23 +1,17 @@
 import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
 import {HashTextEmbedder} from "../rag/pipeline";
+import type {
+  Entity,
+  GraphStoreAdapter,
+  KVStoreAdapter,
+  Relation,
+  VectorStoreAdapter,
+} from "../storage";
 
-export interface Entity {
-  entityId: string;
-  name: string;
-  entityType: string;
-  description: string;
-  properties: Record<string, unknown>;
-  frequency: number;
-}
-
-export interface Relation {
-  fromEntity: string;
-  toEntity: string;
-  relationType: string;
-  strength: number;
-  evidence: string;
-  properties: Record<string, unknown>;
-  frequency: number;
+export interface SemanticStorageAdapters {
+  vectorStore?: VectorStoreAdapter;
+  graphStore?: GraphStoreAdapter;
+  kvStore?: KVStoreAdapter<MemoryItem>;
 }
 
 export class SemanticMemory extends BaseMemory {
@@ -26,13 +20,22 @@ export class SemanticMemory extends BaseMemory {
   private readonly entities = new Map<string, Entity>();
   private readonly relations: Relation[] = [];
   private readonly embedder = new HashTextEmbedder(384);
+  private readonly vectorStore?: VectorStoreAdapter;
+  private readonly graphStore?: GraphStoreAdapter;
+  private readonly kvStore?: KVStoreAdapter<MemoryItem>;
 
-  constructor(config: Partial<MemoryConfig> = {}) {
+  constructor(
+    config: Partial<MemoryConfig> = {},
+    adapters: SemanticStorageAdapters = {},
+  ) {
     super(config);
+    this.vectorStore = adapters.vectorStore;
+    this.graphStore = adapters.graphStore;
+    this.kvStore = adapters.kvStore;
   }
 
-  add(memoryItem: MemoryItem): string {
-    const vec = this.embed(memoryItem.content);
+  async add(memoryItem: MemoryItem): Promise<string> {
+    const vec = await this.embed(memoryItem.content);
     this.embeddings.set(memoryItem.id, vec);
 
     const entities = this.extractEntities(memoryItem.content);
@@ -42,22 +45,84 @@ export class SemanticMemory extends BaseMemory {
     for (const r of relations) this.addOrUpdateRelation(r);
 
     memoryItem.metadata.entities = entities.map((e) => e.entityId);
-    memoryItem.metadata.relations = relations.map((r) => `${r.fromEntity}-${r.relationType}-${r.toEntity}`);
+    memoryItem.metadata.relations = relations.map(
+      (r) => `${r.fromEntity}-${r.relationType}-${r.toEntity}`,
+    );
+
+    if (this.vectorStore) {
+      await this.vectorStore.upsertVector({
+        id: memoryItem.id,
+        vector: vec,
+        payload: {
+          content: memoryItem.content,
+          memoryType: memoryItem.memoryType,
+          userId: memoryItem.userId,
+          importance: memoryItem.importance,
+          timestamp: memoryItem.timestamp.toISOString(),
+          metadata: memoryItem.metadata,
+        },
+      });
+    }
+
+    if (this.graphStore) {
+      await this.graphStore.upsertEntities(entities);
+      await this.graphStore.upsertRelations(relations);
+    }
+
+    if (this.kvStore) {
+      await this.kvStore.put(memoryItem.id, memoryItem);
+    }
 
     this.memories.push(memoryItem);
     return memoryItem.id;
   }
 
-  retrieve(query: string, limit = 5, options: Record<string, unknown> = {}): MemoryItem[] {
+  async retrieve(
+    query: string,
+    limit = 5,
+    options: Record<string, unknown> = {},
+  ): Promise<MemoryItem[]> {
     const userId = typeof options.userId === "string" ? options.userId : undefined;
-    const qv = this.embed(query);
+    const qv = await this.embed(query);
+
+    const vectorResults = this.vectorStore
+      ? await this.vectorStore.queryVector({
+          vector: qv,
+          limit,
+          filter: {
+            memoryType: "semantic",
+            userId: userId ?? undefined,
+          },
+        })
+      : [];
+
+    const graphResults = this.graphStore
+      ? await this.graphStore.queryGraph({queryText: query, limit})
+      : [];
+
+    if (vectorResults.length || graphResults.length) {
+      const merged = this.mergeAdapterResults(
+        vectorResults,
+        graphResults,
+        limit,
+        userId,
+      );
+      return merged.filter((item) => {
+        if (item.memoryType !== "semantic") return false;
+        const score = item.metadata.combined_score;
+        return typeof score === "number" ? score >= 0.1 : false;
+      });
+    }
 
     const scored = this.memories
       .filter((m) => (userId ? m.userId === userId : true))
       .map((m) => {
         const mv = this.embeddings.get(m.id) ?? [];
         const vectorScore = cosine(qv, mv);
-        const graphScore = this.graphScore(m.metadata.entities as string[] | undefined, query);
+        const graphScore = this.graphScore(
+          m.metadata.entities as string[] | undefined,
+          query,
+        );
         const base = vectorScore * 0.7 + graphScore * 0.3;
         const weight = 0.8 + m.importance * 0.4;
         return {score: base * weight, item: m, vectorScore, graphScore};
@@ -76,7 +141,12 @@ export class SemanticMemory extends BaseMemory {
     }));
   }
 
-  update(memoryId: string, content?: string, importance?: number, metadata?: Record<string, unknown>): boolean {
+  async update(
+    memoryId: string,
+    content?: string,
+    importance?: number,
+    metadata?: Record<string, unknown>,
+  ): Promise<boolean> {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
 
@@ -84,46 +154,86 @@ export class SemanticMemory extends BaseMemory {
     const next: MemoryItem = {
       ...old,
       content: content ?? old.content,
-      importance: typeof importance === "number" ? clamp01(importance) : old.importance,
+      importance:
+        typeof importance === "number" ? clamp01(importance) : old.importance,
       metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
     };
 
     if (content !== undefined) {
-      this.embeddings.set(memoryId, this.embed(content));
+      const vec = await this.embed(content);
+      this.embeddings.set(memoryId, vec);
+
       const entities = this.extractEntities(content);
       const relations = this.extractRelations(content, entities);
       next.metadata.entities = entities.map((e) => e.entityId);
-      next.metadata.relations = relations.map((r) => `${r.fromEntity}-${r.relationType}-${r.toEntity}`);
+      next.metadata.relations = relations.map(
+        (r) => `${r.fromEntity}-${r.relationType}-${r.toEntity}`,
+      );
       for (const e of entities) this.addOrUpdateEntity(e);
       for (const r of relations) this.addOrUpdateRelation(r);
+
+      if (this.vectorStore) {
+        await this.vectorStore.upsertVector({
+          id: memoryId,
+          vector: vec,
+          payload: {
+            content: next.content,
+            memoryType: next.memoryType,
+            userId: next.userId,
+            importance: next.importance,
+            timestamp: next.timestamp.toISOString(),
+            metadata: next.metadata,
+          },
+        });
+      }
+
+      if (this.graphStore) {
+        await this.graphStore.upsertEntities(entities);
+        await this.graphStore.upsertRelations(relations);
+      }
+
+      if (this.kvStore) {
+        await this.kvStore.put(memoryId, next);
+      }
     }
 
     this.memories[idx] = next;
     return true;
   }
 
-  remove(memoryId: string): boolean {
+  async remove(memoryId: string): Promise<boolean> {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
     this.memories.splice(idx, 1);
     this.embeddings.delete(memoryId);
+
+    if (this.vectorStore) {
+      await this.vectorStore.deleteVector(memoryId);
+    }
+    if (this.graphStore) {
+      await this.graphStore.deleteByMemoryId(memoryId);
+    }
+    if (this.kvStore) {
+      await this.kvStore.delete(memoryId);
+    }
     return true;
   }
 
-  hasMemory(memoryId: string): boolean {
+  async hasMemory(memoryId: string): Promise<boolean> {
     return this.memories.some((m) => m.id === memoryId);
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.memories.length = 0;
     this.embeddings.clear();
     this.entities.clear();
     this.relations.length = 0;
   }
 
-  getStats(): Record<string, unknown> {
+  async getStats(): Promise<Record<string, unknown>> {
     const avgImportance = this.memories.length
-      ? this.memories.reduce((acc, m) => acc + m.importance, 0) / this.memories.length
+      ? this.memories.reduce((acc, m) => acc + m.importance, 0) /
+        this.memories.length
       : 0;
 
     return {
@@ -135,8 +245,8 @@ export class SemanticMemory extends BaseMemory {
     };
   }
 
-  private embed(text: string): number[] {
-    const raw = this.embedder.encode(text);
+  private async embed(text: string): Promise<number[]> {
+    const raw = await this.embedder.encode(text);
     if (Array.isArray(raw) && typeof raw[0] === "number") {
       return raw as number[];
     }
@@ -185,7 +295,10 @@ export class SemanticMemory extends BaseMemory {
       this.entities.set(entity.entityId, entity);
       return;
     }
-    this.entities.set(entity.entityId, {...existing, frequency: existing.frequency + 1});
+    this.entities.set(entity.entityId, {
+      ...existing,
+      frequency: existing.frequency + 1,
+    });
   }
 
   private addOrUpdateRelation(relation: Relation): void {
@@ -200,7 +313,11 @@ export class SemanticMemory extends BaseMemory {
       return;
     }
     const prev = this.relations[idx];
-    this.relations[idx] = {...prev, frequency: prev.frequency + 1, strength: Math.min(1, prev.strength + 0.1)};
+    this.relations[idx] = {
+      ...prev,
+      frequency: prev.frequency + 1,
+      strength: Math.min(1, prev.strength + 0.1),
+    };
   }
 
   private graphScore(entityIds: string[] | undefined, query: string): number {
@@ -212,6 +329,81 @@ export class SemanticMemory extends BaseMemory {
       if (e && lower.includes(e.name.toLowerCase())) matched += 1;
     }
     return matched / entityIds.length;
+  }
+
+  private mergeAdapterResults(
+    vectorResults: Array<{id: string; score: number; payload: Record<string, unknown>}>,
+    graphResults: Array<{entityId: string; score: number}>,
+    limit: number,
+    userId?: string,
+  ): MemoryItem[] {
+    const graphScoreMap = new Map<string, number>();
+    for (const result of graphResults) {
+      graphScoreMap.set(result.entityId, result.score);
+    }
+
+    const entries = vectorResults
+      .map((result) => {
+        const payload = result.payload;
+        const importance = typeof payload.importance === "number" ? payload.importance : 0.5;
+        const item: MemoryItem = {
+          id: String(result.id),
+          content: String(payload.content ?? ""),
+          memoryType: (payload.memoryType as MemoryItem["memoryType"]) ?? "semantic",
+          userId: String(payload.userId ?? ""),
+          timestamp: payload.timestamp ? new Date(String(payload.timestamp)) : new Date(),
+          importance,
+          metadata: {
+            ...(payload.metadata as Record<string, unknown>),
+          },
+        };
+
+        const graphScore = graphScoreMap.get(result.id) ?? 0;
+        const base = result.score * 0.7 + graphScore * 0.3;
+        const weight = 0.8 + importance * 0.4;
+        const score = base * weight;
+
+        return {
+          score,
+          item: {
+            ...item,
+            metadata: {
+              ...item.metadata,
+              combined_score: score,
+              vector_score: result.score,
+              graph_score: graphScore,
+            },
+          },
+        };
+      })
+      .filter((entry) => (userId ? entry.item.userId === userId : true));
+
+    const deduped = new Map<string, {score: number; item: MemoryItem}>();
+    for (const entry of entries) {
+      const prev = deduped.get(entry.item.id);
+      if (!prev || entry.score > prev.score) {
+        deduped.set(entry.item.id, entry);
+      }
+    }
+
+    const merged = [...deduped.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, Math.floor(limit)))
+      .map((entry) => entry.item);
+
+    if (merged.length > 0) {
+      return merged;
+    }
+
+    if (this.kvStore) {
+      const items = this.kvStore
+        .list({limit})
+        .filter((item) => (userId ? (item as MemoryItem).userId === userId : true))
+        .map((item) => item as MemoryItem);
+      return items.slice(0, Math.max(1, Math.floor(limit)));
+    }
+
+    return [];
   }
 }
 

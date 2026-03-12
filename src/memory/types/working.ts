@@ -15,7 +15,7 @@ export class WorkingMemory extends BaseMemory {
     this.maxAgeMinutes = this.config.workingMemoryTtlMinutes;
   }
 
-  add(memoryItem: MemoryItem): string {
+  async add(memoryItem: MemoryItem): Promise<string> {
     this.expireOldMemories();
     this.memories.push(memoryItem);
     this.currentTokens += tokenLen(memoryItem.content);
@@ -23,11 +23,11 @@ export class WorkingMemory extends BaseMemory {
     return memoryItem.id;
   }
 
-  retrieve(
+  async retrieve(
     query: string,
     limit = 5,
     options: Record<string, unknown> = {},
-  ): MemoryItem[] {
+  ): Promise<MemoryItem[]> {
     this.expireOldMemories();
     if (this.memories.length === 0) return [];
 
@@ -51,12 +51,12 @@ export class WorkingMemory extends BaseMemory {
     return scored.slice(0, Math.max(1, Math.floor(limit))).map((x) => x.item);
   }
 
-  update(
+  async update(
     memoryId: string,
     content?: string,
     importance?: number,
     metadata?: Record<string, unknown>,
-  ): boolean {
+  ): Promise<boolean> {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
 
@@ -79,7 +79,7 @@ export class WorkingMemory extends BaseMemory {
     return true;
   }
 
-  remove(memoryId: string): boolean {
+  async remove(memoryId: string): Promise<boolean> {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
     const [removed] = this.memories.splice(idx, 1);
@@ -90,16 +90,16 @@ export class WorkingMemory extends BaseMemory {
     return true;
   }
 
-  hasMemory(memoryId: string): boolean {
+  async hasMemory(memoryId: string): Promise<boolean> {
     return this.memories.some((m) => m.id === memoryId);
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.memories = [];
     this.currentTokens = 0;
   }
 
-  getStats(): Record<string, unknown> {
+  async getStats(): Promise<Record<string, unknown>> {
     this.expireOldMemories();
     const avgImportance = this.memories.length
       ? this.memories.reduce((acc, cur) => acc + cur.importance, 0) /
@@ -124,13 +124,13 @@ export class WorkingMemory extends BaseMemory {
     };
   }
 
-  forget(
+  async forget(
     strategy = "importance_based",
     threshold = 0.1,
     maxAgeDays = 1,
-  ): number {
+  ): Promise<number> {
     this.expireOldMemories();
-    let before = this.memories.length;
+    const before = this.memories.length;
 
     if (strategy === "importance_based") {
       this.memories = this.memories.filter((m) => m.importance >= threshold);
@@ -156,25 +156,25 @@ export class WorkingMemory extends BaseMemory {
     return before - this.memories.length;
   }
 
-  getRecent(limit = 10): MemoryItem[] {
+  async getRecent(limit = 10): Promise<MemoryItem[]> {
     return this.memories
       .slice()
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, Math.max(1, Math.floor(limit)));
   }
 
-  getImportant(limit = 10): MemoryItem[] {
+  async getImportant(limit = 10): Promise<MemoryItem[]> {
     return this.memories
       .slice()
       .sort((a, b) => b.importance - a.importance)
       .slice(0, Math.max(1, Math.floor(limit)));
   }
 
-  getAll(): MemoryItem[] {
+  async getAll(): Promise<MemoryItem[]> {
     return this.memories.slice();
   }
 
-  getContextSummary(maxLength = 500): string {
+  async getContextSummary(maxLength = 500): Promise<string> {
     if (!this.memories.length) return "No working memories available.";
 
     const sorted = this.memories

@@ -8,5 +8,5 @@ export {SemanticMemory} from "./semantic";
 export {PerceptualMemory} from "./perceptual";
 
 export type {Episode} from "./episodic";
-export type {Entity, Relation} from "./semantic";
+export type {Entity, Relation} from "../storage";
 export type {Perception, PerceptualModality} from "./perceptual";
