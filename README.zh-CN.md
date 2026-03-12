@@ -1,12 +1,8 @@
 <p align="center">
-  <img src="assets/LOGO.png" alt="Blacky Agents SDK" width="300" />
+  <img src="assets/LOGO.png" alt="Blacky Agents SDK" width="200" />
 </p>
 
-<h3 align="center">A TypeScript SDK for building classic agent workflows with a pluggable memory system.</h3>
-
-<p align="center">
-  English · <a href="README.zh-CN.md">中文</a>
-</p>
+<h3 align="center">用于构建经典 Agent 工作流与可插拔记忆系统的 TypeScript SDK。</h3>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/blacky-agents-sdk"><img src="https://img.shields.io/npm/v/blacky-agents-sdk" alt="npm version" /></a>
@@ -14,19 +10,23 @@
   <a href="https://github.com/blacky-ai/blacky-agents-sdk/blob/main/LICENSE"><img src="https://img.shields.io/github/license/blacky-ai/blacky-agents-sdk" alt="license" /></a>
 </p>
 
-## Overview
+<p align="center">
+  <a href="README.md">English</a> · 中文
+</p>
 
-Blacky Agents SDK is a framework-style TypeScript library for implementing classic agent patterns such as ReAct, Plan-and-Solve, and Reflection. It includes a composable memory subsystem (working, episodic, semantic, perceptual) with a storage adapter layer that supports in-memory, Qdrant, Neo4j, and custom backends.
+## 概述
 
-## Features
+Blacky Agents SDK 是一个框架式 TypeScript 库，用于实现经典的 Agent 模式（ReAct、Plan-and-Solve、Reflection）。内置可组合的多类型记忆系统（工作记忆、情景记忆、语义记忆、感知记忆），并提供存储适配层，支持内存、Qdrant、Neo4j 以及自定义后端。
 
-- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection patterns
-- **Multi-type memory model**: Working, Episodic, Semantic, Perceptual
-- **Pluggable storage adapters**: KV / Vector / Graph / Blob backends
-- **Built-in fallback**: Automatic degradation to in-memory adapters
-- **Extensible registry**: Register custom storage backends at runtime
+## 特性
 
-## Installation
+- **经典 Agent 工作流**：ReAct、Plan-and-Solve、Reflection
+- **多类型记忆模型**：工作 / 情景 / 语义 / 感知
+- **可插拔存储适配**：KV / 向量 / 图 / Blob 后端
+- **内置降级策略**：外部存储不可用时自动回退到内存
+- **注册式扩展**：运行时注册自定义后端
+
+## 安装
 
 ```bash
 pnpm add blacky-agents-sdk
@@ -34,9 +34,9 @@ pnpm add blacky-agents-sdk
 npm install blacky-agents-sdk
 ```
 
-## Quick Start
+## 快速开始
 
-Create a memory manager and store/retrieve semantic memory.
+创建 MemoryManager 并写入/检索语义记忆。
 
 ```ts
 import {MemoryManager} from "blacky-agents-sdk/memory";
@@ -63,11 +63,11 @@ const results = await manager.retrieveMemories({
 console.log(id, results.map((r) => r.content));
 ```
 
-## Storage Adapters
+## 存储适配器
 
-Use adapters via factory configs or direct instance injection.
+支持工厂配置或直接注入实例。
 
-### Factory + Adapter Configs
+### 工厂 + 配置
 
 ```ts
 import {MemoryManager} from "blacky-agents-sdk/memory";
@@ -88,7 +88,7 @@ const manager = new MemoryManager({
 await manager.initialize();
 ```
 
-### Direct Injection
+### 直接注入
 
 ```ts
 import {MemoryManager} from "blacky-agents-sdk/memory";
@@ -103,33 +103,32 @@ const manager = new MemoryManager({
 });
 ```
 
-## Local Dev: Qdrant + Neo4j
+## 本地开发：Qdrant + Neo4j
 
-The repo includes a `docker-compose.yml` for spinning up Qdrant and Neo4j.
+仓库内提供 `docker-compose.yml`，可直接启动 Qdrant 与 Neo4j。
 
 ```bash
 docker compose up -d
 ```
 
-## Examples
+## 示例
 
-- `examples/memory.adapter.demo.ts` — adapter factory usage + fallback strategy
-- `examples/memory.storage.demo.ts` — Qdrant + Neo4j + blob store integration
+- `examples/memory.adapter.demo.ts` — 适配器工厂用法 + 降级策略
+- `examples/memory.storage.demo.ts` — Qdrant + Neo4j + Blob 存储集成
 
-Run an example:
+运行示例：
 
 ```bash
 pnpm example
 ```
 
-## Documentation
+## 文档
 
-- English: `docs/08-Memory 存储适配层架构设计文档（下）.md` — storage adapter extension & best practices
-- 中文: `docs/08-Memory 存储适配层架构设计文档（下）.md` — 存储适配层扩展与最佳实践
+- `docs/08-Memory 存储适配层架构设计文档（下）.md` — 存储适配层扩展与最佳实践
 
-## Contributing
+## 贡献
 
-Contributions are welcome. Please open an issue or pull request to discuss changes.
+欢迎贡献。请先创建 issue 或 pull request 讨论变更。
 
 ## License
 
