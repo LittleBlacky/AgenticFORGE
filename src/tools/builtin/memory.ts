@@ -1,3 +1,4 @@
+import {z} from "zod";
 import {Tool, type ToolParameter, toolAction} from "../Tool";
 import {
   MemoryManager,
@@ -34,6 +35,62 @@ type MemoryAction =
   | "forget"
   | "consolidate"
   | "clear_all";
+
+type MemoryActionSchemas = {
+  add: z.ZodObject<{
+    action: z.ZodLiteral<"add">;
+    content: z.ZodString;
+    memory_type: z.ZodOptional<z.ZodString>;
+    importance: z.ZodOptional<z.ZodNumber>;
+    file_path: z.ZodOptional<z.ZodString>;
+    modality: z.ZodOptional<z.ZodString>;
+  }>;
+  search: z.ZodObject<{
+    action: z.ZodLiteral<"search">;
+    query: z.ZodString;
+    limit: z.ZodOptional<z.ZodNumber>;
+    memory_type: z.ZodOptional<z.ZodString>;
+    min_importance: z.ZodOptional<z.ZodNumber>;
+  }>;
+  summary: z.ZodObject<{
+    action: z.ZodLiteral<"summary">;
+    limit: z.ZodOptional<z.ZodNumber>;
+  }>;
+  stats: z.ZodObject<{
+    action: z.ZodLiteral<"stats">;
+  }>;
+  update: z.ZodObject<{
+    action: z.ZodLiteral<"update">;
+    memory_id: z.ZodString;
+    content: z.ZodOptional<z.ZodString>;
+    importance: z.ZodOptional<z.ZodNumber>;
+  }>;
+  remove: z.ZodObject<{
+    action: z.ZodLiteral<"remove">;
+    memory_id: z.ZodString;
+  }>;
+  forget: z.ZodObject<{
+    action: z.ZodLiteral<"forget">;
+    strategy: z.ZodOptional<z.ZodString>;
+    threshold: z.ZodOptional<z.ZodNumber>;
+    max_age_days: z.ZodOptional<z.ZodNumber>;
+  }>;
+  consolidate: z.ZodObject<{
+    action: z.ZodLiteral<"consolidate">;
+    from_type: z.ZodOptional<z.ZodString>;
+    to_type: z.ZodOptional<z.ZodString>;
+    importance_threshold: z.ZodOptional<z.ZodNumber>;
+  }>;
+  clear_all: z.ZodObject<{
+    action: z.ZodLiteral<"clear_all">;
+  }>;
+};
+
+type MemoryActionInputs = {
+  [K in keyof MemoryActionSchemas]: z.infer<MemoryActionSchemas[K]>;
+};
+
+type MemoryActionInput = MemoryActionInputs[keyof MemoryActionInputs];
 
 export class MemoryTool extends Tool {
   private readonly memoryTypes: MemoryType[];
@@ -83,13 +140,22 @@ export class MemoryTool extends Tool {
       return `❌ 参数验证失败: ${validation.error}`;
     }
 
-    const p = validation.data;
-    const action = String(p.action ?? "") as MemoryAction;
+    const action = String(validation.data.action ?? "") as MemoryAction;
+    const actionValidation = this.validateActionParameters(
+      action,
+      validation.data,
+    );
+
+    if (!actionValidation.success) {
+      return `❌ 参数验证失败: ${actionValidation.error}`;
+    }
+
+    const p = actionValidation.data;
 
     switch (action) {
       case "add":
         return this.addMemory(
-          String(p.content ?? ""),
+          p.content,
           this.toMemoryType(p.memory_type),
           this.toNumber(p.importance, 0.5),
           this.toOptionalString(p.file_path),
@@ -97,7 +163,7 @@ export class MemoryTool extends Tool {
         );
       case "search":
         return this.searchMemory(
-          String(p.query ?? ""),
+          p.query,
           this.toNumber(p.limit, 5),
           this.toOptionalString(p.memory_type),
           this.toNumber(p.min_importance, 0.1),
@@ -549,6 +615,102 @@ export class MemoryTool extends Tool {
   private clamp01(value: number | undefined, fallback: number): number {
     if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
     return Math.max(0, Math.min(1, value));
+  }
+
+  private buildActionSchemas(): MemoryActionSchemas {
+    return {
+      add: z
+        .object({
+          action: z.literal("add"),
+          content: z.string().min(1, "content 不能为空"),
+          memory_type: z.string().optional(),
+          importance: z.number().min(0).max(1).optional(),
+          file_path: z.string().optional(),
+          modality: z.string().optional(),
+        })
+        .strict(),
+      search: z
+        .object({
+          action: z.literal("search"),
+          query: z.string().min(1, "query 不能为空"),
+          limit: z.number().int().min(1).optional(),
+          memory_type: z.string().optional(),
+          min_importance: z.number().min(0).max(1).optional(),
+        })
+        .strict(),
+      summary: z
+        .object({
+          action: z.literal("summary"),
+          limit: z.number().int().min(1).optional(),
+        })
+        .strict(),
+      stats: z
+        .object({
+          action: z.literal("stats"),
+        })
+        .strict(),
+      update: z
+        .object({
+          action: z.literal("update"),
+          memory_id: z.string().min(1, "memory_id 不能为空"),
+          content: z.string().optional(),
+          importance: z.number().min(0).max(1).optional(),
+        })
+        .strict(),
+      remove: z
+        .object({
+          action: z.literal("remove"),
+          memory_id: z.string().min(1, "memory_id 不能为空"),
+        })
+        .strict(),
+      forget: z
+        .object({
+          action: z.literal("forget"),
+          strategy: z
+            .enum(["importance_based", "time_based", "capacity_based"])
+            .optional(),
+          threshold: z.number().min(0).max(1).optional(),
+          max_age_days: z.number().int().min(1).optional(),
+        })
+        .strict(),
+      consolidate: z
+        .object({
+          action: z.literal("consolidate"),
+          from_type: z.string().optional(),
+          to_type: z.string().optional(),
+          importance_threshold: z.number().min(0).max(1).optional(),
+        })
+        .strict(),
+      clear_all: z
+        .object({
+          action: z.literal("clear_all"),
+        })
+        .strict(),
+    };
+  }
+
+  private validateActionParameters(
+    action: MemoryAction,
+    parameters: Record<string, unknown>,
+  ):
+    | {success: true; data: MemoryActionInput}
+    | {success: false; error: string} {
+    const schemas = this.buildActionSchemas();
+    const schema = schemas[action];
+
+    if (!schema) {
+      return {success: false, error: `不支持的操作: ${action}`};
+    }
+
+    const parsed = schema.safeParse(parameters);
+    if (!parsed.success) {
+      const details = parsed.error.issues
+        .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
+        .join("; ");
+      return {success: false, error: details};
+    }
+
+    return {success: true, data: parsed.data};
   }
 }
 
