@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/LOGO.png" alt="Blacky Agents SDK" width="200" />
+  <img src="assets/LOGO.png" alt="Blacky Agents SDK" width="300" />
 </p>
 
 <h3 align="center">A TypeScript SDK for building classic agent workflows with a pluggable memory system.</h3>
