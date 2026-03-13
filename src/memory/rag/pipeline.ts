@@ -655,6 +655,10 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
     return;
   }
 
+  if (!options.store) {
+    throw new Error("VectorStoreAdapter is required for indexChunks");
+  }
+
   const embedder = options.embedder ?? new HashTextEmbedder(dimension);
   const store = options.store;
 
@@ -731,6 +735,10 @@ export async function searchVectors(
 
   if (!query.trim()) {
     return [];
+  }
+
+  if (!options.store) {
+    throw new Error("VectorStoreAdapter is required for searchVectors");
   }
 
   const store = options.store;
@@ -826,6 +834,10 @@ export async function searchVectorsExpanded(
 
   if (!query.trim()) {
     return [];
+  }
+
+  if (!options.store) {
+    throw new Error("VectorStoreAdapter is required for searchVectorsExpanded");
   }
 
   const store = options.store;
