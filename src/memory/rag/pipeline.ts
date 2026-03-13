@@ -170,6 +170,15 @@ export interface LoadAndChunkTextsOptions {
   markitdownAdapter?: MarkitdownAdapter;
 }
 
+export interface LoadedDocument {
+  filePath: string;
+  ext: string;
+  markdownText: string;
+  lang: string;
+  docId: string;
+  paragraphs: Paragraph[];
+}
+
 export function isMarkitdownSupportedFormat(filePath: string): boolean {
   const ext = (path.extname(filePath) || "").toLowerCase();
   const supported = new Set([
@@ -438,20 +447,11 @@ function emitChunk(paragraphs: Paragraph[]): TokenChunk {
   };
 }
 
-export function loadAndChunkTexts(
+export function loadDocuments(
   options: LoadAndChunkTextsOptions,
-): RagChunk[] {
-  const {
-    paths,
-    chunkSize = 800,
-    chunkOverlap = 100,
-    namespace,
-    sourceLabel = "rag",
-    markitdownAdapter,
-  } = options;
-
-  const chunks: RagChunk[] = [];
-  const seenHashes = new Set<string>();
+): LoadedDocument[] {
+  const {paths, markitdownAdapter} = options;
+  const loaded: LoadedDocument[] = [];
 
   for (const filePath of paths) {
     if (!fs.existsSync(filePath)) {
@@ -466,9 +466,38 @@ export function loadAndChunkTexts(
 
     const lang = detectLang(markdownText);
     const docId = md5(`${filePath}|${markdownText.length}`);
-    const paras = splitParagraphsWithHeadings(markdownText);
+    const paragraphs = splitParagraphsWithHeadings(markdownText);
+
+    loaded.push({
+      filePath,
+      ext,
+      markdownText,
+      lang,
+      docId,
+      paragraphs,
+    });
+  }
+
+  return loaded;
+}
+
+export function loadAndChunkTexts(
+  options: LoadAndChunkTextsOptions,
+): RagChunk[] {
+  const {
+    chunkSize = 800,
+    chunkOverlap = 100,
+    namespace,
+    sourceLabel = "rag",
+  } = options;
+
+  const chunks: RagChunk[] = [];
+  const seenHashes = new Set<string>();
+  const loadedDocs = loadDocuments(options);
+
+  for (const doc of loadedDocs) {
     const tokenChunks = chunkParagraphs(
-      paras,
+      doc.paragraphs,
       Math.max(1, chunkSize),
       Math.max(0, chunkOverlap),
     );
@@ -484,15 +513,15 @@ export function loadAndChunkTexts(
       }
       seenHashes.add(contentHash);
 
-      const chunkId = md5(`${docId}|${ch.start}|${ch.end}|${contentHash}`);
+      const chunkId = md5(`${doc.docId}|${ch.start}|${ch.end}|${contentHash}`);
       chunks.push({
         id: chunkId,
         content: ch.content,
         metadata: {
-          source_path: filePath,
-          file_ext: ext,
-          doc_id: docId,
-          lang,
+          source_path: doc.filePath,
+          file_ext: doc.ext,
+          doc_id: doc.docId,
+          lang: doc.lang,
           start: ch.start,
           end: ch.end,
           content_hash: contentHash,
@@ -586,11 +615,29 @@ export function preprocessMarkdownForEmbedding(text: string): string {
   return out.trim();
 }
 
+export function buildRagMetadata(
+  chunk: RagChunk,
+  ragNamespace = "default",
+  userId = "rag_user",
+): RagChunkMetadata {
+  return {
+    memory_id: chunk.id,
+    user_id: userId,
+    memory_type: "rag_chunk",
+    content: chunk.content,
+    data_source: "rag_pipeline",
+    rag_namespace: ragNamespace,
+    is_rag_data: true,
+    ...chunk.metadata,
+  };
+}
+
 export interface IndexChunksOptions {
   store: VectorStoreAdapter;
   chunks?: RagChunk[];
   batchSize?: number;
   ragNamespace?: string;
+  ragUserId?: string;
   embedder?: TextEmbedder;
   dimension?: number;
 }
@@ -600,6 +647,7 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
     chunks = [],
     batchSize = 64,
     ragNamespace = "default",
+    ragUserId = "rag_user",
     dimension = 384,
   } = options;
 
@@ -625,16 +673,7 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
   const metadata: RagChunkMetadata[] = [];
   const ids: string[] = [];
   for (const ch of chunks) {
-    metadata.push({
-      memory_id: ch.id,
-      user_id: "rag_user",
-      memory_type: "rag_chunk",
-      content: ch.content,
-      data_source: "rag_pipeline",
-      rag_namespace: ragNamespace,
-      is_rag_data: true,
-      ...ch.metadata,
-    });
+    metadata.push(buildRagMetadata(ch, ragNamespace, ragUserId));
     ids.push(ch.id);
   }
 
@@ -1274,6 +1313,7 @@ export async function tldrSummarize(
 
 export interface CreateRagPipelineOptions {
   ragNamespace?: string;
+  ragUserId?: string;
   store?: VectorStoreAdapter;
   embedder?: TextEmbedder;
   dimension?: number;
@@ -1284,6 +1324,7 @@ export function createRagPipeline(
   options: CreateRagPipelineOptions = {},
 ): RagPipeline {
   const ragNamespace = options.ragNamespace ?? "default";
+  const ragUserId = options.ragUserId ?? "rag_user";
   const dimension = options.dimension ?? 384;
   const store = options.store ?? createDefaultVectorStore();
   const embedder = options.embedder ?? createDefaultTextEmbedder(dimension);
@@ -1306,6 +1347,7 @@ export function createRagPipeline(
       store,
       chunks,
       ragNamespace,
+      ragUserId,
       embedder,
       dimension,
     });
@@ -1402,54 +1444,6 @@ function normalize2DVectors(
   }
 
   return normalized.slice(0, expectedCount);
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    const len = Math.min(a.length, b.length);
-    return cosineSimilarity(a.slice(0, len), b.slice(0, len));
-  }
-
-  let dot = 0;
-  let an = 0;
-  let bn = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    dot += a[i] * b[i];
-    an += a[i] * a[i];
-    bn += b[i] * b[i];
-  }
-  const denom = Math.sqrt(an) * Math.sqrt(bn);
-  return denom > 0 ? dot / denom : 0;
-}
-
-function matchesWhere(
-  metadata: RagChunkMetadata,
-  where?: Record<string, unknown>,
-): boolean {
-  if (!where) {
-    return true;
-  }
-  for (const [key, value] of Object.entries(where)) {
-    if (metadata[key] !== value) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function toQdrantFilter(
-  where?: Record<string, unknown>,
-): Record<string, unknown> | undefined {
-  if (!where || Object.keys(where).length === 0) {
-    return undefined;
-  }
-
-  const must = Object.entries(where).map(([key, value]) => ({
-    key,
-    match: {value},
-  }));
-
-  return {must};
 }
 
 function md5(input: string): string {
