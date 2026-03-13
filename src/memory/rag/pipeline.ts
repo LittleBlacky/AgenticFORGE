@@ -2,8 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
-import {QdrantClient} from "@qdrant/js-client-rest";
+import type {VectorStoreAdapter} from "../storage/types";
+import {InMemoryVectorStore as StorageInMemoryVectorStore} from "../storage/inMemory";
 import {LLMClient} from "../../core/llm";
+import {createDefaultTextEmbedder} from "../embedding";
 
 export interface RagChunkMetadata {
   source_path?: string;
@@ -40,37 +42,9 @@ export interface VectorSearchHit {
   metadata: RagChunkMetadata;
 }
 
-export interface VectorStore {
-  addVectors(input: {
-    vectors: number[][];
-    metadata: RagChunkMetadata[];
-    ids: string[];
-  }): Promise<boolean>;
-  searchSimilar(input: {
-    queryVector: number[];
-    limit: number;
-    scoreThreshold?: number;
-    where?: Record<string, unknown>;
-  }): Promise<VectorSearchHit[]>;
-  getCollectionStats(): Promise<Record<string, unknown>>;
-}
+export type VectorStore = VectorStoreAdapter;
 
-type QdrantDistance = "Cosine" | "Euclid" | "Dot" | "Manhattan";
-type QdrantDistanceInput =
-  | QdrantDistance
-  | "cosine"
-  | "euclid"
-  | "dot"
-  | "manhattan";
 
-export interface QdrantVectorStoreOptions {
-  url: string;
-  apiKey?: string;
-  collectionName?: string;
-  vectorSize?: number;
-  distance?: QdrantDistanceInput;
-  timeoutMs?: number;
-}
 export interface MarkitdownAdapter {
   convert: (filePath: string) => string;
 }
@@ -87,7 +61,7 @@ export interface OpenAITextEmbedderOptions {
 }
 
 export interface RagPipeline {
-  store: VectorStore;
+  store: VectorStoreAdapter;
   namespace: string;
   addDocuments: (
     filePaths: string[],
@@ -107,67 +81,6 @@ export interface RagPipeline {
     scoreThreshold?: number,
   ) => Promise<VectorSearchHit[]>;
   getStats: () => Promise<Record<string, unknown>>;
-}
-
-interface InternalPoint {
-  id: string;
-  vector: number[];
-  metadata: RagChunkMetadata;
-}
-
-export class InMemoryVectorStore implements VectorStore {
-  private readonly points = new Map<string, InternalPoint>();
-
-  async addVectors(input: {
-    vectors: number[][];
-    metadata: RagChunkMetadata[];
-    ids: string[];
-  }): Promise<boolean> {
-    const {vectors, metadata, ids} = input;
-    if (vectors.length !== metadata.length || vectors.length !== ids.length) {
-      throw new Error("vectors / metadata / ids length mismatch");
-    }
-
-    for (let i = 0; i < vectors.length; i += 1) {
-      this.points.set(ids[i], {
-        id: ids[i],
-        vector: vectors[i],
-        metadata: metadata[i],
-      });
-    }
-
-    return true;
-  }
-
-  async searchSimilar(input: {
-    queryVector: number[];
-    limit: number;
-    scoreThreshold?: number;
-    where?: Record<string, unknown>;
-  }): Promise<VectorSearchHit[]> {
-    const {queryVector, limit, scoreThreshold, where} = input;
-
-    const hits: VectorSearchHit[] = [];
-    for (const point of this.points.values()) {
-      if (!matchesWhere(point.metadata, where)) {
-        continue;
-      }
-      const score = cosineSimilarity(queryVector, point.vector);
-      if (scoreThreshold !== undefined && score < scoreThreshold) {
-        continue;
-      }
-      hits.push({id: point.id, score, metadata: point.metadata});
-    }
-
-    hits.sort((a, b) => b.score - a.score);
-    return hits.slice(0, limit);
-  }
-
-  async getCollectionStats(): Promise<Record<string, unknown>> {
-    return {
-      total_points: this.points.size,
-    };
-  }
 }
 
 export class HashTextEmbedder implements TextEmbedder {
@@ -218,7 +131,7 @@ export class OpenAITextEmbedder implements TextEmbedder {
 
     if (!model || !apiKey || !baseURL) {
       throw new Error(
-        "EMBEDDING_MODEL_ID, EMBEDDING_API_KEY, EMBEDDING_BASE_URL 必须在参数或 .env 中提供",
+        "EMBEDDING_MODEL_ID, EMBEDDING_API_KEY, EMBEDDING_BASE_URL 必须在参数或 .env 中提�?"
       );
     }
 
@@ -245,107 +158,6 @@ export class OpenAITextEmbedder implements TextEmbedder {
     });
     const first = response.data[0]?.embedding ?? [];
     return first.map((v) => Number(v));
-  }
-}
-
-export class QdrantVectorStore implements VectorStore {
-  private readonly collectionName: string;
-  private readonly vectorSize: number;
-  private readonly distance: QdrantDistance;
-  private readonly client: QdrantClient;
-  private collectionEnsured = false;
-
-  constructor(options: QdrantVectorStoreOptions) {
-    this.collectionName = options.collectionName ?? "hello_agents_rag_vectors";
-    this.vectorSize = options.vectorSize ?? 384;
-
-    const distanceRaw = (options.distance ?? "cosine").toString().toLowerCase();
-    const distanceMap: Record<string, QdrantDistance> = {
-      cosine: "Cosine",
-      euclid: "Euclid",
-      dot: "Dot",
-      manhattan: "Manhattan",
-    };
-    this.distance = distanceMap[distanceRaw] ?? "Cosine";
-
-    this.client = new QdrantClient({
-      url: options.url,
-      apiKey: options.apiKey,
-      timeout: options.timeoutMs ?? 30_000,
-    });
-  }
-
-  async addVectors(input: {
-    vectors: number[][];
-    metadata: RagChunkMetadata[];
-    ids: string[];
-  }): Promise<boolean> {
-    const {vectors, metadata, ids} = input;
-    if (vectors.length !== metadata.length || vectors.length !== ids.length) {
-      throw new Error("vectors / metadata / ids length mismatch");
-    }
-
-    await this.ensureCollection();
-
-    await this.client.upsert(this.collectionName, {
-      wait: true,
-      points: ids.map((id, index) => ({
-        id,
-        vector: normalize1DVector(vectors[index], this.vectorSize),
-        payload: metadata[index],
-      })),
-    });
-
-    return true;
-  }
-
-  async searchSimilar(input: {
-    queryVector: number[];
-    limit: number;
-    scoreThreshold?: number;
-    where?: Record<string, unknown>;
-  }): Promise<VectorSearchHit[]> {
-    await this.ensureCollection();
-
-    const result = await this.client.search(this.collectionName, {
-      vector: normalize1DVector(input.queryVector, this.vectorSize),
-      limit: input.limit,
-      score_threshold: input.scoreThreshold,
-      with_payload: true,
-      filter: toQdrantFilter(input.where),
-    });
-
-    return result.map((hit) => ({
-      id: String(hit.id),
-      score: Number(hit.score ?? 0),
-      metadata: toMetadata(hit.payload),
-    }));
-  }
-
-  async getCollectionStats(): Promise<Record<string, unknown>> {
-    await this.ensureCollection();
-    const info = await this.client.getCollection(this.collectionName);
-    return info as Record<string, unknown>;
-  }
-
-  private async ensureCollection(): Promise<void> {
-    if (this.collectionEnsured) {
-      return;
-    }
-
-    try {
-      await this.client.getCollection(this.collectionName);
-      this.collectionEnsured = true;
-      return;
-    } catch {
-      await this.client.createCollection(this.collectionName, {
-        vectors: {
-          size: this.vectorSize,
-          distance: this.distance,
-        },
-      });
-      this.collectionEnsured = true;
-    }
   }
 }
 
@@ -775,7 +587,7 @@ export function preprocessMarkdownForEmbedding(text: string): string {
 }
 
 export interface IndexChunksOptions {
-  store?: VectorStore;
+  store: VectorStoreAdapter;
   chunks?: RagChunk[];
   batchSize?: number;
   ragNamespace?: string;
@@ -796,7 +608,7 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
   }
 
   const embedder = options.embedder ?? new HashTextEmbedder(dimension);
-  const store = options.store ?? createDefaultVectorStore();
+  const store = options.store;
 
   const processedTexts = chunks.map((c) =>
     preprocessMarkdownForEmbedding(c.content),
@@ -826,9 +638,12 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
     ids.push(ch.id);
   }
 
-  const ok = await store.addVectors({vectors, metadata, ids});
-  if (!ok) {
-    throw new Error("Failed to index vectors");
+  for (let i = 0; i < ids.length; i++) {
+    await store.upsertVector({
+      id: ids[i],
+      vector: vectors[i],
+      payload: metadata[i] as Record<string, unknown>,
+    });
   }
 }
 
@@ -842,13 +657,21 @@ export async function embedQuery(
   return normalize1DVector(raw, dimension);
 }
 
-export interface SearchVectorsOptions {
-  store?: VectorStore;
-  query: string;
+export interface RagQueryOptions {
   topK?: number;
   ragNamespace?: string;
   onlyRagData?: boolean;
   scoreThreshold?: number;
+  enableMqe?: boolean;
+  mqeExpansions?: number;
+  enableHyde?: boolean;
+  candidatePoolMultiplier?: number;
+}
+
+export interface SearchVectorsOptions {
+  store: VectorStoreAdapter;
+  query: string;
+  options?: RagQueryOptions;
   embedder?: TextEmbedder;
   dimension?: number;
 }
@@ -858,18 +681,20 @@ export async function searchVectors(
 ): Promise<VectorSearchHit[]> {
   const {
     query,
+    dimension = 384,
+  } = options;
+  const {
     topK = 8,
     ragNamespace,
     onlyRagData = true,
     scoreThreshold,
-    dimension = 384,
-  } = options;
+  } = options.options ?? {};
 
   if (!query.trim()) {
     return [];
   }
 
-  const store = options.store ?? createDefaultVectorStore();
+  const store = options.store;
   const queryVector = await embedQuery(query, options.embedder, dimension);
 
   const where: Record<string, unknown> = {memory_type: "rag_chunk"};
@@ -881,12 +706,14 @@ export async function searchVectors(
     where.rag_namespace = ragNamespace;
   }
 
-  return store.searchSimilar({
-    queryVector,
+  const rawHits = await store.queryVector({
+    vector: queryVector,
     limit: topK,
-    scoreThreshold,
-    where,
+    filter: where,
   });
+  return rawHits
+    .filter(h => scoreThreshold === undefined || h.score >= scoreThreshold)
+    .map(h => ({id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata}));
 }
 
 async function promptMqe(
@@ -900,11 +727,11 @@ async function promptMqe(
       {
         role: "system",
         content:
-          "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点。",
+          "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点�?,
       },
       {
         role: "user",
-        content: `原始查询：${query}\n请给出${n}个不同表述的查询，每行一个。`,
+        content: `原始查询�?{query}\n请给�?{n}个不同表述的查询，每行一个。`,
       },
     ]);
     const lines = text
@@ -927,11 +754,11 @@ async function promptHyde(
       {
         role: "system",
         content:
-          "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）。",
+          "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）�?,
       },
       {
         role: "user",
-        content: `问题：${query}\n请直接写一段中等长度、客观、包含关键术语的段落。`,
+        content: `问题�?{query}\n请直接写一段中等长度、客观、包含关键术语的段落。`,
       },
     ]);
   } catch {
@@ -940,18 +767,14 @@ async function promptHyde(
 }
 
 export interface SearchVectorsExpandedOptions extends SearchVectorsOptions {
-  enableMqe?: boolean;
-  mqeExpansions?: number;
-  enableHyde?: boolean;
-  candidatePoolMultiplier?: number;
   llm?: LLMClient;
 }
 
 export async function searchVectorsExpanded(
   options: SearchVectorsExpandedOptions,
 ): Promise<VectorSearchHit[]> {
+  const {query, dimension = 384} = options;
   const {
-    query,
     topK = 8,
     ragNamespace,
     onlyRagData = true,
@@ -960,14 +783,13 @@ export async function searchVectorsExpanded(
     mqeExpansions = 2,
     enableHyde = false,
     candidatePoolMultiplier = 4,
-    dimension = 384,
-  } = options;
+  } = options.options ?? {};
 
   if (!query.trim()) {
     return [];
   }
 
-  const store = options.store ?? createDefaultVectorStore();
+  const store = options.store;
   const expansions: string[] = [query];
 
   if (enableMqe && mqeExpansions > 0) {
@@ -996,12 +818,14 @@ export async function searchVectorsExpanded(
   const agg = new Map<string, VectorSearchHit>();
   for (const q of uniq) {
     const qv = await embedQuery(q, options.embedder, dimension);
-    const hits = await store.searchSimilar({
-      queryVector: qv,
+    const rawHits2 = await store.queryVector({
+      vector: qv,
       limit: per,
-      scoreThreshold,
-      where,
+      filter: where,
     });
+    const hits = rawHits2
+      .filter(h => scoreThreshold === undefined || h.score >= scoreThreshold)
+      .map(h => ({id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata}));
     for (const hit of hits) {
       const mid = String(hit.metadata.memory_id ?? hit.id);
       const prev = agg.get(mid);
@@ -1353,7 +1177,7 @@ export function mergeSnippetsGrouped(
     const end = c.end;
     const loc =
       start !== undefined && end !== undefined ? ` (${start}-${end})` : "";
-    const hp = c.heading_path ? ` – ${String(c.heading_path)}` : "";
+    const hp = c.heading_path ? ` �?${String(c.heading_path)}` : "";
     const sp = String(c.source_path ?? c.doc_id ?? "source");
     lines.push(`[${c.index}] ${sp}${loc}${hp}`);
   }
@@ -1436,7 +1260,7 @@ export async function tldrSummarize(
       {
         role: "system",
         content:
-          "请将以下内容概括为简洁的要点列表（最多3-5条），用中文，避免重复，突出关键信息。",
+          "请将以下内容概括为简洁的要点列表（最�?-5条），用中文，避免重复，突出关键信息�?,
       },
       {
         role: "user",
@@ -1450,10 +1274,9 @@ export async function tldrSummarize(
 
 export interface CreateRagPipelineOptions {
   ragNamespace?: string;
-  store?: VectorStore;
+  store?: VectorStoreAdapter;
   embedder?: TextEmbedder;
   dimension?: number;
-  qdrant?: Partial<QdrantVectorStoreOptions>;
   markitdownAdapter?: MarkitdownAdapter;
 }
 
@@ -1462,7 +1285,7 @@ export function createRagPipeline(
 ): RagPipeline {
   const ragNamespace = options.ragNamespace ?? "default";
   const dimension = options.dimension ?? 384;
-  const store = options.store ?? createDefaultVectorStore(options.qdrant);
+  const store = options.store ?? createDefaultVectorStore();
   const embedder = options.embedder ?? createDefaultTextEmbedder(dimension);
 
   const addDocuments = async (
@@ -1498,9 +1321,11 @@ export function createRagPipeline(
     return searchVectors({
       store,
       query,
-      topK,
-      ragNamespace,
-      scoreThreshold,
+      options: {
+        topK,
+        ragNamespace,
+        scoreThreshold,
+      },
       embedder,
       dimension,
     });
@@ -1516,18 +1341,19 @@ export function createRagPipeline(
     return searchVectorsExpanded({
       store,
       query,
-      topK,
-      ragNamespace,
-      enableMqe,
-      enableHyde,
-      scoreThreshold,
+      options: {
+        topK,
+        ragNamespace,
+        enableMqe,
+        enableHyde,
+        scoreThreshold,
+      },
       embedder,
       dimension,
     });
   };
 
-  const getStats = async (): Promise<Record<string, unknown>> =>
-    store.getCollectionStats();
+  const getStats = async (): Promise<Record<string, unknown>> => ({});
 
   return {
     store,
@@ -1539,64 +1365,10 @@ export function createRagPipeline(
   };
 }
 
-export function createDefaultVectorStore(
-  overrides: Partial<QdrantVectorStoreOptions> = {},
-): VectorStore {
-  const url = overrides.url ?? process.env.QDRANT_URL;
-  if (!url) {
-    return new InMemoryVectorStore();
-  }
-
-  const apiKey = overrides.apiKey ?? process.env.QDRANT_API_KEY;
-  const collectionName =
-    overrides.collectionName ??
-    process.env.QDRANT_COLLECTION_NAME ??
-    "hello_agents_rag_vectors";
-  const vectorSize =
-    overrides.vectorSize ?? Number(process.env.QDRANT_VECTOR_SIZE ?? 384);
-  const timeoutMs =
-    overrides.timeoutMs ?? Number(process.env.QDRANT_TIMEOUT ?? 30) * 1000;
-  const distanceRaw = (
-    overrides.distance ??
-    process.env.QDRANT_DISTANCE ??
-    "cosine"
-  )
-    .toString()
-    .toLowerCase();
-
-  const distance: QdrantDistanceInput =
-    distanceRaw === "cosine" ||
-    distanceRaw === "euclid" ||
-    distanceRaw === "dot" ||
-    distanceRaw === "manhattan"
-      ? distanceRaw
-      : "cosine";
-
-  return new QdrantVectorStore({
-    url,
-    apiKey,
-    collectionName,
-    vectorSize,
-    timeoutMs,
-    distance,
-  });
+export function createDefaultVectorStore(): VectorStoreAdapter {
+  return new StorageInMemoryVectorStore();
 }
 
-export function createDefaultTextEmbedder(dimension = 384): TextEmbedder {
-  const model = process.env.EMBEDDING_MODEL_ID;
-  const apiKey = process.env.EMBEDDING_API_KEY ?? process.env.LLM_API_KEY;
-  const baseURL = process.env.EMBEDDING_BASE_URL ?? process.env.LLM_BASE_URL;
-
-  if (model && apiKey && baseURL) {
-    try {
-      return new OpenAITextEmbedder({model, apiKey, baseURL});
-    } catch {
-      // fallback to hash embedder
-    }
-  }
-
-  return new HashTextEmbedder(dimension);
-}
 
 function normalize1DVector(
   raw: number[] | number[][],
