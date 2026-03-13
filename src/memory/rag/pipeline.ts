@@ -774,11 +774,11 @@ async function promptMqe(
       {
         role: "system",
         content:
-          "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点�?,
+          "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点。",
       },
       {
         role: "user",
-        content: `原始查询�?{query}\n请给�?{n}个不同表述的查询，每行一个。`,
+        content: `原始查询?{query}\n请给?{n}个不同表述的查询，每行一个。`,
       },
     ]);
     const lines = text
@@ -801,7 +801,7 @@ async function promptHyde(
       {
         role: "system",
         content:
-          "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）�?,
+          "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）?",
       },
       {
         role: "user",
@@ -1311,7 +1311,7 @@ export async function tldrSummarize(
       {
         role: "system",
         content:
-          "请将以下内容概括为简洁的要点列表（最�?-5条），用中文，避免重复，突出关键信息�?,
+          "请将以下内容概括为简洁的要点列表（3-5条），用中文，避免重复，突出关键信息?",
       },
       {
         role: "user",
