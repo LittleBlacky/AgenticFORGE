@@ -52,13 +52,20 @@ export class QdrantVectorStore implements VectorStoreAdapter {
   async queryVector(params: {
     vector: number[];
     limit: number;
-    filter?: QdrantFilter;
+    filter?: Record<string, unknown>;
   }): Promise<Array<{id: string; score: number; payload: Record<string, unknown>}>> {
     await this.ensureCollection(params.vector.length);
+    const qdrantFilter = params.filter
+      ? buildQdrantFilter(
+          Object.entries(params.filter)
+            .filter(([, v]) => v !== undefined && v !== null)
+            .map(([key, value]) => ({key, value: value as FilterValue | FilterValue[]}))
+        )
+      : undefined;
     const res = await this.client.search(this.collection, {
       vector: params.vector,
       limit: params.limit,
-      filter: params.filter,
+      filter: qdrantFilter,
     });
 
     return res.map((item) => ({
