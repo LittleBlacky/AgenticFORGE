@@ -3,9 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
 import type {VectorStoreAdapter} from "../storage/types";
-import {InMemoryVectorStore as StorageInMemoryVectorStore} from "../storage/inMemory";
 import {LLMClient} from "../../core/llm";
 import {createDefaultTextEmbedder} from "../embedding";
+import {createDefaultVectorStore} from "./storeFactory";
 
 export interface RagChunkMetadata {
   source_path?: string;
@@ -1419,9 +1419,6 @@ export function createRagPipeline(
   };
 }
 
-export function createDefaultVectorStore(): VectorStoreAdapter {
-  return new StorageInMemoryVectorStore();
-}
 
 
 function normalize1DVector(

@@ -12,7 +12,6 @@ export {
   chunkParagraphs,
   compressRankedItems,
   convertToMarkdown,
-  createDefaultVectorStore,
   createRagPipeline,
   detectLang,
   embedQuery,
@@ -56,3 +55,5 @@ export type {
   VectorSearchHit,
   VectorStore,
 } from "./pipeline";
+
+export {createDefaultVectorStore, registerRagVectorStoreFactory} from "./storeFactory";
