@@ -11,6 +11,7 @@
 import {Message} from "../core/message";
 import {MemoryTool} from "../tools/builtin/memory";
 import {RagTool} from "../tools/builtin/rag";
+import {roughCountTokens} from "./tokenizer";
 
 export interface ContextPacket {
   content: string;
@@ -24,7 +25,7 @@ export class ContextPacketBuilder {
   static create(
     content: string,
     metadata: Record<string, unknown> = {},
-    tokenCounter: TokenCounter = countTokens,
+    tokenCounter: TokenCounter = roughCountTokens,
   ): ContextPacket {
     return {
       content,
@@ -71,7 +72,7 @@ export class ContextBuilder {
       mmrLambda: 0.7,
       systemPromptTemplate: "",
       enableCompression: true,
-      tokenCounter: countTokens,
+      tokenCounter: roughCountTokens,
       ...options.config,
     };
   }
@@ -433,7 +434,4 @@ export class ContextBuilder {
   }
 }
 
-export function countTokens(text: string): number {
-  if (!text) return 0;
-  return Math.max(1, Math.ceil(text.length / 4));
-}
+export {roughCountTokens as countTokens} from "./tokenizer";
