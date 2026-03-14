@@ -21,16 +21,22 @@ export interface ContextPacket {
 }
 
 export class ContextPacketBuilder {
-  static create(content: string, metadata: Record<string, unknown> = {}): ContextPacket {
+  static create(
+    content: string,
+    metadata: Record<string, unknown> = {},
+    tokenCounter: TokenCounter = countTokens,
+  ): ContextPacket {
     return {
       content,
       metadata,
       timestamp: new Date(),
-      tokenCount: countTokens(content),
+      tokenCount: tokenCounter(content),
       relevanceScore: 0,
     };
   }
 }
+
+export type TokenCounter = (text: string) => number;
 
 export interface ContextConfig {
   maxTokens?: number; // 总预算
@@ -40,6 +46,7 @@ export interface ContextConfig {
   mmrLambda?: number; // MMR平衡参数（0=纯多样性, 1=纯相关性）
   systemPromptTemplate?: string; // 系统提示模板
   enableCompression?: boolean; // 启用压缩
+  tokenCounter?: TokenCounter; // 自定义 token 计数器
 }
 
 export interface ContextBuilderOptions {
@@ -64,6 +71,7 @@ export class ContextBuilder {
       mmrLambda: 0.7,
       systemPromptTemplate: "",
       enableCompression: true,
+      tokenCounter: countTokens,
       ...options.config,
     };
   }
@@ -103,10 +111,16 @@ export class ContextBuilder {
   }): Promise<ContextPacket[]> {
     const packets: ContextPacket[] = [];
 
+    const tokenCounter = this.config.tokenCounter;
+
     // P0: 系统指令（强约束）
     if (params.systemInstructions) {
       packets.push(
-        ContextPacketBuilder.create(params.systemInstructions, {type: "instructions"}),
+        ContextPacketBuilder.create(
+          params.systemInstructions,
+          {type: "instructions"},
+          tokenCounter,
+        ),
       );
     }
 
@@ -121,10 +135,14 @@ export class ContextBuilder {
         });
         if (stateResults && !stateResults.includes("未找到")) {
           packets.push(
-            ContextPacketBuilder.create(stateResults, {
-              type: "task_state",
-              importance: "high",
-            }),
+            ContextPacketBuilder.create(
+              stateResults,
+              {
+                type: "task_state",
+                importance: "high",
+              },
+              tokenCounter,
+            ),
           );
         }
 
@@ -135,7 +153,11 @@ export class ContextBuilder {
         });
         if (relatedResults && !relatedResults.includes("未找到")) {
           packets.push(
-            ContextPacketBuilder.create(relatedResults, {type: "related_memory"}),
+            ContextPacketBuilder.create(
+              relatedResults,
+              {type: "related_memory"},
+              tokenCounter,
+            ),
           );
         }
       } catch (error) {
@@ -153,7 +175,11 @@ export class ContextBuilder {
         });
         if (ragResults && !ragResults.includes("未找到") && !ragResults.includes("错误")) {
           packets.push(
-            ContextPacketBuilder.create(ragResults, {type: "knowledge_base"}),
+            ContextPacketBuilder.create(
+              ragResults,
+              {type: "knowledge_base"},
+              tokenCounter,
+            ),
           );
         }
       } catch (error) {
@@ -168,10 +194,14 @@ export class ContextBuilder {
         .map((msg) => `[${msg.role}] ${msg.content}`)
         .join("\n");
       packets.push(
-        ContextPacketBuilder.create(historyText, {
-          type: "history",
-          count: recentHistory.length,
-        }),
+        ContextPacketBuilder.create(
+          historyText,
+          {
+            type: "history",
+            count: recentHistory.length,
+          },
+          tokenCounter,
+        ),
       );
     }
 
@@ -232,10 +262,82 @@ export class ContextBuilder {
       }
     }
 
-    for (const packet of filtered) {
-      if (usedTokens + packet.tokenCount > availableTokens) continue;
-      selected.push(packet);
-      usedTokens += packet.tokenCount;
+    if (this.config.enableMmr) {
+      const mmrSelected = this.selectWithMmr({
+        candidates: filtered,
+        tokenBudget: availableTokens - usedTokens,
+        lambda: this.config.mmrLambda,
+      });
+      for (const packet of mmrSelected) {
+        selected.push(packet);
+        usedTokens += packet.tokenCount;
+      }
+    } else {
+      for (const packet of filtered) {
+        if (usedTokens + packet.tokenCount > availableTokens) continue;
+        selected.push(packet);
+        usedTokens += packet.tokenCount;
+      }
+    }
+
+    return selected;
+  }
+
+  private selectWithMmr(params: {
+    candidates: ContextPacket[];
+    tokenBudget: number;
+    lambda: number;
+  }): ContextPacket[] {
+    const selected: ContextPacket[] = [];
+    const remaining = [...params.candidates];
+    let usedTokens = 0;
+    const lambda = Math.max(0, Math.min(1, params.lambda));
+
+    const similarity = (a: ContextPacket, b: ContextPacket): number => {
+      const tokensA = new Set(a.content.toLowerCase().split(/\s+/).filter(Boolean));
+      const tokensB = new Set(b.content.toLowerCase().split(/\s+/).filter(Boolean));
+      if (tokensA.size === 0 || tokensB.size === 0) return 0;
+
+      let overlap = 0;
+      for (const token of tokensA) {
+        if (tokensB.has(token)) overlap += 1;
+      }
+      const union = tokensA.size + tokensB.size - overlap;
+      return union === 0 ? 0 : overlap / union;
+    };
+
+    while (remaining.length > 0 && usedTokens < params.tokenBudget) {
+      let bestIndex = -1;
+      let bestScore = -Infinity;
+
+      for (let i = 0; i < remaining.length; i++) {
+        const candidate = remaining[i]!;
+        if (usedTokens + candidate.tokenCount > params.tokenBudget) {
+          continue;
+        }
+
+        let diversityPenalty = 0;
+        if (selected.length > 0) {
+          let maxSimilarity = 0;
+          for (const chosen of selected) {
+            const sim = similarity(candidate, chosen);
+            if (sim > maxSimilarity) maxSimilarity = sim;
+          }
+          diversityPenalty = maxSimilarity;
+        }
+
+        const mmrScore = lambda * candidate.relevanceScore - (1 - lambda) * diversityPenalty;
+        if (mmrScore > bestScore) {
+          bestScore = mmrScore;
+          bestIndex = i;
+        }
+      }
+
+      if (bestIndex < 0) break;
+
+      const bestPacket = remaining.splice(bestIndex, 1)[0]!;
+      selected.push(bestPacket);
+      usedTokens += bestPacket.tokenCount;
     }
 
     return selected;
@@ -308,7 +410,7 @@ export class ContextBuilder {
   private compress(context: string): string {
     if (!this.config.enableCompression) return context;
 
-    const currentTokens = countTokens(context);
+    const currentTokens = this.config.tokenCounter(context);
     const availableTokens = this.getAvailableTokens();
     if (currentTokens <= availableTokens) return context;
 
@@ -321,7 +423,7 @@ export class ContextBuilder {
     let usedTokens = 0;
 
     for (const line of lines) {
-      const lineTokens = countTokens(line);
+      const lineTokens = this.config.tokenCounter(line);
       if (usedTokens + lineTokens > availableTokens) break;
       compressed.push(line);
       usedTokens += lineTokens;
