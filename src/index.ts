@@ -16,4 +16,5 @@ export type {ToolParameter, FunctionTool} from "./tools/Tool";
 export {ToolRegistry} from "./tools/ToolRegistry";
 
 export * from "./memory";
+export * from "./context";
 
