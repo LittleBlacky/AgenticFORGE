@@ -472,7 +472,11 @@ export class NoteTool extends Tool {
   private saveIndex(): void {
     const backupPath = `${this.indexFile}.bak`;
     const payload = JSON.stringify(this.notesIndex, null, 2);
-    fs.writeFileSync(this.indexFile, payload, "utf-8");
+    const tmpPath = `${this.indexFile}.tmp`;
+
+    fs.writeFileSync(tmpPath, payload, "utf-8");
+    fs.renameSync(tmpPath, this.indexFile);
+
     if (this.autoBackup) {
       fs.writeFileSync(backupPath, payload, "utf-8");
     }
