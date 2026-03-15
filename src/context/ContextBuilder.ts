@@ -313,7 +313,25 @@ export class ContextBuilder {
     let usedTokens = 0;
     const lambda = Math.max(0, Math.min(1, params.lambda));
 
-    const vectors = await this.embedPackets(params.candidates, params.embedder);
+    const vectorCache = new Map<string, number[]>();
+    const vectors = await this.embedPackets(
+      params.candidates,
+      params.embedder,
+      vectorCache,
+    );
+
+    const lexicalSimilarity = (a: ContextPacket, b: ContextPacket): number => {
+      const tokensA = new Set(a.content.toLowerCase().split(/\s+/).filter(Boolean));
+      const tokensB = new Set(b.content.toLowerCase().split(/\s+/).filter(Boolean));
+      if (tokensA.size === 0 || tokensB.size === 0) return 0;
+
+      let overlap = 0;
+      for (const token of tokensA) {
+        if (tokensB.has(token)) overlap += 1;
+      }
+      const union = tokensA.size + tokensB.size - overlap;
+      return union === 0 ? 0 : overlap / union;
+    };
 
     const cosine = (a: number[] | null, b: number[] | null): number => {
       if (!a || !b || a.length === 0 || b.length === 0) return 0;
@@ -346,10 +364,11 @@ export class ContextBuilder {
         if (selected.length > 0) {
           let maxSimilarity = 0;
           for (const chosen of selected) {
-            const sim = cosine(
+            const vectorSim = cosine(
               vectors.get(candidate) ?? null,
               vectors.get(chosen) ?? null,
             );
+            const sim = vectorSim > 0 ? vectorSim : lexicalSimilarity(candidate, chosen);
             if (sim > maxSimilarity) maxSimilarity = sim;
           }
           diversityPenalty = maxSimilarity;
@@ -375,27 +394,46 @@ export class ContextBuilder {
   private async embedPackets(
     packets: ContextPacket[],
     embedder: TextEmbedder,
+    cache: Map<string, number[]>,
   ): Promise<Map<ContextPacket, number[]>> {
     const vectors = new Map<ContextPacket, number[]>();
     if (packets.length === 0) return vectors;
 
+    const pending: {packet: ContextPacket; content: string}[] = [];
+    for (const packet of packets) {
+      const cached = cache.get(packet.content);
+      if (cached) {
+        vectors.set(packet, cached);
+      } else {
+        pending.push({packet, content: packet.content});
+      }
+    }
+
+    if (pending.length === 0) return vectors;
+
     try {
-      const contents = packets.map((packet) => packet.content);
+      const contents = pending.map((item) => item.content);
       const encoded = await embedder.encode(contents);
       if (Array.isArray(encoded)) {
         if (Array.isArray(encoded[0])) {
           const list = encoded as number[][];
           list.forEach((vec, idx) => {
-            const packet = packets[idx];
-            if (packet) vectors.set(packet, vec);
+            const item = pending[idx];
+            if (!item) return;
+            vectors.set(item.packet, vec);
+            cache.set(item.content, vec);
           });
         } else {
           const vec = encoded as number[];
-          if (packets[0]) vectors.set(packets[0], vec);
+          const item = pending[0];
+          if (item) {
+            vectors.set(item.packet, vec);
+            cache.set(item.content, vec);
+          }
         }
       }
     } catch (error) {
-      console.warn("⚠️ MMR 向量编码失败，回退到默认相似度:", error);
+      console.warn("⚠️ MMR 向量编码失败，回退到词集合相似度:", error);
     }
 
     return vectors;
