@@ -52,6 +52,7 @@ export interface ContextConfig {
   tokenCounter?: TokenCounter; // 自定义 token 计数器
   mmrEmbedder?: TextEmbedder; // MMR 向量相似度 embedder
   mmrEmbeddingDimension?: number; // Hash embedder 向量维度
+  mmrVectorCacheSize?: number; // 向量缓存容量（LRU）
 }
 
 export interface ContextBuilderOptions {
@@ -64,6 +65,7 @@ export class ContextBuilder {
   private readonly memoryTool?: MemoryTool | null;
   private readonly ragTool?: RagTool | null;
   private readonly config: Required<ContextConfig>;
+  private mmrVectorCache: LruCache<string, number[]> | null = null;
 
   constructor(options: ContextBuilderOptions = {}) {
     this.memoryTool = options.memoryTool ?? null;
@@ -79,6 +81,7 @@ export class ContextBuilder {
       tokenCounter: roughCountTokens,
       mmrEmbedder: createDefaultTextEmbedder(options.config?.mmrEmbeddingDimension),
       mmrEmbeddingDimension: 384,
+      mmrVectorCacheSize: 256,
       ...options.config,
     };
   }
@@ -313,11 +316,10 @@ export class ContextBuilder {
     let usedTokens = 0;
     const lambda = Math.max(0, Math.min(1, params.lambda));
 
-    const vectorCache = new Map<string, number[]>();
     const vectors = await this.embedPackets(
       params.candidates,
       params.embedder,
-      vectorCache,
+      this.getVectorCache(),
     );
 
     const lexicalSimilarity = (a: ContextPacket, b: ContextPacket): number => {
@@ -394,7 +396,7 @@ export class ContextBuilder {
   private async embedPackets(
     packets: ContextPacket[],
     embedder: TextEmbedder,
-    cache: Map<string, number[]>,
+    cache: LruCache<string, number[]>,
   ): Promise<Map<ContextPacket, number[]>> {
     const vectors = new Map<ContextPacket, number[]>();
     if (packets.length === 0) return vectors;
@@ -437,6 +439,14 @@ export class ContextBuilder {
     }
 
     return vectors;
+  }
+
+  private getVectorCache(): LruCache<string, number[]> {
+    const size = Math.max(1, this.config.mmrVectorCacheSize);
+    if (!this.mmrVectorCache || this.mmrVectorCache.size() !== size) {
+      this.mmrVectorCache = new LruCache<string, number[]>(size);
+    }
+    return this.mmrVectorCache;
   }
 
   private structure(params: {
@@ -526,6 +536,36 @@ export class ContextBuilder {
     }
 
     return compressed.join("\n");
+  }
+}
+
+class LruCache<K, V> {
+  private readonly limit: number;
+  private readonly map = new Map<K, V>();
+
+  constructor(limit: number) {
+    this.limit = Math.max(1, limit);
+  }
+
+  get(key: K): V | undefined {
+    if (!this.map.has(key)) return undefined;
+    const value = this.map.get(key) as V;
+    this.map.delete(key);
+    this.map.set(key, value);
+    return value;
+  }
+
+  set(key: K, value: V): void {
+    if (this.map.has(key)) this.map.delete(key);
+    this.map.set(key, value);
+    if (this.map.size > this.limit) {
+      const oldest = this.map.keys().next().value as K | undefined;
+      if (oldest !== undefined) this.map.delete(oldest);
+    }
+  }
+
+  size(): number {
+    return this.limit;
   }
 }
 
