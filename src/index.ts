@@ -17,5 +17,6 @@ export {ToolRegistry} from "./tools/ToolRegistry";
 
 export * from "./memory";
 export * from "./context";
+export {NoteTool} from "./tools/builtin/note";
 export * from "./utils/lruCache";
 
