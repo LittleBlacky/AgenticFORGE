@@ -9,6 +9,8 @@
  */
 
 import {Message} from "../core/message";
+import type {TextEmbedder} from "../memory/rag/pipeline";
+import {createDefaultTextEmbedder} from "../memory/embedding";
 import {MemoryTool} from "../tools/builtin/memory";
 import {RagTool} from "../tools/builtin/rag";
 import {roughCountTokens} from "./tokenizer";
@@ -48,6 +50,8 @@ export interface ContextConfig {
   systemPromptTemplate?: string; // 系统提示模板
   enableCompression?: boolean; // 启用压缩
   tokenCounter?: TokenCounter; // 自定义 token 计数器
+  mmrEmbedder?: TextEmbedder; // MMR 向量相似度 embedder
+  mmrEmbeddingDimension?: number; // Hash embedder 向量维度
 }
 
 export interface ContextBuilderOptions {
@@ -73,6 +77,8 @@ export class ContextBuilder {
       systemPromptTemplate: "",
       enableCompression: true,
       tokenCounter: roughCountTokens,
+      mmrEmbedder: createDefaultTextEmbedder(options.config?.mmrEmbeddingDimension),
+      mmrEmbeddingDimension: 384,
       ...options.config,
     };
   }
@@ -104,7 +110,7 @@ export class ContextBuilder {
       tokenCounter: cachedCounter,
     });
 
-    const selected = this.select(packets, params.userQuery);
+    const selected = await this.select(packets, params.userQuery);
     const structured = this.structure({
       selectedPackets: selected,
       userQuery: params.userQuery,
@@ -221,7 +227,7 @@ export class ContextBuilder {
     return packets;
   }
 
-  private select(packets: ContextPacket[], userQuery: string): ContextPacket[] {
+  private async select(packets: ContextPacket[], userQuery: string): Promise<ContextPacket[]> {
     const queryTokens = new Set(userQuery.toLowerCase().split(/\s+/).filter(Boolean));
 
     for (const packet of packets) {
@@ -275,10 +281,11 @@ export class ContextBuilder {
     }
 
     if (this.config.enableMmr) {
-      const mmrSelected = this.selectWithMmr({
+      const mmrSelected = await this.selectWithMmr({
         candidates: filtered,
         tokenBudget: availableTokens - usedTokens,
         lambda: this.config.mmrLambda,
+        embedder: this.config.mmrEmbedder,
       });
       for (const packet of mmrSelected) {
         selected.push(packet);
@@ -295,27 +302,34 @@ export class ContextBuilder {
     return selected;
   }
 
-  private selectWithMmr(params: {
+  private async selectWithMmr(params: {
     candidates: ContextPacket[];
     tokenBudget: number;
     lambda: number;
-  }): ContextPacket[] {
+    embedder: TextEmbedder;
+  }): Promise<ContextPacket[]> {
     const selected: ContextPacket[] = [];
     const remaining = [...params.candidates];
     let usedTokens = 0;
     const lambda = Math.max(0, Math.min(1, params.lambda));
 
-    const similarity = (a: ContextPacket, b: ContextPacket): number => {
-      const tokensA = new Set(a.content.toLowerCase().split(/\s+/).filter(Boolean));
-      const tokensB = new Set(b.content.toLowerCase().split(/\s+/).filter(Boolean));
-      if (tokensA.size === 0 || tokensB.size === 0) return 0;
+    const vectors = await this.embedPackets(params.candidates, params.embedder);
 
-      let overlap = 0;
-      for (const token of tokensA) {
-        if (tokensB.has(token)) overlap += 1;
+    const cosine = (a: number[] | null, b: number[] | null): number => {
+      if (!a || !b || a.length === 0 || b.length === 0) return 0;
+      let dot = 0;
+      let normA = 0;
+      let normB = 0;
+      const len = Math.min(a.length, b.length);
+      for (let i = 0; i < len; i++) {
+        const va = a[i]!;
+        const vb = b[i]!;
+        dot += va * vb;
+        normA += va * va;
+        normB += vb * vb;
       }
-      const union = tokensA.size + tokensB.size - overlap;
-      return union === 0 ? 0 : overlap / union;
+      if (normA === 0 || normB === 0) return 0;
+      return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     };
 
     while (remaining.length > 0 && usedTokens < params.tokenBudget) {
@@ -332,7 +346,10 @@ export class ContextBuilder {
         if (selected.length > 0) {
           let maxSimilarity = 0;
           for (const chosen of selected) {
-            const sim = similarity(candidate, chosen);
+            const sim = cosine(
+              vectors.get(candidate) ?? null,
+              vectors.get(chosen) ?? null,
+            );
             if (sim > maxSimilarity) maxSimilarity = sim;
           }
           diversityPenalty = maxSimilarity;
@@ -353,6 +370,35 @@ export class ContextBuilder {
     }
 
     return selected;
+  }
+
+  private async embedPackets(
+    packets: ContextPacket[],
+    embedder: TextEmbedder,
+  ): Promise<Map<ContextPacket, number[]>> {
+    const vectors = new Map<ContextPacket, number[]>();
+    if (packets.length === 0) return vectors;
+
+    try {
+      const contents = packets.map((packet) => packet.content);
+      const encoded = await embedder.encode(contents);
+      if (Array.isArray(encoded)) {
+        if (Array.isArray(encoded[0])) {
+          const list = encoded as number[][];
+          list.forEach((vec, idx) => {
+            const packet = packets[idx];
+            if (packet) vectors.set(packet, vec);
+          });
+        } else {
+          const vec = encoded as number[];
+          if (packets[0]) vectors.set(packets[0], vec);
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ MMR 向量编码失败，回退到默认相似度:", error);
+    }
+
+    return vectors;
   }
 
   private structure(params: {
