@@ -87,11 +87,21 @@ export class ContextBuilder {
     systemInstructions?: string | null;
     additionalPackets?: ContextPacket[];
   }): Promise<string> {
+    const tokenCache = new Map<string, number>();
+    const cachedCounter: TokenCounter = (text) => {
+      const cached = tokenCache.get(text);
+      if (cached !== undefined) return cached;
+      const count = this.config.tokenCounter(text);
+      tokenCache.set(text, count);
+      return count;
+    };
+
     const packets = await this.gather({
       userQuery: params.userQuery,
       conversationHistory: params.conversationHistory ?? [],
       systemInstructions: params.systemInstructions ?? null,
       additionalPackets: params.additionalPackets ?? [],
+      tokenCounter: cachedCounter,
     });
 
     const selected = this.select(packets, params.userQuery);
@@ -101,7 +111,7 @@ export class ContextBuilder {
       systemInstructions: params.systemInstructions ?? null,
     });
 
-    return this.compress(structured);
+    return this.compress(structured, cachedCounter);
   }
 
   private async gather(params: {
@@ -109,10 +119,11 @@ export class ContextBuilder {
     conversationHistory: Message[];
     systemInstructions: string | null;
     additionalPackets: ContextPacket[];
+    tokenCounter: TokenCounter;
   }): Promise<ContextPacket[]> {
     const packets: ContextPacket[] = [];
 
-    const tokenCounter = this.config.tokenCounter;
+    const tokenCounter = params.tokenCounter;
 
     // P0: 系统指令（强约束）
     if (params.systemInstructions) {
@@ -408,10 +419,10 @@ export class ContextBuilder {
     return sections.join("\n\n");
   }
 
-  private compress(context: string): string {
+  private compress(context: string, tokenCounter: TokenCounter): string {
     if (!this.config.enableCompression) return context;
 
-    const currentTokens = this.config.tokenCounter(context);
+    const currentTokens = tokenCounter(context);
     const availableTokens = this.getAvailableTokens();
     if (currentTokens <= availableTokens) return context;
 
@@ -424,7 +435,7 @@ export class ContextBuilder {
     let usedTokens = 0;
 
     for (const line of lines) {
-      const lineTokens = this.config.tokenCounter(line);
+      const lineTokens = tokenCounter(line);
       if (usedTokens + lineTokens > availableTokens) break;
       compressed.push(line);
       usedTokens += lineTokens;
