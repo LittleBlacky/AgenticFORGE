@@ -17,4 +17,5 @@ export {ToolRegistry} from "./tools/ToolRegistry";
 
 export * from "./memory";
 export * from "./context";
+export * from "./utils/lruCache";
 
