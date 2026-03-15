@@ -427,13 +427,35 @@ export class NoteTool extends Tool {
   private tryAcquireLock(): boolean {
     try {
       const fd = fs.openSync(this.lockFile, "wx");
+      const payload = JSON.stringify({
+        pid: process.pid,
+        created_at: new Date().toISOString(),
+      });
+      fs.writeFileSync(fd, payload, "utf-8");
       fs.closeSync(fd);
       return true;
     } catch (error) {
       if (error instanceof Error && "code" in error && error.code === "EEXIST") {
+        if (this.isLockExpired()) {
+          this.releaseLock();
+          return this.tryAcquireLock();
+        }
         return false;
       }
       throw error;
+    }
+  }
+
+  private isLockExpired(): boolean {
+    try {
+      const raw = fs.readFileSync(this.lockFile, "utf-8");
+      const data = JSON.parse(raw) as {created_at?: string};
+      if (!data.created_at) return false;
+      const createdAt = Date.parse(data.created_at);
+      if (Number.isNaN(createdAt)) return false;
+      return Date.now() - createdAt > this.lockTimeoutMs;
+    } catch {
+      return false;
     }
   }
 
