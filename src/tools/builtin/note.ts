@@ -7,6 +7,8 @@ export interface NoteToolOptions {
   autoBackup?: boolean;
   maxNotes?: number;
   expandable?: boolean;
+  lockTimeoutMs?: number;
+  lockRetryIntervalMs?: number;
 }
 
 type NoteType =
@@ -61,6 +63,9 @@ export class NoteTool extends Tool {
   private readonly autoBackup: boolean;
   private readonly maxNotes: number;
   private readonly indexFile: string;
+  private readonly lockFile: string;
+  private readonly lockTimeoutMs: number;
+  private readonly lockRetryIntervalMs: number;
   private notesIndex: NoteIndex;
 
   constructor(options: NoteToolOptions = {}) {
@@ -74,6 +79,9 @@ export class NoteTool extends Tool {
     this.autoBackup = options.autoBackup ?? true;
     this.maxNotes = options.maxNotes ?? 1000;
     this.indexFile = path.join(this.workspace, "notes_index.json");
+    this.lockFile = path.join(this.workspace, ".notes.lock");
+    this.lockTimeoutMs = options.lockTimeoutMs ?? 3000;
+    this.lockRetryIntervalMs = options.lockRetryIntervalMs ?? 120;
 
     fs.mkdirSync(this.workspace, {recursive: true});
     this.notesIndex = this.loadIndex();
@@ -85,7 +93,19 @@ export class NoteTool extends Tool {
     }
 
     const action = String(parameters.action ?? "") as NoteAction;
+    const needsLock = action !== "read" && action !== "list" && action !== "search";
 
+    if (!needsLock) {
+      return this.executeAction(action, parameters);
+    }
+
+    return this.withLock(() => this.executeAction(action, parameters));
+  }
+
+  private async executeAction(
+    action: NoteAction,
+    parameters: Record<string, unknown>,
+  ): Promise<string> {
     switch (action) {
       case "create":
         return this.createNote(
@@ -380,6 +400,51 @@ export class NoteTool extends Tool {
     };
     fs.writeFileSync(this.indexFile, JSON.stringify(initial, null, 2), "utf-8");
     return initial;
+  }
+
+  private async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const start = Date.now();
+    while (true) {
+      const acquired = this.tryAcquireLock();
+      if (acquired) break;
+
+      if (Date.now() - start > this.lockTimeoutMs) {
+        throw new Error("获取笔记锁超时，请稍后重试");
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.lockRetryIntervalMs),
+      );
+    }
+
+    try {
+      return await fn();
+    } finally {
+      this.releaseLock();
+    }
+  }
+
+  private tryAcquireLock(): boolean {
+    try {
+      const fd = fs.openSync(this.lockFile, "wx");
+      fs.closeSync(fd);
+      return true;
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "EEXIST") {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  private releaseLock(): void {
+    try {
+      if (fs.existsSync(this.lockFile)) {
+        fs.unlinkSync(this.lockFile);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   private saveIndex(): void {
