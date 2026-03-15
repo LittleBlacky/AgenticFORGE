@@ -54,6 +54,7 @@ export interface ContextConfig {
   mmrEmbedder?: TextEmbedder; // MMR 向量相似度 embedder
   mmrEmbeddingDimension?: number; // Hash embedder 向量维度
   mmrVectorCacheSize?: number; // 向量缓存容量（LRU）
+  enableMmrVectorCache?: boolean; // 启用向量缓存
 }
 
 export interface ContextBuilderOptions {
@@ -83,6 +84,7 @@ export class ContextBuilder {
       mmrEmbedder: createDefaultTextEmbedder(options.config?.mmrEmbeddingDimension),
       mmrEmbeddingDimension: 384,
       mmrVectorCacheSize: 256,
+      enableMmrVectorCache: true,
       ...options.config,
     };
   }
@@ -317,10 +319,11 @@ export class ContextBuilder {
     let usedTokens = 0;
     const lambda = Math.max(0, Math.min(1, params.lambda));
 
+    const cache = this.config.enableMmrVectorCache ? this.getVectorCache() : undefined;
     const vectors = await this.embedPackets(
       params.candidates,
       params.embedder,
-      this.getVectorCache(),
+      cache,
     );
 
     const lexicalSimilarity = (a: ContextPacket, b: ContextPacket): number => {
@@ -397,14 +400,14 @@ export class ContextBuilder {
   private async embedPackets(
     packets: ContextPacket[],
     embedder: TextEmbedder,
-    cache: LruCache<string, number[]>,
+    cache?: LruCache<string, number[]>,
   ): Promise<Map<ContextPacket, number[]>> {
     const vectors = new Map<ContextPacket, number[]>();
     if (packets.length === 0) return vectors;
 
     const pending: {packet: ContextPacket; content: string}[] = [];
     for (const packet of packets) {
-      const cached = cache.get(packet.content);
+      const cached = cache?.get(packet.content);
       if (cached) {
         vectors.set(packet, cached);
       } else {
@@ -424,14 +427,14 @@ export class ContextBuilder {
             const item = pending[idx];
             if (!item) return;
             vectors.set(item.packet, vec);
-            cache.set(item.content, vec);
+            cache?.set(item.content, vec);
           });
         } else {
           const vec = encoded as number[];
           const item = pending[0];
           if (item) {
             vectors.set(item.packet, vec);
-            cache.set(item.content, vec);
+            cache?.set(item.content, vec);
           }
         }
       }
