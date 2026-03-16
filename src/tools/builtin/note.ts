@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import lockfile from "proper-lockfile";
 import {Tool, type ToolParameter, toolAction} from "../Tool";
 
 export interface NoteToolOptions {
@@ -9,6 +10,7 @@ export interface NoteToolOptions {
   expandable?: boolean;
   lockTimeoutMs?: number;
   lockRetryIntervalMs?: number;
+  enableAtomicNoteWrites?: boolean;
 }
 
 type NoteType =
@@ -63,9 +65,9 @@ export class NoteTool extends Tool {
   private readonly autoBackup: boolean;
   private readonly maxNotes: number;
   private readonly indexFile: string;
-  private readonly lockFile: string;
   private readonly lockTimeoutMs: number;
   private readonly lockRetryIntervalMs: number;
+  private readonly enableAtomicNoteWrites: boolean;
   private notesIndex: NoteIndex;
 
   constructor(options: NoteToolOptions = {}) {
@@ -79,9 +81,9 @@ export class NoteTool extends Tool {
     this.autoBackup = options.autoBackup ?? true;
     this.maxNotes = options.maxNotes ?? 1000;
     this.indexFile = path.join(this.workspace, "notes_index.json");
-    this.lockFile = path.join(this.workspace, ".notes.lock");
     this.lockTimeoutMs = options.lockTimeoutMs ?? 3000;
     this.lockRetryIntervalMs = options.lockRetryIntervalMs ?? 120;
+    this.enableAtomicNoteWrites = options.enableAtomicNoteWrites ?? false;
 
     fs.mkdirSync(this.workspace, {recursive: true});
     this.notesIndex = this.loadIndex();
@@ -238,7 +240,7 @@ export class NoteTool extends Tool {
     };
 
     const notePath = this.getNotePath(noteId);
-    fs.writeFileSync(notePath, this.noteToMarkdown(note), "utf-8");
+    this.writeNoteFile(notePath, this.noteToMarkdown(note));
 
     this.notesIndex.notes.push({
       id: noteId,
@@ -288,7 +290,7 @@ export class NoteTool extends Tool {
     if (tags) note.tags = tags;
     note.updated_at = new Date().toISOString();
 
-    fs.writeFileSync(notePath, this.noteToMarkdown(note), "utf-8");
+    this.writeNoteFile(notePath, this.noteToMarkdown(note));
 
     for (const item of this.notesIndex.notes) {
       if (item.id === noteId) {
@@ -403,69 +405,23 @@ export class NoteTool extends Tool {
   }
 
   private async withLock<T>(fn: () => Promise<T>): Promise<T> {
-    const start = Date.now();
-    while (true) {
-      const acquired = this.tryAcquireLock();
-      if (acquired) break;
-
-      if (Date.now() - start > this.lockTimeoutMs) {
-        throw new Error("获取笔记锁超时，请稍后重试");
-      }
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.lockRetryIntervalMs),
-      );
-    }
-
     try {
-      return await fn();
-    } finally {
-      this.releaseLock();
-    }
-  }
-
-  private tryAcquireLock(): boolean {
-    try {
-      const fd = fs.openSync(this.lockFile, "wx");
-      const payload = JSON.stringify({
-        pid: process.pid,
-        created_at: new Date().toISOString(),
+      const release = await lockfile.lock(this.workspace, {
+        stale: this.lockTimeoutMs,
+        retries: {
+          retries: Math.max(0, Math.floor(this.lockTimeoutMs / this.lockRetryIntervalMs)),
+          minTimeout: this.lockRetryIntervalMs,
+          maxTimeout: this.lockRetryIntervalMs,
+        },
       });
-      fs.writeFileSync(fd, payload, "utf-8");
-      fs.closeSync(fd);
-      return true;
+
+      try {
+        return await fn();
+      } finally {
+        await release();
+      }
     } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "EEXIST") {
-        if (this.isLockExpired()) {
-          this.releaseLock();
-          return this.tryAcquireLock();
-        }
-        return false;
-      }
-      throw error;
-    }
-  }
-
-  private isLockExpired(): boolean {
-    try {
-      const raw = fs.readFileSync(this.lockFile, "utf-8");
-      const data = JSON.parse(raw) as {created_at?: string};
-      if (!data.created_at) return false;
-      const createdAt = Date.parse(data.created_at);
-      if (Number.isNaN(createdAt)) return false;
-      return Date.now() - createdAt > this.lockTimeoutMs;
-    } catch {
-      return false;
-    }
-  }
-
-  private releaseLock(): void {
-    try {
-      if (fs.existsSync(this.lockFile)) {
-        fs.unlinkSync(this.lockFile);
-      }
-    } catch {
-      // ignore
+      throw new Error(`获取笔记锁失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -490,6 +446,17 @@ export class NoteTool extends Tool {
 
   private getNotePath(noteId: string): string {
     return path.join(this.workspace, `${noteId}.md`);
+  }
+
+  private writeNoteFile(notePath: string, content: string): void {
+    if (!this.enableAtomicNoteWrites) {
+      fs.writeFileSync(notePath, content, "utf-8");
+      return;
+    }
+
+    const tmpPath = `${notePath}.tmp`;
+    fs.writeFileSync(tmpPath, content, "utf-8");
+    fs.renameSync(tmpPath, notePath);
   }
 
   private noteToMarkdown(note: NoteRecord): string {
