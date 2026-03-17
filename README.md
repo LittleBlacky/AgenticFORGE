@@ -2,9 +2,7 @@
   <img src="assets/LOGO.png" alt="AgenticFORGE" width="300" />
 </p>
 
-<h1 align="center">AgenticFORGE</h1>
-
-<h3 align="center">以工具调用为核心的 TypeScript Agent 框架 · A tool-centric TypeScript agent framework</h3>
+<h3 align="center">以工具调用为核心的 TypeScript Agent 框架</h3>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
