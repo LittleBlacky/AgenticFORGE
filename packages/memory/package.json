@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/memory",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Memory and RAG layer for AgenticFORGE",
   "type": "module",
   "sideEffects": false,

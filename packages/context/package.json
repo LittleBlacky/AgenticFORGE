@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/context",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Context builder and token utilities for AgenticFORGE",
   "type": "module",
   "sideEffects": false,

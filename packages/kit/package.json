@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/kit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "All-in-one AgenticFORGE bundle",
   "type": "module",
   "sideEffects": false,
