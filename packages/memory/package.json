@@ -41,5 +41,14 @@
     "rollup-plugin-esbuild": "^6.2.1",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LittleBlacky/AgenticFORGE.git",
+    "directory": "packages/memory"
+  },
+  "homepage": "https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/memory#readme",
+  "bugs": {
+    "url": "https://github.com/LittleBlacky/AgenticFORGE/issues"
   }
 }

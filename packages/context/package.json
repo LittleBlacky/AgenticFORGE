@@ -42,5 +42,14 @@
     "rollup-plugin-esbuild": "^6.2.1",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LittleBlacky/AgenticFORGE.git",
+    "directory": "packages/context"
+  },
+  "homepage": "https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/context#readme",
+  "bugs": {
+    "url": "https://github.com/LittleBlacky/AgenticFORGE/issues"
   }
 }
