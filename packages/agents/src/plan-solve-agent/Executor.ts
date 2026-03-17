@@ -1,5 +1,5 @@
-import {LLMClient} from "@AgenticKIT/core";
-import {ToolRegistry} from "@AgenticKIT/tools";
+import {LLMClient} from "@agenticforge/core";
+import {ToolRegistry} from "@agenticforge/tools";
 import type {PlanStep} from "./Plan";
 import {buildStepPrompt} from "./prompts";
 

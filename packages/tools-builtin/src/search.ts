@@ -1,4 +1,4 @@
-import {Tool, type ToolParameter} from "@AgenticKIT/tools";
+import {Tool, type ToolParameter} from "@agenticforge/tools";
 
 const CHARS_PER_TOKEN = 4;
 const DEFAULT_MAX_RESULTS = 5;

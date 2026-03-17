@@ -11,5 +11,10 @@ export default defineConfig({
     {file: "dist/cjs/index.cjs", format: "cjs", sourcemap: true},
   ],
   plugins: [nodeResolve({preferBuiltins: true}), commonjs(), json(), esbuild()],
-  external: ["@qdrant/js-client-rest", "neo4j-driver", "openai", "@agentickit/agents-core"],
+  external: [
+    "@qdrant/js-client-rest",
+    "neo4j-driver",
+    "openai",
+    "@agenticforge/core",
+  ],
 });

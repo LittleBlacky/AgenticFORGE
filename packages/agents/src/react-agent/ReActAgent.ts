@@ -1,6 +1,6 @@
-import {Agent} from "@AgenticKIT/core";
-import {Message} from "@AgenticKIT/core";
-import {ToolRegistry} from "@AgenticKIT/tools";
+import {Agent} from "@agenticforge/core";
+import {Message} from "@agenticforge/core";
+import {ToolRegistry} from "@agenticforge/tools";
 import type {AgentStep} from "../types";
 
 export interface ReActAgentOptions {

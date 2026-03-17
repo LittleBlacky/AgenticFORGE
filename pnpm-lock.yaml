@@ -72,20 +72,20 @@ importers:
 
   packages/agents:
     dependencies:
-      '@AgenticKIT/context':
-        specifier: workspace:*
+      '@agenticforge/context':
+        specifier: workspace:^
         version: link:../context
-      '@AgenticKIT/core':
-        specifier: workspace:*
+      '@agenticforge/core':
+        specifier: workspace:^
         version: link:../core
-      '@AgenticKIT/memory':
-        specifier: workspace:*
+      '@agenticforge/memory':
+        specifier: workspace:^
         version: link:../memory
-      '@AgenticKIT/tools':
-        specifier: workspace:*
+      '@agenticforge/tools':
+        specifier: workspace:^
         version: link:../tools
-      '@AgenticKIT/tools-builtin':
-        specifier: workspace:*
+      '@agenticforge/tools-builtin':
+        specifier: workspace:^
         version: link:../tools-builtin
       reflect-metadata:
         specifier: ^0.2.2
@@ -127,11 +127,11 @@ importers:
 
   packages/context:
     dependencies:
-      '@AgenticKIT/core':
-        specifier: workspace:*
+      '@agenticforge/core':
+        specifier: workspace:^
         version: link:../core
-      '@AgenticKIT/memory':
-        specifier: workspace:*
+      '@agenticforge/memory':
+        specifier: workspace:^
         version: link:../memory
       js-tiktoken:
         specifier: ^1.0.21
@@ -213,26 +213,26 @@ importers:
 
   packages/kit:
     dependencies:
-      '@AgenticKIT/agents':
-        specifier: workspace:*
+      '@agenticforge/agents':
+        specifier: workspace:^
         version: link:../agents
-      '@AgenticKIT/context':
-        specifier: workspace:*
+      '@agenticforge/context':
+        specifier: workspace:^
         version: link:../context
-      '@AgenticKIT/core':
-        specifier: workspace:*
+      '@agenticforge/core':
+        specifier: workspace:^
         version: link:../core
-      '@AgenticKIT/memory':
-        specifier: workspace:*
+      '@agenticforge/memory':
+        specifier: workspace:^
         version: link:../memory
-      '@AgenticKIT/tools':
-        specifier: workspace:*
+      '@agenticforge/tools':
+        specifier: workspace:^
         version: link:../tools
-      '@AgenticKIT/tools-builtin':
-        specifier: workspace:*
+      '@agenticforge/tools-builtin':
+        specifier: workspace:^
         version: link:../tools-builtin
-      '@AgenticKIT/utils':
-        specifier: workspace:*
+      '@agenticforge/utils':
+        specifier: workspace:^
         version: link:../utils
     devDependencies:
       '@rollup/plugin-commonjs':
@@ -268,8 +268,8 @@ importers:
 
   packages/memory:
     dependencies:
-      '@AgenticKIT/core':
-        specifier: workspace:*
+      '@agenticforge/core':
+        specifier: workspace:^
         version: link:../core
       '@qdrant/js-client-rest':
         specifier: ^1.17.0
@@ -354,11 +354,11 @@ importers:
 
   packages/tools-builtin:
     dependencies:
-      '@AgenticKIT/memory':
-        specifier: workspace:*
+      '@agenticforge/memory':
+        specifier: workspace:^
         version: link:../memory
-      '@AgenticKIT/tools':
-        specifier: workspace:*
+      '@agenticforge/tools':
+        specifier: workspace:^
         version: link:../tools
       proper-lockfile:
         specifier: ^4.1.2

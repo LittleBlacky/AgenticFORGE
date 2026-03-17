@@ -11,5 +11,11 @@ export default defineConfig({
     {file: "dist/cjs/index.cjs", format: "cjs", sourcemap: true},
   ],
   plugins: [nodeResolve({preferBuiltins: true}), commonjs(), json(), esbuild()],
-  external: ["proper-lockfile", "@AgenticKIT/tools", "@AgenticKIT/memory"],
+  external: [
+    "proper-lockfile",
+    "@agenticforge/tools",
+    "@agenticforge/memory",
+    "@agenticforge/core",
+    "zod",
+  ],
 });

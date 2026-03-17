@@ -2,7 +2,7 @@ import {spawn} from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {z} from "zod";
-import {Tool, type ToolParameter} from "@AgenticKIT/tools";
+import {Tool, type ToolParameter} from "@agenticforge/tools";
 
 export interface TerminalToolOptions {
   workspace?: string;

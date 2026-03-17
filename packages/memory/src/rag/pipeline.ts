@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
 import type {VectorStoreAdapter} from "../storage/types";
-import {LLMClient} from "@AgenticKIT/core";
+import {LLMClient} from "@agenticforge/core";
 import {createDefaultTextEmbedder} from "../embedding";
 import {createDefaultVectorStore} from "./storeFactory";
 

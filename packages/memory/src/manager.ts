@@ -165,7 +165,7 @@ export class MemoryManager {
     }
 
     return allResults
-      .filter((m) => m.importance >= minImportance)
+      .filter((m: MemoryItem) => m.importance >= minImportance)
       .sort((a, b) => b.importance - a.importance)
       .slice(0, limit);
   }
@@ -232,7 +232,7 @@ export class MemoryManager {
 
     // Retrieve high-importance items from source
     const items = await fromStore.retrieve("", 100, {userId: this.userId});
-    const eligible = items.filter((m) => m.importance >= threshold);
+    const eligible = items.filter((m: MemoryItem) => m.importance >= threshold);
 
     let count = 0;
     for (const item of eligible) {

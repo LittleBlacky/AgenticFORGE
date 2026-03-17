@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/core",
-  "version": "0.1.0",
-  "description": "Core types and LLM client for AgenticKIT",
+  "name": "@agenticforge/core",
+  "version": "1.0.1",
+  "description": "Core types and LLM client for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",

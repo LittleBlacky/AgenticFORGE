@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/tools-builtin",
-  "version": "0.1.0",
-  "description": "Built-in tools for AgenticKIT",
+  "name": "@agenticforge/tools-builtin",
+  "version": "1.0.1",
+  "description": "Built-in tools for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",
@@ -25,8 +25,8 @@
     "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
   },
   "dependencies": {
-    "@AgenticKIT/tools": "workspace:*",
-    "@AgenticKIT/memory": "workspace:*",
+    "@agenticforge/tools": "workspace:^",
+    "@agenticforge/memory": "workspace:^",
     "proper-lockfile": "^4.1.2"
   },
   "devDependencies": {

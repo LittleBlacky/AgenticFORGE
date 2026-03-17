@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/context",
-  "version": "0.1.0",
-  "description": "Context builder and token utilities for AgenticKIT",
+  "name": "@agenticforge/context",
+  "version": "1.0.1",
+  "description": "Context builder and token utilities for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",
@@ -28,8 +28,8 @@
     "js-tiktoken": "^1.0.21",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.3.6",
-    "@AgenticKIT/core": "workspace:*",
-    "@AgenticKIT/memory": "workspace:*"
+    "@agenticforge/core": "workspace:^",
+    "@agenticforge/memory": "workspace:^"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.8",

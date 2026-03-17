@@ -1,18 +1,15 @@
 import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
 
 export interface Episode {
-  episodeId: string;
-  title: string;
-  memoryIds: string[];
-  startTime: Date;
-  endTime: Date;
-  summary: string;
+  id: string;
+  content: string;
+  timestamp: Date;
   importance: number;
+  metadata: Record<string, unknown>;
 }
 
 export class EpisodicMemory extends BaseMemory {
-  private readonly memories: MemoryItem[] = [];
-  private readonly episodes: Episode[] = [];
+  private memories: MemoryItem[] = [];
 
   constructor(config: Partial<MemoryConfig> = {}) {
     super(config);
@@ -20,6 +17,7 @@ export class EpisodicMemory extends BaseMemory {
 
   async add(memoryItem: MemoryItem): Promise<string> {
     this.memories.push(memoryItem);
+    this.enforceCapacity();
     return memoryItem.id;
   }
 
@@ -28,35 +26,21 @@ export class EpisodicMemory extends BaseMemory {
     limit = 5,
     options: Record<string, unknown> = {},
   ): Promise<MemoryItem[]> {
+    if (!this.memories.length) return [];
     const userId = typeof options.userId === "string" ? options.userId : undefined;
+    const minImportance = typeof options.minImportance === "number" ? options.minImportance : 0;
+    const filtered = this.memories.filter(
+      (m) => (!userId || m.userId === userId) && m.importance >= minImportance,
+    );
     const q = query.trim().toLowerCase();
-
-    const filtered = userId
-      ? this.memories.filter((m) => m.userId === userId)
-      : this.memories;
-
-    if (!q) {
-      return filtered
-        .slice()
-        .sort((a, b) => b.importance - a.importance)
-        .slice(0, Math.max(1, Math.floor(limit)));
-    }
-
     const scored = filtered
-      .map((m) => {
-        const text = m.content.toLowerCase();
-        const relevance = text.includes(q)
-          ? q.length / Math.max(text.length, 1)
-          : jaccard(q.split(/\s+/g), text.split(/\s+/g));
-        const timeDecay = timeDecayFactor(m.timestamp);
-        return {score: relevance * timeDecay * (0.8 + m.importance * 0.4), item: m};
-      })
+      .map((m) => ({
+        score: q ? this.relevanceScore(q, m.content.toLowerCase()) * (0.5 + m.importance * 0.5) : m.importance,
+        item: m,
+      }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score);
-
-    return scored
-      .slice(0, Math.max(1, Math.floor(limit)))
-      .map((x) => x.item);
+    return scored.slice(0, Math.max(1, limit)).map((x) => x.item);
   }
 
   async update(
@@ -67,11 +51,11 @@ export class EpisodicMemory extends BaseMemory {
   ): Promise<boolean> {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
-    const old = this.memories[idx];
+    const old = this.memories[idx]!;
     this.memories[idx] = {
       ...old,
       content: content ?? old.content,
-      importance: typeof importance === "number" ? clamp01(importance) : old.importance,
+      importance: typeof importance === "number" ? Math.max(0, Math.min(1, importance)) : old.importance,
       metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
     };
     return true;
@@ -89,55 +73,53 @@ export class EpisodicMemory extends BaseMemory {
   }
 
   async clear(): Promise<void> {
-    this.memories.length = 0;
-    this.episodes.length = 0;
+    this.memories = [];
   }
 
   async getStats(): Promise<Record<string, unknown>> {
     const avgImportance = this.memories.length
-      ? this.memories.reduce((acc, m) => acc + m.importance, 0) / this.memories.length
+      ? this.memories.reduce((a, m) => a + m.importance, 0) / this.memories.length
       : 0;
     return {
       count: this.memories.length,
-      episodesCount: this.episodes.length,
       avgImportance,
+      maxCapacity: this.config.maxCapacity,
       memoryType: "episodic",
     };
   }
 
-  async forget(
-    strategy = "importance_based",
-    threshold = 0.1,
-    maxAgeDays = 30,
-  ): Promise<number> {
+  async forget(strategy = "importance_based", threshold = 0.1, maxAgeDays = 30): Promise<number> {
     const before = this.memories.length;
     if (strategy === "importance_based") {
-      const kept = this.memories.filter((m) => m.importance >= threshold);
-      this.memories.length = 0;
-      this.memories.push(...kept);
+      this.memories = this.memories.filter((m) => m.importance >= threshold);
     } else if (strategy === "time_based") {
       const cutoff = Date.now() - maxAgeDays * 86400000;
-      const kept = this.memories.filter((m) => m.timestamp.getTime() >= cutoff);
-      this.memories.length = 0;
-      this.memories.push(...kept);
+      this.memories = this.memories.filter((m) => m.timestamp.getTime() >= cutoff);
+    } else if (strategy === "capacity_based") {
+      this.memories.sort((a, b) => b.importance - a.importance);
+      this.memories = this.memories.slice(0, this.config.maxCapacity);
     }
     return before - this.memories.length;
   }
-}
 
-function timeDecayFactor(timestamp: Date): number {
-  const hoursPassed = (Date.now() - timestamp.getTime()) / 3600000;
-  return Math.max(0.1, 0.95 ** (hoursPassed / 24));
-}
+  async consolidate(toType: string, importanceThreshold = 0.7): Promise<MemoryItem[]> {
+    return this.memories.filter((m) => m.importance >= importanceThreshold);
+  }
 
-function jaccard(a: string[], b: string[]): number {
-  const sa = new Set(a.filter(Boolean));
-  const sb = new Set(b.filter(Boolean));
-  const inter = [...sa].filter((x) => sb.has(x)).length;
-  const union = new Set([...sa, ...sb]).size;
-  return union > 0 ? (inter / union) * 0.6 : 0;
-}
+  private enforceCapacity(): void {
+    if (this.memories.length > this.config.maxCapacity) {
+      this.memories.sort((a, b) => b.importance - a.importance);
+      this.memories = this.memories.slice(0, this.config.maxCapacity);
+    }
+  }
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0.5));
+  private relevanceScore(query: string, content: string): number {
+    if (!query) return 0.1;
+    if (content.includes(query)) return Math.max(0.2, query.length / Math.max(content.length, 1));
+    const qw = new Set(query.split(/\s+/).filter(Boolean));
+    const cw = new Set(content.split(/\s+/).filter(Boolean));
+    const inter = [...qw].filter((w) => cw.has(w)).length;
+    const union = new Set([...qw, ...cw]).size;
+    return union > 0 ? (inter / union) * 0.8 : 0;
+  }
 }

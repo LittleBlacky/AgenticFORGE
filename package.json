@@ -6,7 +6,13 @@
   "scripts": {
     "example": "node scripts/run-example.js",
     "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck"
+    "typecheck": "pnpm -r run typecheck",
+    "publish:dry": "node scripts/publish.js",
+    "publish:beta": "node scripts/publish.js --publish --tag beta",
+    "publish:release": "node scripts/publish.js --publish",
+    "version:patch": "node scripts/publish.js --bump patch",
+    "version:minor": "node scripts/publish.js --bump minor",
+    "version:major": "node scripts/publish.js --bump major"
   },
   "keywords": [
     "agents",

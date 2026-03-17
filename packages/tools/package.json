@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/tools",
-  "version": "0.1.0",
-  "description": "Tooling core for AgenticKIT",
+  "name": "@agenticforge/tools",
+  "version": "1.0.1",
+  "description": "Tooling core for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",

@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/agents",
-  "version": "0.1.0",
-  "description": "Agent implementations for AgenticKIT",
+  "name": "@agenticforge/agents",
+  "version": "1.0.1",
+  "description": "Agent implementations for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",
@@ -25,11 +25,11 @@
     "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
   },
   "dependencies": {
-    "@AgenticKIT/core": "workspace:*",
-    "@AgenticKIT/context": "workspace:*",
-    "@AgenticKIT/tools": "workspace:*",
-    "@AgenticKIT/tools-builtin": "workspace:*",
-    "@AgenticKIT/memory": "workspace:*",
+    "@agenticforge/core": "workspace:^",
+    "@agenticforge/context": "workspace:^",
+    "@agenticforge/tools": "workspace:^",
+    "@agenticforge/tools-builtin": "workspace:^",
+    "@agenticforge/memory": "workspace:^",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.3.6"
   },

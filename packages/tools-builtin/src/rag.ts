@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
-import {Tool, type ToolParameter, toolAction} from "@AgenticKIT/tools";
-import {LLMClient} from "@AgenticKIT/core";
+import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
+import {LLMClient} from "@agenticforge/core";
 import {
   createRagPipeline,
   type RagPipeline,
   type VectorSearchHit,
-} from "@AgenticKIT/memory";
-import {createDefaultVectorStore} from "@AgenticKIT/memory";
-import {createDefaultTextEmbedder} from "@AgenticKIT/memory";
+} from "@agenticforge/memory";
+import {createDefaultVectorStore} from "@agenticforge/memory";
+import {createDefaultTextEmbedder} from "@agenticforge/memory";
 
 // ---------------------------------------------------------------------------
 // 类型 & 选项

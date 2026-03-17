@@ -1,8 +1,8 @@
 import {z} from "zod";
-import {Agent} from "@AgenticKIT/core";
-import {Message} from "@AgenticKIT/core";
-import type {FunctionTool} from "@AgenticKIT/tools";
-import {ToolRegistry} from "@AgenticKIT/tools";
+import {Agent} from "@agenticforge/core";
+import {Message} from "@agenticforge/core";
+import type {FunctionTool} from "@agenticforge/tools";
+import {ToolRegistry} from "@agenticforge/tools";
 
 export interface SimpleAgentOptions {
   name: string;

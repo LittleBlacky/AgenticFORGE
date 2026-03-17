@@ -1,5 +1,5 @@
-import {Agent} from "@AgenticKIT/core";
-import {Message} from "@AgenticKIT/core";
+import {Agent} from "@agenticforge/core";
+import {Message} from "@agenticforge/core";
 import {ReflectionMemory} from "./Memory";
 
 export interface ReflectionAgentOptions {

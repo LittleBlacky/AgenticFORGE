@@ -11,5 +11,5 @@ export default defineConfig({
     {file: "dist/cjs/index.cjs", format: "cjs", sourcemap: true},
   ],
   plugins: [nodeResolve({preferBuiltins: true}), commonjs(), json(), esbuild()],
-  external: ["js-tiktoken", "reflect-metadata", "zod", "@agentickit/agents-core", "@agentickit/agents-memory"],
+  external: ["js-tiktoken", "reflect-metadata", "zod", "@agenticforge/core", "@agenticforge/memory"],
 });

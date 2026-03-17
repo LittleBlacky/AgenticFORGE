@@ -1,8 +1,8 @@
 import {z} from "zod";
-import {Agent} from "@AgenticKIT/core";
-import {Message} from "@AgenticKIT/core";
-import {Tool, type FunctionTool, type OpenAIFunctionSchema} from "@AgenticKIT/tools";
-import {ToolRegistry} from "@AgenticKIT/tools";
+import {Agent} from "@agenticforge/core";
+import {Message} from "@agenticforge/core";
+import {Tool, type FunctionTool, type OpenAIFunctionSchema} from "@agenticforge/tools";
+import {ToolRegistry} from "@agenticforge/tools";
 
 type ToolChoice = "auto" | "none" | {type: "function"; function: {name: string}};
 

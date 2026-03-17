@@ -1,7 +1,7 @@
 {
-  "name": "@AgenticKIT/kit",
-  "version": "0.1.0",
-  "description": "All-in-one AgenticKIT bundle",
+  "name": "@agenticforge/kit",
+  "version": "1.0.1",
+  "description": "All-in-one AgenticFORGE bundle",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.cjs",
@@ -25,13 +25,13 @@
     "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
   },
   "dependencies": {
-    "@AgenticKIT/core": "workspace:*",
-    "@AgenticKIT/context": "workspace:*",
-    "@AgenticKIT/tools": "workspace:*",
-    "@AgenticKIT/tools-builtin": "workspace:*",
-    "@AgenticKIT/memory": "workspace:*",
-    "@AgenticKIT/utils": "workspace:*",
-    "@AgenticKIT/agents": "workspace:*"
+    "@agenticforge/core": "workspace:^",
+    "@agenticforge/context": "workspace:^",
+    "@agenticforge/tools": "workspace:^",
+    "@agenticforge/tools-builtin": "workspace:^",
+    "@agenticforge/memory": "workspace:^",
+    "@agenticforge/utils": "workspace:^",
+    "@agenticforge/agents": "workspace:^"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.8",

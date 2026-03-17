@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import lockfile from "proper-lockfile";
-import {Tool, type ToolParameter, toolAction} from "@AgenticKIT/tools";
+import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
 
 export interface NoteToolOptions {
   workspace?: string;

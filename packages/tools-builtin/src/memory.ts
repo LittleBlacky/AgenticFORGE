@@ -1,10 +1,10 @@
 import {z} from "zod";
-import {Tool, type ToolParameter, toolAction} from "@AgenticKIT/tools";
+import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
 import {
   MemoryManager,
   type MemoryConfig,
   type MemoryType,
-} from "@AgenticKIT/memory";
+} from "@agenticforge/memory";
 
 export interface MemoryToolOptions {
   userId?: string;
