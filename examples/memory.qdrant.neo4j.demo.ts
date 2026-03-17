@@ -26,7 +26,7 @@ async function runQdrantNeo4jDemo() {
       backend: "qdrant",
       options: {
         url: "http://localhost:6333",
-        collection: "agentic_kit_vectors",
+        collection: "_kit_vectors",
         timeoutMs: 5000,
       },
     },

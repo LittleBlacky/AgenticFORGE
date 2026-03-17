@@ -1,36 +1,26 @@
 {
-  "name": "blacky-agents-sdk",
+  "name": "AgenticKIT",
+  "private": true,
   "version": "0.1.0",
-  "description": "A TypeScript SDK for classic agent patterns (ReAct, Plan-and-Solve, Reflection).",
-  "type": "module",
-  "sideEffects": false,
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.cjs"
-    }
-  },
-  "files": [
-    "dist"
-  ],
+  "description": "AgenticKIT is a framework for building agents that can interact with the world.",
   "scripts": {
-    "clean": "rimraf dist",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
     "example": "node scripts/run-example.js",
-    "build:types": "tsc -p tsconfig.build.json",
-    "build:js": "rollup -c",
-    "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck"
   },
   "keywords": [
     "agents",
     "llm",
     "react-agent",
     "plan-and-solve",
-    "reflection"
+    "reflection",
+    "memroy",
+    "rag",
+    "llm-framework",
+    "llm-agent",
+    "tools",
+    "context",
+    "skills"
   ],
   "license": "MIT",
   "dependencies": {
