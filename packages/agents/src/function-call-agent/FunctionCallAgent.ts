@@ -1,8 +1,8 @@
 import {z} from "zod";
-import {Agent} from "../../core/agent";
-import {Message} from "../../core/message";
-import {Tool, type FunctionTool, type OpenAIFunctionSchema} from "../../tools/Tool";
-import {ToolRegistry} from "../../tools/ToolRegistry";
+import {Agent} from "@AgenticKIT/core";
+import {Message} from "@AgenticKIT/core";
+import {Tool, type FunctionTool, type OpenAIFunctionSchema} from "@AgenticKIT/tools";
+import {ToolRegistry} from "@AgenticKIT/tools";
 
 type ToolChoice = "auto" | "none" | {type: "function"; function: {name: string}};
 
@@ -269,7 +269,7 @@ export class FunctionCallAgent extends Agent {
       messages,
       tools,
       tool_choice: toolChoice,
-      temperature: options.temperature ?? this.config.temperature,
+      temperature: options.temperature ?? (this.config as unknown as Record<string, unknown>).temperature as number | undefined,
       stream: false,
     });
   }
@@ -294,7 +294,7 @@ export class FunctionCallAgent extends Agent {
     if (toolSchemas.length === 0) {
       const response = await this.llm.think(
         messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
-        options.temperature ?? this.config.temperature,
+        options.temperature ?? (this.config as unknown as Record<string, unknown>).temperature as number | undefined,
       );
       this.addMessage(new Message({role: "user", content: inputText}));
       this.addMessage(new Message({role: "assistant", content: response}));

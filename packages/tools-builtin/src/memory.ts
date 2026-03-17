@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {Tool, type ToolParameter, toolAction} from "../Tool";
+import {Tool, type ToolParameter, toolAction} from "@AgenticKIT/tools";
 import {
   MemoryManager,
   type MemoryConfig,
@@ -152,7 +152,7 @@ export class MemoryTool extends Tool {
 
     const p = actionValidation.data;
 
-    switch (action) {
+    switch (p.action) {
       case "add":
         return this.addMemory(
           p.content,
@@ -666,9 +666,7 @@ export class MemoryTool extends Tool {
       forget: z
         .object({
           action: z.literal("forget"),
-          strategy: z
-            .enum(["importance_based", "time_based", "capacity_based"])
-            .optional(),
+          strategy: z.string().optional(),
           threshold: z.number().min(0).max(1).optional(),
           max_age_days: z.number().int().min(1).optional(),
         })

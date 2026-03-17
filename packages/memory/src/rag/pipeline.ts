@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
 import type {VectorStoreAdapter} from "../storage/types";
-import {LLMClient} from "../../core/llm";
+import {LLMClient} from "@AgenticKIT/core";
 import {createDefaultTextEmbedder} from "../embedding";
 import {createDefaultVectorStore} from "./storeFactory";
 
@@ -782,7 +782,7 @@ async function promptMqe(
     ]);
     const lines = text
       .split(/\r?\n/g)
-      .map((line) => line.replace(/^[-\s]+/, "").trim())
+      .map((line: string) => line.replace(/^[-\s]+/, "").trim())
       .filter(Boolean);
     return lines.slice(0, n).length > 0 ? lines.slice(0, n) : [query];
   } catch {

@@ -101,7 +101,7 @@ export class SemanticMemory extends BaseMemory {
       : [];
 
     if (vectorResults.length || graphResults.length) {
-      const merged = this.mergeAdapterResults(
+      const merged = await this.mergeAdapterResults(
         vectorResults,
         graphResults,
         limit,
@@ -331,12 +331,12 @@ export class SemanticMemory extends BaseMemory {
     return matched / entityIds.length;
   }
 
-  private mergeAdapterResults(
+  private async mergeAdapterResults(
     vectorResults: Array<{id: string; score: number; payload: Record<string, unknown>}>,
     graphResults: Array<{entityId: string; score: number}>,
     limit: number,
     userId?: string,
-  ): MemoryItem[] {
+  ): Promise<MemoryItem[]> {
     const graphScoreMap = new Map<string, number>();
     for (const result of graphResults) {
       graphScoreMap.set(result.entityId, result.score);

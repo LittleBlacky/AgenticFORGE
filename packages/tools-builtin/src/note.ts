@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import lockfile from "proper-lockfile";
-import {Tool, type ToolParameter, toolAction} from "../Tool";
+import {Tool, type ToolParameter, toolAction} from "@AgenticKIT/tools";
 
 export interface NoteToolOptions {
   workspace?: string;
@@ -90,7 +90,7 @@ export class NoteTool extends Tool {
   }
 
   async run(parameters: Record<string, unknown>): Promise<string> {
-    if (!this.validateParameters(parameters)) {
+    if (!this.validateAndNormalizeParameters(parameters).success) {
       return "❌ 参数验证失败";
     }
 

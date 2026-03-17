@@ -1,0 +1,48 @@
+{
+  "name": "@AgenticKIT/kit",
+  "version": "0.1.0",
+  "description": "All-in-one AgenticKIT bundle",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build:js": "rollup -c",
+    "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
+  },
+  "dependencies": {
+    "@AgenticKIT/core": "workspace:*",
+    "@AgenticKIT/context": "workspace:*",
+    "@AgenticKIT/tools": "workspace:*",
+    "@AgenticKIT/tools-builtin": "workspace:*",
+    "@AgenticKIT/memory": "workspace:*",
+    "@AgenticKIT/utils": "workspace:*",
+    "@AgenticKIT/agents": "workspace:*"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/node": "^25.3.3",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.50.1",
+    "rollup-plugin-esbuild": "^6.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3"
+  }
+}
