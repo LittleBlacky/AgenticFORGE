@@ -2,6 +2,8 @@
   <img src="assets/LOGO.png" alt="AgenticFORGE" width="300" />
 </p>
 
+<h1 align="center">AgenticFORGE</h1>
+
 <h3 align="center">以工具调用为核心的 TypeScript Agent 框架</h3>
 
 <p align="center">
