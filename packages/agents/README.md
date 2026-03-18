@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Classic agent workflow implementations for AgenticFORGE �?ReAct, Plan-and-Solve, Reflection, FunctionCall, and Simple.
+Classic agent workflow implementations for AgenticFORGE? ReAct, Plan-and-Solve, Reflection, FunctionCall, and Simple.
 
 ## Installation
 
