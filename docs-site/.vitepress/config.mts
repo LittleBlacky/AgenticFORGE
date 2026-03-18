@@ -6,6 +6,7 @@ export default defineConfig({
   base: process.env.VITEPRESS_BASE ?? "/",
 
   head: [
+    ["link", {rel: "icon", type: "image/x-icon", href: "/favicon.ico"}],
     ["link", {rel: "icon", type: "image/png", sizes: "32x32", href: "/logo.png"}],
     ["link", {rel: "shortcut icon", href: "/logo.png"}],
     ["link", {rel: "apple-touch-icon", href: "/logo.png"}],
