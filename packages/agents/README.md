@@ -46,6 +46,32 @@ const result = await agent.run("What is (123 + 456) * 2?");
 console.log(result);
 ```
 
+## SkillAgent
+
+`SkillAgent` routes each user query to the most appropriate registered Skill. Skills can be defined as Markdown files or TypeScript classes — see [@agenticforge/skills](https://www.npmjs.com/package/@agenticforge/skills).
+
+```ts
+import { SkillAgent } from "@agenticforge/agents";
+import { AgentSkill, SkillLoader } from "@agenticforge/skills";
+
+// Load Markdown skills from a directory
+const mdSkills = await SkillLoader.fromDirectory(".cursor/skills");
+
+// Mix with TypeScript skills
+const agent = new SkillAgent({
+  name: "assistant",
+  llm,
+  skills: [...mdSkills, new StockSkill()],
+});
+
+// Auto-routes to the best skill
+const reply = await agent.run("Is it raining in Tokyo?");
+
+// Call a specific skill directly
+const result = await agent.runSkill("stock-query", "Apple stock price?");
+console.log(result.output);
+```
+
 ## Links
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/agents)

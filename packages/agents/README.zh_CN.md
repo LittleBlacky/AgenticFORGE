@@ -22,6 +22,31 @@ npm install @agenticforge/agents
 | `ReActAgent` | 推理-行动-观察循环，适合复杂推理 |
 | `PlanSolveAgent` | 先规划后逐步执行，适合多步骤任务 |
 | `ReflectionAgent` | 带自我反思与批评机制，适合高质量生成 |
+| `SkillAgent` | 自动路由到最合适的 Skill，适合多能力切换场景 |
+
+## SkillAgent
+
+`SkillAgent` 将用户请求自动路由到最合适的 Skill。Skill 可以是 Markdown 文件或 TypeScript 类，详见 [@agenticforge/skills](https://www.npmjs.com/package/@agenticforge/skills)。
+
+```ts
+import { SkillAgent } from "@agenticforge/agents";
+import { SkillLoader } from "@agenticforge/skills";
+
+const mdSkills = await SkillLoader.fromDirectory(".cursor/skills");
+
+const agent = new SkillAgent({
+  name: "assistant",
+  llm,
+  skills: [...mdSkills, new StockSkill()],
+});
+
+// 自动路由到最合适的 Skill
+const reply = await agent.run("东京今天下雨吗？");
+
+// 直接调用指定 Skill
+const result = await agent.runSkill("stock-query", "苹果股票现在多少？");
+console.log(result.output);
+```
 
 ## 使用示例
 
