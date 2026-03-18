@@ -1,15 +1,17 @@
 import {defineConfig} from "vitepress";
 
+const base = process.env.VITEPRESS_BASE ?? "/";
+
 export default defineConfig({
   title: "AgenticFORGE",
   description: "A TypeScript Agent Framework Driven by Tool Invocation",
-  base: process.env.VITEPRESS_BASE ?? "/",
+  base,
 
   head: [
-    ["link", {rel: "icon", type: "image/x-icon", href: "/favicon.ico"}],
-    ["link", {rel: "icon", type: "image/png", sizes: "32x32", href: "/logo.png"}],
-    ["link", {rel: "shortcut icon", href: "/logo.png"}],
-    ["link", {rel: "apple-touch-icon", href: "/logo.png"}],
+    ["link", {rel: "icon", type: "image/x-icon", href: `${base}favicon.ico`}],
+    ["link", {rel: "icon", type: "image/png", sizes: "32x32", href: `${base}logo.png`}],
+    ["link", {rel: "shortcut icon", href: `${base}favicon.ico`}],
+    ["link", {rel: "apple-touch-icon", href: `${base}logo.png`}],
     ["meta", {name: "theme-color", content: "#f97316"}],
   ],
 
@@ -22,7 +24,7 @@ export default defineConfig({
           {text: "Guide", link: "/guide/introduction"},
           {text: "Packages", link: "/packages/kit"},
           {
-            text: "v1.1.1",
+            text: "v1.1.2",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
@@ -85,7 +87,7 @@ export default defineConfig({
           {text: "\u6307\u5357", link: "/zh/guide/introduction"},
           {text: "\u5305\u6587\u6863", link: "/zh/packages/kit"},
           {
-            text: "v1.1.1",
+            text: "v1.1.2",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
