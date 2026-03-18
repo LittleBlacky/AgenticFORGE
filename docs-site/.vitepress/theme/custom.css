@@ -9,7 +9,7 @@
 
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
-  --vp-home-hero-image-background-image: radial-gradient(ellipse at center, rgba(249,115,22,0.18) 0%, transparent 70%);
+  --vp-home-hero-image-background-image: radial-gradient(ellipse at center, rgba(249,115,22,0.25) 0%, transparent 70%);
   --vp-home-hero-image-filter: blur(44px);
 }
 
@@ -19,38 +19,198 @@
   --vp-c-bg-mute: #1a1a1a;
 }
 
-/* Nav logo text */
+/* ============================================
+   PAGE LOAD — staggered fade-in
+   ============================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(249,115,22,0.15); }
+  50%       { box-shadow: 0 0 40px rgba(249,115,22,0.35); }
+}
+
+/* Hero name — animated gradient text */
+.VPHero .name .clip {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+/* Hero text block stagger */
+.VPHero .main {
+  animation: fadeUp 0.7s ease both;
+}
+.VPHero .tagline {
+  animation: fadeUp 0.7s 0.15s ease both;
+}
+.VPHero .actions {
+  animation: fadeUp 0.7s 0.3s ease both;
+}
+
+/* Hero image float */
+.VPHero .image-container {
+  animation: float 5s ease-in-out infinite, scaleIn 0.8s 0.2s ease both;
+}
+
+/* Hero image glow pulse */
+.VPHero .image-bg {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* ============================================
+   FEATURE CARDS
+   ============================================ */
+.VPFeatures .items {
+  animation: fadeIn 0.6s 0.4s ease both;
+}
+
+.VPFeature {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1px solid transparent;
+}
+
+.VPFeature:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.15);
+  border-color: var(--vp-c-brand-soft);
+}
+
+/* Icon bounce on hover */
+.VPFeature:hover .icon {
+  animation: float 1s ease-in-out infinite;
+  display: inline-block;
+}
+
+.VPFeature .icon {
+  font-size: 2rem;
+  transition: transform 0.2s ease;
+}
+
+.VPFeature .title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Stagger feature cards */
+.VPFeatures .item:nth-child(1) .VPFeature { animation: fadeUp 0.5s 0.45s ease both; }
+.VPFeatures .item:nth-child(2) .VPFeature { animation: fadeUp 0.5s 0.55s ease both; }
+.VPFeatures .item:nth-child(3) .VPFeature { animation: fadeUp 0.5s 0.65s ease both; }
+.VPFeatures .item:nth-child(4) .VPFeature { animation: fadeUp 0.5s 0.75s ease both; }
+.VPFeatures .item:nth-child(5) .VPFeature { animation: fadeUp 0.5s 0.85s ease both; }
+.VPFeatures .item:nth-child(6) .VPFeature { animation: fadeUp 0.5s 0.95s ease both; }
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.VPButton {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.VPButton:hover {
+  transform: translateY(-2px);
+}
+
+.VPButton.medium.brand:hover {
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+}
+
+/* ============================================
+   NAV
+   ============================================ */
+.VPNav {
+  animation: fadeIn 0.5s ease both;
+  backdrop-filter: blur(12px);
+}
+
 .VPNavBarTitle .title {
   font-weight: 700;
   letter-spacing: -0.5px;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.VPSidebarItem.is-active > .item .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.VPSidebarItem > .item {
+  transition: color 0.15s ease;
+}
+
+/* ============================================
+   DOC CONTENT
+   ============================================ */
+.VPDoc .content {
+  animation: fadeUp 0.5s 0.1s ease both;
 }
 
 /* Code blocks */
 .vp-doc div[class*='language-'] {
   border-radius: 10px;
   border: 1px solid var(--vp-c-divider);
+  transition: border-color 0.2s ease;
 }
 
-/* Custom badge styles */
+.vp-doc div[class*='language-']:hover {
+  border-color: var(--vp-c-brand-soft);
+}
+
+/* Inline code */
+.vp-doc code {
+  transition: background 0.15s ease;
+}
+
+/* Links */
+.vp-doc a {
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+/* Table */
+.vp-doc table th {
+  background: var(--vp-c-bg-soft);
+}
+
+/* ============================================
+   BADGE
+   ============================================ */
 .vp-badge {
   border-radius: 4px;
   font-family: var(--vp-font-family-mono);
   font-size: 11px;
 }
 
-/* Home page feature cards */
-.VPFeature .title {
-  font-size: 1rem;
-  font-weight: 600;
+/* ============================================
+   SCROLL REVEAL — content sections
+   ============================================ */
+.vp-doc h2 {
+  animation: fadeUp 0.4s ease both;
 }
 
-/* Sidebar active item */
-.VPSidebarItem.is-active > .item .text {
-  color: var(--vp-c-brand-1);
-  font-weight: 600;
-}
-
-/* Package table in docs */
-.vp-doc table th {
-  background: var(--vp-c-bg-soft);
+.vp-doc h3 {
+  animation: fadeUp 0.4s ease both;
 }
