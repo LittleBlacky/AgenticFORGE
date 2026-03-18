@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">ä¸­æ–‡</a> | <strong>English</strong>
+  <a href="./README.zh_CN.md">??</a> | <strong>English</strong>
 </p>
 
 ---
@@ -27,9 +27,9 @@ AgenticFORGE is a TypeScript framework for building AI agents. It is centered ar
 ## Features
 
 - **Tool-driven**: Unified `Tool` / `ToolRegistry` / `ToolChain` abstractions with sync/async support, parameter validation, and chaining
-- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection, FunctionCall, and SimpleAgent â€?ready to use
+- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection, FunctionCall, and SimpleAgent ??ready to use
 - **Multi-layer memory**: Working, episodic, semantic, and perceptual memory types under a single manager
-- **Pluggable storage**: KV / vector / graph / blob backends â€?in-memory, Qdrant, Neo4j, or custom
+- **Pluggable storage**: KV / vector / graph / blob backends ??in-memory, Qdrant, Neo4j, or custom
 - **Built-in tools**: Search, memory, notes, RAG, and terminal tools included
 - **Context management**: Token-aware context builder for precise LLM input window control
 - **Full type safety**: Complete TypeScript declarations, strict-mode compatible
@@ -47,7 +47,7 @@ AgenticFORGE is a TypeScript framework for building AI agents. It is centered ar
 | [`@agenticforge/tools-builtin`](packages/tools-builtin) | Built-in tools: search, memory, notes, RAG, terminal |
 | [`@agenticforge/context`](packages/context) | Token-aware context builder |
 | [`@agenticforge/utils`](packages/utils) | LRU cache, prompt utilities, and more |
-| [`@agenticforge/kit`](packages/kit) | All-in-one entry point â€?re-exports everything |
+| [`@agenticforge/kit`](packages/kit) | All-in-one entry point ??re-exports everything |
 
 ---
 
@@ -83,7 +83,7 @@ const weatherTool = new Tool({
     {name: "city", type: "string", description: "City name", required: true},
   ],
   action: toolAction(z.object({city: z.string()}), async ({city}) => {
-    return `${city}: sunny, 25Â°C`;
+    return `${city}: sunny, 25°C`;
   }),
 });
 
@@ -178,4 +178,4 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[MIT](LICENSE) Â© LittleBlacky
+[MIT](LICENSE) © LittleBlacky
