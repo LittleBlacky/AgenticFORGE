@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/NICE_NOODLE.jpg" alt="AgenticFORGE" width="300" />
+  <img src="assets/LOGO.jpg" alt="AgenticFORGE" width="300" />
 </p>
 
 <h1 align="center">AgenticFORGE</h1>

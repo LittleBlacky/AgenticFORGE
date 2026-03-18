@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/memory",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "description": "Memory and RAG layer for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
@@ -12,6 +12,31 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.cjs"
+    },
+    "./manager": {
+      "types": "./dist/types/manager.d.ts",
+      "import": "./dist/esm/manager.js",
+      "require": "./dist/cjs/manager.cjs"
+    },
+    "./rag": {
+      "types": "./dist/types/rag/index.d.ts",
+      "import": "./dist/esm/rag.js",
+      "require": "./dist/cjs/rag.cjs"
+    },
+    "./storage": {
+      "types": "./dist/types/storage/index.d.ts",
+      "import": "./dist/esm/storage.js",
+      "require": "./dist/cjs/storage.cjs"
+    },
+    "./embedding": {
+      "types": "./dist/types/embedding/index.d.ts",
+      "import": "./dist/esm/embedding.js",
+      "require": "./dist/cjs/embedding.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/types/index.d.ts",
+      "import": "./dist/esm/types.js",
+      "require": "./dist/cjs/types.cjs"
     }
   },
   "files": [
