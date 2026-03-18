@@ -15,7 +15,22 @@ export interface ContextPacket {
   metadata: Record<string, unknown>;
   tokens?: number;
   relevanceScore?: number;
+  /** Unix timestamp in ms (Date.now()). Used for recency scoring. */
+  timestamp?: number;
 }
+
+/**
+ * Optional async text embedder for semantic vector similarity.
+ * When provided, MMR uses cosine similarity on dense vectors.
+ * When absent, falls back to TF-IDF weighted bag-of-words cosine.
+ *
+ * @example
+ *   const embedder: TextEmbedder = async (texts) => {
+ *     const res = await openai.embeddings.create({ model: "text-embedding-3-small", input: texts });
+ *     return res.data.map(d => d.embedding);
+ *   };
+ */
+export type TextEmbedder = (texts: string[]) => Promise<number[][]>;
 
 export interface ContextBuilderConfig {
   maxTokens?: number;
@@ -27,6 +42,15 @@ export interface ContextBuilderConfig {
   tokenCounter?: TokenCounter;
   systemTokenBudget?: number;
   historyTokenBudget?: number;
+  /** Weight for recency score in composite score (0-1). Default 0.3. */
+  recencyWeight?: number;
+  /** Time scale in milliseconds for recency decay. Default 3600000 (1 hour). */
+  recencyTau?: number;
+  /**
+   * Optional async text embedder for semantic MMR similarity.
+   * When set, MMR uses dense vector cosine similarity instead of TF-IDF.
+   */
+  embedder?: TextEmbedder;
 }
 
 export interface BuildContextInput {
@@ -66,8 +90,9 @@ export class ContextPacketBuilder {
 // ---------------------------------------------------------------------------
 
 export class ContextBuilder {
-  private readonly config: Required<Omit<ContextBuilderConfig, "tokenCounter">> & {
+  private readonly config: Required<Omit<ContextBuilderConfig, "tokenCounter" | "embedder">> & {
     tokenCounter?: TokenCounter;
+    embedder?: TextEmbedder;
   };
 
   constructor(options: {config?: ContextBuilderConfig} = {}) {
@@ -82,6 +107,9 @@ export class ContextBuilder {
       tokenCounter: cfg.tokenCounter,
       systemTokenBudget: cfg.systemTokenBudget ?? 512,
       historyTokenBudget: cfg.historyTokenBudget ?? 1024,
+      recencyWeight: cfg.recencyWeight ?? 0.3,
+      recencyTau: cfg.recencyTau ?? 3_600_000,
+      embedder: cfg.embedder,
     };
   }
 
@@ -123,7 +151,7 @@ export class ContextBuilder {
       }));
 
     const selectedPackets = this.config.enableMmr
-      ? this.selectMmr(scoredPackets, input.userQuery, budget)
+      ? await this.selectMmr(scoredPackets, input.userQuery, budget)
       : this.selectGreedy(scoredPackets, budget);
 
     const packetTokens = selectedPackets.reduce(
@@ -146,12 +174,24 @@ export class ContextBuilder {
     };
   }
 
+  private compositeScore(packet: ContextPacket, relevance: number): number {
+    const rw = this.config.recencyWeight;
+    const tau = this.config.recencyTau;
+    const now = Date.now();
+    const ts = packet.timestamp ?? now;
+    const delta = Math.max(now - ts, 0);
+    const recency = Math.exp(-delta / tau);
+    return (1 - rw) * relevance + rw * recency;
+  }
+
   private selectGreedy(
     packets: Array<ContextPacket & {tokens: number}>,
     budget: number,
   ): Array<ContextPacket & {tokens: number}> {
     const sorted = [...packets].sort(
-      (a, b) => (b.relevanceScore ?? 0.5) - (a.relevanceScore ?? 0.5),
+      (a, b) =>
+        this.compositeScore(b, b.relevanceScore ?? 0.5) -
+        this.compositeScore(a, a.relevanceScore ?? 0.5),
     );
     const selected: Array<ContextPacket & {tokens: number}> = [];
     let used = 0;
@@ -164,16 +204,42 @@ export class ContextBuilder {
     return selected;
   }
 
-  private selectMmr(
+  private async selectMmr(
     packets: Array<ContextPacket & {tokens: number}>,
     query: string,
     budget: number,
-  ): Array<ContextPacket & {tokens: number}> {
+  ): Promise<Array<ContextPacket & {tokens: number}>> {
     if (packets.length === 0) return [];
     const lambda = this.config.mmrLambda;
-    const queryVec = simpleVec(query);
+
+    // ------------------------------------------------------------------
+    // Build vector representations
+    // Priority: external embedder (dense) → TF-IDF weighted bag-of-words
+    // ------------------------------------------------------------------
+    type PacketWithTokens = ContextPacket & {tokens: number};
+    let vecMap: Map<PacketWithTokens, number[]>;
+    let queryVec: number[];
+
+    if (this.config.embedder) {
+      try {
+        const texts = [query, ...packets.map((p) => p.content)];
+        const vecs = await this.config.embedder(texts);
+        queryVec = vecs[0] ?? [];
+        vecMap = new Map(packets.map((p, i) => [p, vecs[i + 1] ?? []]));
+      } catch {
+        // embedder failed — fall back to TF-IDF
+        const {qv, pm} = buildTfIdfVecs(query, packets);
+        queryVec = qv;
+        vecMap = pm;
+      }
+    } else {
+      const {qv, pm} = buildTfIdfVecs(query, packets);
+      queryVec = qv;
+      vecMap = pm;
+    }
+
     const remaining = [...packets];
-    const selected: Array<ContextPacket & {tokens: number}> = [];
+    const selected: Array<PacketWithTokens> = [];
     let used = 0;
 
     while (remaining.length > 0 && used < budget) {
@@ -183,16 +249,21 @@ export class ContextBuilder {
       for (let i = 0; i < remaining.length; i++) {
         const p = remaining[i]!;
         if (used + p.tokens > budget) continue;
-        const rel = cosine(queryVec, simpleVec(p.content));
+
+        // Relevance: cosine(query, p) → composite with recency
+        const pVec = vecMap.get(p) ?? [];
+        const relCos = denseCosine(queryVec, pVec);
+        const composite = this.compositeScore(p, relCos);
+
+        // Diversity penalty: max cosine to already-selected
         const maxSim =
           selected.length > 0
             ? Math.max(
-                ...selected.map((s) =>
-                  cosine(simpleVec(s.content), simpleVec(p.content)),
-                ),
+                ...selected.map((s) => denseCosine(pVec, vecMap.get(s) ?? [])),
               )
             : 0;
-        const score = lambda * rel - (1 - lambda) * maxSim;
+
+        const score = lambda * composite - (1 - lambda) * maxSim;
         if (score > bestScore) {
           bestScore = score;
           bestIdx = i;
@@ -211,26 +282,71 @@ export class ContextBuilder {
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
+// TF-IDF helpers
 // ---------------------------------------------------------------------------
 
-function simpleVec(text: string): Map<string, number> {
-  const freq = new Map<string, number>();
-  for (const tok of text.toLowerCase().split(/\s+/g).filter(Boolean)) {
-    freq.set(tok, (freq.get(tok) ?? 0) + 1);
-  }
-  return freq;
+function tokenize(text: string): string[] {
+  return text.toLowerCase().split(/[\s\W]+/g).filter(Boolean);
 }
 
-function cosine(a: Map<string, number>, b: Map<string, number>): number {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (const [k, v] of a) {
-    dot += v * (b.get(k) ?? 0);
-    na += v * v;
+function buildIdf(docs: string[]): Map<string, number> {
+  const df = new Map<string, number>();
+  const N = docs.length;
+  for (const doc of docs) {
+    const terms = new Set(tokenize(doc));
+    for (const term of terms) df.set(term, (df.get(term) ?? 0) + 1);
   }
-  for (const v of b.values()) nb += v * v;
+  const idf = new Map<string, number>();
+  for (const [term, count] of df) {
+    // Smooth IDF: log((N+1)/(count+1)) + 1
+    idf.set(term, Math.log((N + 1) / (count + 1)) + 1);
+  }
+  return idf;
+}
+
+function tfidfArray(text: string, idf: Map<string, number>, termIndex: Map<string, number>): number[] {
+  const terms = tokenize(text);
+  const tf = new Map<string, number>();
+  for (const t of terms) tf.set(t, (tf.get(t) ?? 0) + 1);
+  const arr = new Array<number>(termIndex.size).fill(0);
+  for (const [term, freq] of tf) {
+    const idx = termIndex.get(term);
+    if (idx === undefined) continue;
+    const idfVal = idf.get(term) ?? Math.log(2);
+    arr[idx] = (freq / Math.max(terms.length, 1)) * idfVal;
+  }
+  return arr;
+}
+
+function buildTfIdfVecs<T extends {content: string}>(
+  query: string,
+  packets: T[],
+): {qv: number[]; pm: Map<T, number[]>} {
+  const corpus = [query, ...packets.map((p) => p.content)];
+  const idf = buildIdf(corpus);
+  const termIndex = new Map<string, number>();
+  for (const [term] of idf) {
+    if (!termIndex.has(term)) termIndex.set(term, termIndex.size);
+  }
+  const qv = tfidfArray(query, idf, termIndex);
+  const pm = new Map<T, number[]>();
+  for (const p of packets) pm.set(p, tfidfArray(p.content, idf, termIndex));
+  return {qv, pm};
+}
+
+// ---------------------------------------------------------------------------
+// Dense cosine similarity
+// ---------------------------------------------------------------------------
+
+function denseCosine(a: number[], b: number[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  let dot = 0, na = 0, nb = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    dot += a[i]! * b[i]!;
+    na  += a[i]! * a[i]!;
+    nb  += b[i]! * b[i]!;
+  }
   const denom = Math.sqrt(na) * Math.sqrt(nb);
   return denom > 0 ? dot / denom : 0;
 }
