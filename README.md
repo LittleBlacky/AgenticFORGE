@@ -95,7 +95,7 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[CC BY-NC-SA 4.0](LICENSE) � LittleBlacky
+[CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
 
 ---
 
