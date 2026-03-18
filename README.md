@@ -1,20 +1,12 @@
-<p align="center">
-  <img src="assets/LOGO.png" alt="AgenticFORGE" width="200" />
-</p>
 
-<h1 align="center">AgenticFORGE</h1>
 
-<h3 align="center">A TypeScript Agent Framework Driven by Tool Invocation</h3>
+# AgenticFORGE
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
-  <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE"><img src="https://img.shields.io/github/license/LittleBlacky/AgenticFORGE" alt="license" /></a>
-  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
-</p>
+### A TypeScript Agent Framework Driven by Tool Invocation
 
-<p align="center">
-  <a href="./README.zh_CN.md">??</a> | <strong>English</strong>
-</p>
+
+
+[中文](./README.zh_CN.md) | **English**
 
 ---
 
@@ -38,49 +30,53 @@ AgenticFORGE is a TypeScript framework for building AI agents. It is centered ar
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| [`@agenticforge/core`](packages/core) | Core types, LLM client, message structures |
-| [`@agenticforge/tools`](packages/tools) | Tool abstraction, ToolRegistry, ToolChain, AsyncToolExecutor |
-| [`@agenticforge/agents`](packages/agents) | ReAct / Plan-Solve / Reflection / FunctionCall / Simple Agent |
-| [`@agenticforge/memory`](packages/memory) | Multi-type memory manager, RAG pipeline, storage adapters |
-| [`@agenticforge/tools-builtin`](packages/tools-builtin) | Built-in tools: search, memory, notes, RAG, terminal |
-| [`@agenticforge/context`](packages/context) | Token-aware context builder |
-| [`@agenticforge/utils`](packages/utils) | LRU cache, prompt utilities, and more |
-| [`@agenticforge/protocols`](packages/protocols) | MCP / A2A / ANP protocol implementations |
-| [`@agenticforge/kit`](packages/kit) | All-in-one entry point - re-exports everything |
+
+| Package                                                 | Description                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------- |
+| `[@agenticforge/core](packages/core)`                   | Core types, LLM client, message structures                    |
+| `[@agenticforge/tools](packages/tools)`                 | Tool abstraction, ToolRegistry, ToolChain, AsyncToolExecutor  |
+| `[@agenticforge/agents](packages/agents)`               | ReAct / Plan-Solve / Reflection / FunctionCall / Simple Agent |
+| `[@agenticforge/memory](packages/memory)`               | Multi-type memory manager, RAG pipeline, storage adapters     |
+| `[@agenticforge/tools-builtin](packages/tools-builtin)` | Built-in tools: search, memory, notes, RAG, terminal          |
+| `[@agenticforge/context](packages/context)`             | Token-aware context builder                                   |
+| `[@agenticforge/utils](packages/utils)`                 | LRU cache, prompt utilities, and more                         |
+| `[@agenticforge/protocols](packages/protocols)`         | MCP / A2A / ANP protocol implementations                      |
+| `[@agenticforge/kit](packages/kit)`                     | All-in-one entry point - re-exports everything                |
+
 
 ---
 
 ## Installation
 
-``````bash
+```bash
 npm install @agenticforge/kit
-``````
+```
 
 ---
 
 ## Agent Types
 
-| Agent | Best For |
-|-------|----------|
-| `SimpleAgent` | Single-turn or multi-turn conversation, no tools |
-| `FunctionCallAgent` | Tool-driven task execution |
-| `ReActAgent` | Reasoning-action loops for complex tasks |
-| `PlanSolveAgent` | Plan first, then execute step by step |
-| `ReflectionAgent` | Self-critique for high-quality generation |
-| `SkillAgent` | Routes queries to the best-matching Skill automatically |
+
+| Agent               | Best For                                                |
+| ------------------- | ------------------------------------------------------- |
+| `SimpleAgent`       | Single-turn or multi-turn conversation, no tools        |
+| `FunctionCallAgent` | Tool-driven task execution                              |
+| `ReActAgent`        | Reasoning-action loops for complex tasks                |
+| `PlanSolveAgent`    | Plan first, then execute step by step                   |
+| `ReflectionAgent`   | Self-critique for high-quality generation               |
+| `SkillAgent`        | Routes queries to the best-matching Skill automatically |
+
 
 ---
 
 ## Local Development
 
-``````bash
+```bash
 git clone https://github.com/LittleBlacky/AgenticFORGE.git
 cd AgenticFORGE
 pnpm install
 pnpm -r run build
-``````
+```
 
 ---
 
@@ -92,7 +88,7 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[CC BY-NC-SA 4.0](LICENSE) � LittleBlacky
+[CC BY-NC-SA 4.0](LICENSE) � LittleBlacky
 
 ---
 
