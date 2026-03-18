@@ -56,6 +56,7 @@ export default defineConfig({
               text: "Advanced",
               items: [
                 {text: "Build Optimization", link: "/guide/build-optimization"},
+                {text: "Protocols", link: "/guide/protocols"},
               ],
             },
           ],
@@ -120,6 +121,7 @@ export default defineConfig({
               text: "\u8fdb\u9636",
               items: [
                 {text: "\u6253\u5305\u4f18\u5316", link: "/zh/guide/build-optimization"},
+                {text: "\u534f\u8bae", link: "/zh/guide/protocols"},
               ],
             },
           ],
