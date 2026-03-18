@@ -23,8 +23,7 @@ const PUBLISH_ORDER = [
   "tools",
   "tools-builtin",
   "context",
-  "agents",
-  "kit",
+  "agents",\r\n  "protocols",\r\n  "kit",
 ];
 
 // CLI args
