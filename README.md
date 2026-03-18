@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.zh_CN.md">中文</a> | <strong>English</strong>
+  <a href="./README.zh_CN.md">??</a> | <strong>English</strong>
 </p>
 
 ---
@@ -69,6 +69,7 @@ npm install @agenticforge/kit
 | `ReActAgent` | Reasoning-action loops for complex tasks |
 | `PlanSolveAgent` | Plan first, then execute step by step |
 | `ReflectionAgent` | Self-critique for high-quality generation |
+| `SkillAgent` | Routes queries to the best-matching Skill automatically |
 
 ---
 
@@ -91,7 +92,7 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
+[CC BY-NC-SA 4.0](LICENSE) � LittleBlacky
 
 ---
 
