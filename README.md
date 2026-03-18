@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.zh_CN.md">??</a> | <strong>English</strong>
+  <a href="./README.zh_CN.md">ä¸­æ–‡</a> | <strong>English</strong>
 </p>
 
 ---
@@ -83,7 +83,7 @@ const weatherTool = new Tool({
     {name: "city", type: "string", description: "City name", required: true},
   ],
   action: toolAction(z.object({city: z.string()}), async ({city}) => {
-    return `${city}: sunny, 25°C`;
+    return `${city}: sunny, 25ï¿½C`;
   }),
 });
 
@@ -178,4 +178,4 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[MIT](LICENSE) © LittleBlacky
+[MIT](LICENSE) ï¿½ LittleBlacky

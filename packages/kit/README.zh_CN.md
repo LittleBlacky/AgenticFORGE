@@ -33,11 +33,8 @@ pnpm add @agenticforge/kit
 import {
   LLMClient,
   FunctionCallAgent,
-  Tool,
-  toolAction,
   SearchTool,
 } from "@agenticforge/kit";
-import {z} from "zod";
 
 const agent = new FunctionCallAgent({
   llm: new LLMClient({provider: "openai", model: "gpt-4o"}),

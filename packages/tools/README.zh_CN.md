@@ -32,9 +32,7 @@ import {z} from "zod";
 const searchTool = new Tool({
   name: "search",
   description: "搜索互联网信息",
-  parameters: [
-    {name: "query", type: "string", description: "搜索关键词", required: true},
-  ],
+  parameters: [{name: "query", type: "string", required: true}],
   action: toolAction(z.object({query: z.string()}), async ({query}) => {
     return `搜索结果：${query} 相关内容...`;
   }),
@@ -42,9 +40,7 @@ const searchTool = new Tool({
 
 const registry = new ToolRegistry();
 registry.register(searchTool);
-
-const tool = registry.get("search");
-const result = await tool.execute({query: "AgenticFORGE"});
+const result = await registry.get("search").execute({query: "AgenticFORGE"});
 console.log(result);
 ```
 
