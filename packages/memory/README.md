@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/memory)](https://www.npmjs.com/package/@agenticforge/memory)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
 Multi-type memory manager, pluggable storage adapters, and RAG pipeline for AgenticFORGE.
 
@@ -26,9 +26,9 @@ import {createDefaultTextEmbedder} from "@agenticforge/memory/embedding";
 
 | Type | Description |
 |------|-------------|
-| `working` | Short-term context — session-scoped |
+| `working` | Short-term context �?session-scoped |
 | `episodic` | Historical events with timestamps and importance scores |
-| `semantic` | Knowledge and concepts — supports vector retrieval |
+| `semantic` | Knowledge and concepts �?supports vector retrieval |
 | `perceptual` | Temporary buffer for raw inputs and outputs |
 
 ## Usage

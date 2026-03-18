@@ -3,9 +3,9 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/agents)](https://www.npmjs.com/package/@agenticforge/agents)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Classic agent workflow implementations for AgenticFORGE — ReAct, Plan-and-Solve, Reflection, FunctionCall, and Simple.
+Classic agent workflow implementations for AgenticFORGE �?ReAct, Plan-and-Solve, Reflection, FunctionCall, and Simple.
 
 ## Installation
 

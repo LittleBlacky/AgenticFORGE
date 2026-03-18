@@ -3,9 +3,9 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/tools-builtin)](https://www.npmjs.com/package/@agenticforge/tools-builtin)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Ready-to-use built-in tools for AgenticFORGE — search, memory, notes, RAG, and terminal.
+Ready-to-use built-in tools for AgenticFORGE �?search, memory, notes, RAG, and terminal.
 
 ## Installation
 
@@ -19,8 +19,8 @@ npm install @agenticforge/tools-builtin
 |------|-------------|
 | `SearchTool` | Web search supporting Tavily, SerpApi, DuckDuckGo, SearXNG, and Perplexity |
 | `MemoryTool` | Memory read/write tool backed by `MemoryManager` |
-| `NoteTool` | Structured note management — create, read, update, delete, and search |
-| `RagTool` | RAG retrieval tool — import documents and perform semantic Q&A |
+| `NoteTool` | Structured note management �?create, read, update, delete, and search |
+| `RagTool` | RAG retrieval tool �?import documents and perform semantic Q&A |
 | `TerminalTool` | Safe terminal command execution with an allowlist |
 
 ## Usage

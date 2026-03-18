@@ -3,9 +3,9 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/tools)](https://www.npmjs.com/package/@agenticforge/tools)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Tool abstraction layer for AgenticFORGE — `Tool` base class, `ToolRegistry`, `ToolChain`, and async executor.
+Tool abstraction layer for AgenticFORGE �?`Tool` base class, `ToolRegistry`, `ToolChain`, and async executor.
 
 ## Installation
 
@@ -17,10 +17,10 @@ npm install @agenticforge/tools
 
 | Name | Description |
 |------|-------------|
-| `Tool` | Tool base class — wraps parameter definitions and execution logic |
+| `Tool` | Tool base class �?wraps parameter definitions and execution logic |
 | `toolAction` | Tool action factory with Zod-based parameter validation |
 | `ToolRegistry` | Registry for managing available tools |
-| `ToolChain` | Tool chain — compose multiple tools in sequence or parallel |
+| `ToolChain` | Tool chain �?compose multiple tools in sequence or parallel |
 | `AsyncToolExecutor` | Async tool executor with timeout and concurrency control |
 
 ## Usage

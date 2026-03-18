@@ -3,9 +3,9 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/core)](https://www.npmjs.com/package/@agenticforge/core)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Core package for AgenticFORGE — base types, LLM client abstraction, and message structures.
+Core package for AgenticFORGE �?base types, LLM client abstraction, and message structures.
 
 ## Installation
 
@@ -19,7 +19,7 @@ npm install @agenticforge/core
 |------|-------------|
 | `LLMClient` | Unified LLM client supporting OpenAI and compatible providers |
 | `BaseAgent` | Base class for all agents, defines the lifecycle interface |
-| `Message` | Message type — `system` / `user` / `assistant` / `tool` |
+| `Message` | Message type �?`system` / `user` / `assistant` / `tool` |
 | `AgentConfig` | Shared agent configuration type |
 
 ## Usage

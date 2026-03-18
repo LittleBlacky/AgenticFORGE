@@ -3,9 +3,9 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/kit)](https://www.npmjs.com/package/@agenticforge/kit)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
+<p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-All-in-one entry point for AgenticFORGE — install once, use everything.
+All-in-one entry point for AgenticFORGE �?install once, use everything.
 
 ## Installation
 
