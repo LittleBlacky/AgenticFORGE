@@ -25,6 +25,8 @@ dist-ssr
 *.sln
 *.sw?
 
+docs-site/node_modules
+docs-site/.vitepress/cache
+
 docs/
-HelloAgents/
 TODO/
