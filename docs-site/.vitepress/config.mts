@@ -24,7 +24,7 @@ export default defineConfig({
           {text: "Guide", link: "/guide/introduction"},
           {text: "Packages", link: "/packages/kit"},
           {
-            text: "v1.1.2",
+            text: "v1.2.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
@@ -50,6 +50,7 @@ export default defineConfig({
                 {text: "Memory", link: "/guide/memory"},
                 {text: "RAG Pipeline", link: "/guide/rag"},
                 {text: "Context Builder", link: "/guide/context"},
+                {text: "Skills", link: "/guide/skills"},
               ],
             },
             {
@@ -67,6 +68,7 @@ export default defineConfig({
                 {text: "@agenticforge/kit", link: "/packages/kit"},
                 {text: "@agenticforge/core", link: "/packages/core"},
                 {text: "@agenticforge/agents", link: "/packages/agents"},
+                {text: "@agenticforge/skills", link: "/packages/skills"},
                 {text: "@agenticforge/memory", link: "/packages/memory"},
                 {text: "@agenticforge/tools", link: "/packages/tools"},
                 {text: "@agenticforge/tools-builtin", link: "/packages/tools-builtin"},
@@ -89,7 +91,7 @@ export default defineConfig({
           {text: "\u6307\u5357", link: "/zh/guide/introduction"},
           {text: "\u5305\u6587\u6863", link: "/zh/packages/kit"},
           {
-            text: "v1.1.2",
+            text: "v1.2.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
@@ -115,6 +117,7 @@ export default defineConfig({
                 {text: "\u8bb0\u5fc6\u7cfb\u7edf", link: "/zh/guide/memory"},
                 {text: "RAG \u6d41\u6c34\u7ebf", link: "/zh/guide/rag"},
                 {text: "\u4e0a\u4e0b\u6587\u6784\u5efa\u5668", link: "/zh/guide/context"},
+                {text: "Skills \u6280\u80fd\u7cfb\u7edf", link: "/zh/guide/skills"},
               ],
             },
             {
@@ -132,6 +135,7 @@ export default defineConfig({
                 {text: "@agenticforge/kit", link: "/zh/packages/kit"},
                 {text: "@agenticforge/core", link: "/zh/packages/core"},
                 {text: "@agenticforge/agents", link: "/zh/packages/agents"},
+                {text: "@agenticforge/skills", link: "/zh/packages/skills"},
                 {text: "@agenticforge/memory", link: "/zh/packages/memory"},
                 {text: "@agenticforge/tools", link: "/zh/packages/tools"},
                 {text: "@agenticforge/tools-builtin", link: "/zh/packages/tools-builtin"},
