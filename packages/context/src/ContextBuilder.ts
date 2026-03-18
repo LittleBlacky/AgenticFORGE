@@ -32,6 +32,38 @@ export interface ContextPacket {
  */
 export type TextEmbedder = (texts: string[]) => Promise<number[][]>;
 
+/**
+ * Describes the shape of embedders from `@agenticforge/memory`.
+ * Compatible with `HashTextEmbedder` and `OpenAITextEmbedder`.
+ */
+export interface MemoryEmbedderLike {
+  encode(text: string | string[]): Promise<number[] | number[][]>;
+}
+
+/**
+ * Adapts a `@agenticforge/memory` embedder to the `TextEmbedder` function type
+ * expected by `ContextBuilder`.
+ *
+ * @example
+ *   import { createDefaultTextEmbedder } from '@agenticforge/memory';
+ *   const builder = new ContextBuilder({
+ *     config: { enableMmr: true, memoryEmbedder: createDefaultTextEmbedder() },
+ *   });
+ */
+export function fromMemoryEmbedder(embedder: MemoryEmbedderLike): TextEmbedder {
+  return async (texts: string[]): Promise<number[][]> => {
+    const result = await embedder.encode(texts);
+    // encode(string[]) always returns number[][], but the type says number[]|number[][].
+    // We normalise: if it's a flat number[] (single-text case), wrap it.
+    if (result.length === 0) return [];
+    if (typeof result[0] === "number") {
+      // flat vector returned — wrap as single-element matrix
+      return [result as number[]];
+    }
+    return result as number[][];
+  };
+}
+
 export interface ContextBuilderConfig {
   maxTokens?: number;
   minRelevance?: number;
@@ -51,6 +83,12 @@ export interface ContextBuilderConfig {
    * When set, MMR uses dense vector cosine similarity instead of TF-IDF.
    */
   embedder?: TextEmbedder;
+  /**
+   * Convenience field: pass a `@agenticforge/memory` embedder directly.
+   * Automatically adapted via `fromMemoryEmbedder()`.
+   * If both `embedder` and `memoryEmbedder` are set, `embedder` takes precedence.
+   */
+  memoryEmbedder?: MemoryEmbedderLike;
 }
 
 export interface BuildContextInput {
@@ -90,7 +128,7 @@ export class ContextPacketBuilder {
 // ---------------------------------------------------------------------------
 
 export class ContextBuilder {
-  private readonly config: Required<Omit<ContextBuilderConfig, "tokenCounter" | "embedder">> & {
+  private readonly config: Required<Omit<ContextBuilderConfig, "tokenCounter" | "embedder" | "memoryEmbedder">> & {
     tokenCounter?: TokenCounter;
     embedder?: TextEmbedder;
   };
@@ -109,7 +147,8 @@ export class ContextBuilder {
       historyTokenBudget: cfg.historyTokenBudget ?? 1024,
       recencyWeight: cfg.recencyWeight ?? 0.3,
       recencyTau: cfg.recencyTau ?? 3_600_000,
-      embedder: cfg.embedder,
+      // memoryEmbedder takes lower precedence than explicit embedder
+      embedder: cfg.embedder ?? (cfg.memoryEmbedder ? fromMemoryEmbedder(cfg.memoryEmbedder) : undefined),
     };
   }
 
