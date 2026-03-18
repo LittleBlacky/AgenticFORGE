@@ -7,12 +7,6 @@
 <h3 align="center">以工具调用为核心的 TypeScript Agent 框架</h3>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
-  <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE"><img src="https://img.shields.io/github/license/LittleBlacky/AgenticFORGE" alt="license" /></a>
-  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
-</p>
-
-<p align="center">
   <strong>中文</strong> | <a href="./README.md">English</a>
 </p>
 
@@ -20,18 +14,18 @@
 
 ## 简介
 
-AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调用**为核心驱动力，内置多种经典 Agent 工作流（ReAct、Plan-and-Solve、Reflection、FunctionCall），并提供可插拔的多层记忆系统与 RAG 流水线。
+AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调用**为核心驱动力。
 
 ---
 
 ## 核心特性
 
-- **工具驱动**：统一的 `Tool` / `ToolRegistry` / `ToolChain` 抽象，支持同步与异步工具、参数校验、链式调用
-- **经典 Agent 工作流**：ReAct、Plan-and-Solve、Reflection、FunctionCall、SimpleAgent 开箱即用
-- **多层记忆系统**：工作记忆、情节记忆、语义记忆、感知记忆，四种类型统一管理
-- **可插拔存储适配**：KV / 向量 / 图 / Blob，支持内存、Qdrant、Neo4j 及自定义后端
-- **内置工具集**：搜索、记忆、笔记、RAG、终端命令等常用工具
-- **上下文管理**：Token 感知的上下文构建器，精准控制 LLM 输入窗口
+- **工具驱动**：统一的 `Tool` / `ToolRegistry` / `ToolChain` 抽象
+- **经典 Agent 工作流**：ReAct、Plan-and-Solve、Reflection、FunctionCall、SimpleAgent
+- **多层记忆系统**：工作记忆、情节记忆、语义记忆、感知记忆
+- **可插拔存储适配**：内存、Qdrant、Neo4j 及自定义后端
+- **内置工具集**：搜索、记忆、笔记、RAG、终端命令
+- **上下文管理**：Token 感知的上下文构建器
 - **全量类型安全**：完整 TypeScript 类型声明，严格模式兼容
 
 ---
@@ -54,70 +48,7 @@ AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调�
 ## 安装
 
 ```bash
-# 一站式安装（推荐）
 npm install @agenticforge/kit
-# or
-pnpm add @agenticforge/kit
-```
-
-按需安装单个包：
-
-```bash
-npm install @agenticforge/core @agenticforge/tools @agenticforge/agents
-```
-
----
-
-## 快速上手
-
-### 1. 创建一个 FunctionCall Agent
-
-```ts
-import {FunctionCallAgent, LLMClient, Tool, toolAction} from "@agenticforge/kit";
-import {z} from "zod";
-
-const weatherTool = new Tool({
-  name: "get_weather",
-  description: "获取指定城市的天气",
-  parameters: [
-    {name: "city", type: "string", description: "城市名称", required: true},
-  ],
-  action: toolAction(z.object({city: z.string()}), async ({city}) => {
-    return `\${city} 今天晴，25°C`;
-  }),
-});
-
-const llm = new LLMClient({provider: "openai", model: "gpt-4o"});
-const agent = new FunctionCallAgent({llm, tools: [weatherTool]});
-
-const result = await agent.run("北京今天天气怎么样？");
-console.log(result);
-```
-
-### 2. 使用记忆系统
-
-```ts
-import {MemoryManager} from "@agenticforge/kit";
-
-const memory = new MemoryManager({
-  enableWorking: true,
-  enableEpisodic: true,
-  enableSemantic: true,
-});
-
-await memory.addMemory({
-  content: "用户偏好：深色主题，字体大小 16px",
-  memoryType: "semantic",
-  importance: 0.8,
-});
-
-const results = await memory.retrieveMemories({
-  query: "用户界面偏好",
-  limit: 3,
-  memoryTypes: ["semantic"],
-});
-
-console.log(results.map((r) => r.content));
 ```
 
 ---
@@ -138,7 +69,6 @@ console.log(results.map((r) => r.content));
 
 ```bash
 git clone https://github.com/LittleBlacky/AgenticFORGE.git
-cd AgenticFORGE
 pnpm install
 pnpm -r run build
 ```
