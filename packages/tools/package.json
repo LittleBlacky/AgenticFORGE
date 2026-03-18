@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/tools",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Tooling core for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
