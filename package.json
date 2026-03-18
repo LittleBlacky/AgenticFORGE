@@ -28,7 +28,7 @@
     "context",
     "skills"
   ],
-  "license": "MIT",
+  "license": "CC-BY-NC-SA-4.0",
   "dependencies": {
     "@qdrant/js-client-rest": "^1.17.0",
     "dotenv": "^17.3.1",

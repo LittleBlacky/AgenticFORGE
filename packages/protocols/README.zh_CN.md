@@ -157,3 +157,7 @@ console.log(status.healthStatus); // "healthy"
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/protocols)
 - [npm](https://www.npmjs.com/package/@agenticforge/protocols)
 - [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)
+
+## 致谢
+
+本包是 AgenticFORGE 的一部分。AgenticFORGE 基于 [Hello-Agents](https://github.com/datawhalechina/Hello-Agents)（CC BY-NC-SA 4.0）开发，感谢原项目作者及贡献者的杰出工作。MCP / A2A / ANP TypeScript 实现由 [LittleBlacky](https://github.com/LittleBlacky) 完成。

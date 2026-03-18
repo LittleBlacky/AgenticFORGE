@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/agents",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Agent implementations for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
@@ -53,5 +53,19 @@
   "homepage": "https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/agents#readme",
   "bugs": {
     "url": "https://github.com/LittleBlacky/AgenticFORGE/issues"
-  }
+  },
+  "license": "CC-BY-NC-SA-4.0",
+  "keywords": [
+    "agenticforge",
+    "agent",
+    "ai",
+    "llm",
+    "typescript",
+    "react-agent",
+    "plan-solve",
+    "reflection",
+    "function-call-agent",
+    "simple-agent",
+    "agent-workflow"
+  ]
 }

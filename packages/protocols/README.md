@@ -186,3 +186,7 @@ console.log(status.healthStatus); // "healthy"
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/protocols)
 - [npm](https://www.npmjs.com/package/@agenticforge/protocols)
 - [Root README](https://github.com/LittleBlacky/AgenticFORGE)
+
+## Acknowledgements
+
+This package is part of AgenticFORGE, which builds upon [Hello-Agents](https://github.com/datawhalechina/Hello-Agents) (CC BY-NC-SA 4.0). The MCP / A2A / ANP TypeScript implementations were authored by [LittleBlacky](https://github.com/LittleBlacky).

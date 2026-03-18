@@ -27,9 +27,9 @@ AgenticFORGE is a TypeScript framework for building AI agents. It is centered ar
 ## Features
 
 - **Tool-driven**: Unified `Tool` / `ToolRegistry` / `ToolChain` abstractions with sync/async support, parameter validation, and chaining
-- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection, FunctionCall, and SimpleAgent ??ready to use
+- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection, FunctionCall, and SimpleAgent - ready to use
 - **Multi-layer memory**: Working, episodic, semantic, and perceptual memory types under a single manager
-- **Pluggable storage**: KV / vector / graph / blob backends ??in-memory, Qdrant, Neo4j, or custom
+- **Pluggable storage**: KV / vector / graph / blob backends - in-memory, Qdrant, Neo4j, or custom
 - **Built-in tools**: Search, memory, notes, RAG, and terminal tools included
 - **Context management**: Token-aware context builder for precise LLM input window control
 - **Full type safety**: Complete TypeScript declarations, strict-mode compatible
@@ -47,98 +47,16 @@ AgenticFORGE is a TypeScript framework for building AI agents. It is centered ar
 | [`@agenticforge/tools-builtin`](packages/tools-builtin) | Built-in tools: search, memory, notes, RAG, terminal |
 | [`@agenticforge/context`](packages/context) | Token-aware context builder |
 | [`@agenticforge/utils`](packages/utils) | LRU cache, prompt utilities, and more |
-| [`@agenticforge/kit`](packages/kit) | All-in-one entry point ??re-exports everything |
+| [`@agenticforge/protocols`](packages/protocols) | MCP / A2A / ANP protocol implementations |
+| [`@agenticforge/kit`](packages/kit) | All-in-one entry point - re-exports everything |
 
 ---
 
 ## Installation
 
-```bash
-# All-in-one (recommended)
+``````bash
 npm install @agenticforge/kit
-# or
-pnpm add @agenticforge/kit
-```
-
-Install individual packages as needed:
-
-```bash
-npm install @agenticforge/core @agenticforge/tools @agenticforge/agents
-```
-
----
-
-## Quick Start
-
-### 1. FunctionCall Agent with a custom tool
-
-```ts
-import {FunctionCallAgent, LLMClient, Tool, toolAction} from "@agenticforge/kit";
-import {z} from "zod";
-
-const weatherTool = new Tool({
-  name: "get_weather",
-  description: "Get the current weather for a city",
-  parameters: [
-    {name: "city", type: "string", description: "City name", required: true},
-  ],
-  action: toolAction(z.object({city: z.string()}), async ({city}) => {
-    return `${city}: sunny, 25�C`;
-  }),
-});
-
-const llm = new LLMClient({provider: "openai", model: "gpt-4o"});
-const agent = new FunctionCallAgent({llm, tools: [weatherTool]});
-
-const result = await agent.run("What is the weather like in Tokyo?");
-console.log(result);
-```
-
-### 2. Memory system
-
-```ts
-import {MemoryManager} from "@agenticforge/kit";
-
-const memory = new MemoryManager({
-  enableWorking: true,
-  enableEpisodic: true,
-  enableSemantic: true,
-});
-
-await memory.addMemory({
-  content: "User prefers dark theme, font size 16px",
-  memoryType: "semantic",
-  importance: 0.8,
-});
-
-const results = await memory.retrieveMemories({
-  query: "UI preferences",
-  limit: 3,
-  memoryTypes: ["semantic"],
-});
-
-console.log(results.map((r) => r.content));
-```
-
-### 3. Connect to a vector database (Qdrant)
-
-```ts
-import {MemoryManager} from "@agenticforge/kit";
-
-const memory = new MemoryManager({
-  enableSemantic: true,
-  adapterConfigs: [
-    {type: "vectorStore", backend: "qdrant", options: {url: "http://localhost:6333"}},
-    {type: "graphStore", backend: "neo4j", options: {
-      url: "bolt://localhost:7687",
-      username: "neo4j",
-      password: "password",
-    }},
-  ],
-});
-
-await memory.initialize();
-```
+``````
 
 ---
 
@@ -156,17 +74,12 @@ await memory.initialize();
 
 ## Local Development
 
-```bash
+``````bash
 git clone https://github.com/LittleBlacky/AgenticFORGE.git
 cd AgenticFORGE
-
 pnpm install
 pnpm -r run build
-pnpm -r run typecheck
-
-# Optional: start Qdrant + Neo4j
-docker compose up -d
-```
+``````
 
 ---
 
@@ -178,4 +91,10 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## License
 
-[MIT](LICENSE) � LittleBlacky
+[CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
+
+---
+
+## Acknowledgements
+
+This project is built upon and extends [Hello-Agents](https://github.com/datawhalechina/Hello-Agents) (licensed under CC BY-NC-SA 4.0). Many thanks to the original authors and contributors for their outstanding work. The TypeScript port and extensions were completed by [LittleBlacky](https://github.com/LittleBlacky).

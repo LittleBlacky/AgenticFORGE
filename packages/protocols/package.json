@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/protocols",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP / A2A / ANP protocol implementations for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
@@ -42,5 +42,19 @@
     "url": "git+https://github.com/LittleBlacky/AgenticFORGE.git",
     "directory": "packages/protocols"
   },
-  "license": "MIT"
+  "license": "CC-BY-NC-SA-4.0",
+  "keywords": [
+    "agenticforge",
+    "agent",
+    "ai",
+    "llm",
+    "typescript",
+    "mcp",
+    "a2a",
+    "anp",
+    "model-context-protocol",
+    "agent-to-agent",
+    "agent-network-protocol",
+    "protocol"
+  ]
 }

@@ -14,18 +14,18 @@
 
 ## 简介
 
-AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调用**为核心驱动力。
+AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调用**为核心驱动力，内置经典 Agent 工作流（ReAct、Plan-and-Solve、Reflection、FunctionCall）、可组合的多类型记忆系统与内置 RAG 流水线。
 
 ---
 
 ## 核心特性
 
-- **工具驱动**：统一的 `Tool` / `ToolRegistry` / `ToolChain` 抽象
-- **经典 Agent 工作流**：ReAct、Plan-and-Solve、Reflection、FunctionCall、SimpleAgent
-- **多层记忆系统**：工作记忆、情节记忆、语义记忆、感知记忆
-- **可插拔存储适配**：内存、Qdrant、Neo4j 及自定义后端
-- **内置工具集**：搜索、记忆、笔记、RAG、终端命令
-- **上下文管理**：Token 感知的上下文构建器
+- **工具驱动**：统一的 `Tool` / `ToolRegistry` / `ToolChain` 抽象，支持同步/异步、参数校验与链式组合
+- **经典 Agent 工作流**：ReAct、Plan-and-Solve、Reflection、FunctionCall、SimpleAgent，开箱即用
+- **多层记忆系统**：工作记忆、情节记忆、语义记忆、感知记忆，统一管理器
+- **可插拔存储适配**：KV / 向量 / 图 / Blob 后端，支持内存、Qdrant、Neo4j 或自定义
+- **内置工具集**：搜索、记忆、笔记、RAG、终端命令工具
+- **上下文管理**：Token 感知的上下文构建器，精确控制 LLM 输入窗口
 - **全量类型安全**：完整 TypeScript 类型声明，严格模式兼容
 
 ---
@@ -41,6 +41,7 @@ AgenticFORGE 是一个面向 Agent 开发的 TypeScript 框架，以**工具调�
 | [`@agenticforge/tools-builtin`](packages/tools-builtin) | 内置工具：搜索、记忆、笔记、RAG、终端 |
 | [`@agenticforge/context`](packages/context) | Token 感知上下文构建器 |
 | [`@agenticforge/utils`](packages/utils) | LRU 缓存、Prompt 工具等通用工具 |
+| [`@agenticforge/protocols`](packages/protocols) | MCP / A2A / ANP 协议实现 |
 | [`@agenticforge/kit`](packages/kit) | 一站式入口，聚合所有包的导出 |
 
 ---
@@ -83,4 +84,10 @@ pnpm -r run build
 
 ## 许可证
 
-[MIT](LICENSE) © LittleBlacky
+[CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
+
+---
+
+## 致谢
+
+本项目基于 [Hello-Agents](https://github.com/datawhalechina/Hello-Agents)（CC BY-NC-SA 4.0 许可证）开发，感谢原项目作者及贡献者的杰出工作。TypeScript 移植与扩展由 [LittleBlacky](https://github.com/LittleBlacky) 完成。
