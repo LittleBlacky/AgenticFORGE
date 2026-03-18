@@ -7,4 +7,5 @@ export * from "./react-agent/ReActAgent";
 export * from "./reflection-agent/ReflectionAgent";
 export * from "./reflection-agent/Memory";
 export * from "./simple-agent/SimpleAgent";
+export * from "./skill-agent";
 export * from "./types";

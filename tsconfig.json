@@ -12,7 +12,8 @@
       "@agenticforge/memory": ["packages/memory/src"],
       "@agenticforge/utils": ["packages/utils/src"],
       "@agenticforge/agents": ["packages/agents/src"],
-      "@agenticforge/kit": ["packages/kit/src"]
+      "@agenticforge/kit": ["packages/kit/src"],
+      "@agenticforge/skills": ["packages/skills/src"]
     },
     "lib": ["ES2022"],
     "strict": true,
