@@ -3,27 +3,27 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/tools)](https://www.npmjs.com/package/@agenticforge/tools)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-AgenticFORGE 工具核心包，提供 Tool 抽象、ToolRegistry、ToolChain 与异步执行器。
+<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
 
-> Tool abstraction, registry, chain, and async executor for AgenticFORGE.
+Tool abstraction layer for AgenticFORGE — `Tool` base class, `ToolRegistry`, `ToolChain`, and async executor.
 
-## 安装
+## Installation
 
 ```bash
 npm install @agenticforge/tools
 ```
 
-## 主要导出
+## Exports
 
-| 名称 | 说明 |
-|------|------|
-| `Tool` | 工具基类，封装参数定义与执行逻辑 |
-| `toolAction` | 工具动作工厂，结合 Zod 做参数校验 |
-| `ToolRegistry` | 工具注册表，统一管理可用工具 |
-| `ToolChain` | 工具链，支持顺序/并行组合多个工具 |
-| `AsyncToolExecutor` | 异步工具执行器，支持超时与并发控制 |
+| Name | Description |
+|------|-------------|
+| `Tool` | Tool base class — wraps parameter definitions and execution logic |
+| `toolAction` | Tool action factory with Zod-based parameter validation |
+| `ToolRegistry` | Registry for managing available tools |
+| `ToolChain` | Tool chain — compose multiple tools in sequence or parallel |
+| `AsyncToolExecutor` | Async tool executor with timeout and concurrency control |
 
-## 使用示例
+## Usage
 
 ```ts
 import {Tool, toolAction, ToolRegistry} from "@agenticforge/tools";
@@ -31,12 +31,12 @@ import {z} from "zod";
 
 const searchTool = new Tool({
   name: "search",
-  description: "搜索互联网信息",
+  description: "Search the web for information",
   parameters: [
-    {name: "query", type: "string", description: "搜索关键词", required: true},
+    {name: "query", type: "string", description: "Search query", required: true},
   ],
   action: toolAction(z.object({query: z.string()}), async ({query}) => {
-    return `搜索结果：${query} 相关内容...`;
+    return `Search results for: ${query}`;
   }),
 });
 
@@ -48,8 +48,8 @@ const result = await tool.execute({query: "AgenticFORGE"});
 console.log(result);
 ```
 
-## 链接
+## Links
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/tools)
 - [npm](https://www.npmjs.com/package/@agenticforge/tools)
-- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)
+- [Root README](https://github.com/LittleBlacky/AgenticFORGE)

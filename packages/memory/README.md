@@ -3,26 +3,35 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/memory)](https://www.npmjs.com/package/@agenticforge/memory)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-AgenticFORGE 记忆系统包，提供四种记忆类型（工作、情节、语义、感知）的统一管理器，以及可插拔存储适配层与 RAG 流水线。
+<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
 
-> Multi-type memory manager, pluggable storage adapters, and RAG pipeline for AgenticFORGE.
+Multi-type memory manager, pluggable storage adapters, and RAG pipeline for AgenticFORGE.
 
-## 安装
+## Installation
 
 ```bash
 npm install @agenticforge/memory
 ```
 
-## 记忆类型
+### Sub-path imports (tree-shakeable, v1.1.0+)
 
-| 类型 | 说明 |
-|------|------|
-| `working` | 工作记忆：短期上下文，会话级别 |
-| `episodic` | 情节记忆：历史事件，带时间戳与重要性 |
-| `semantic` | 语义记忆：知识与概念，支持向量检索 |
-| `perceptual` | 感知记忆：原始输入/输出的临时缓冲 |
+```ts
+import {MemoryManager} from "@agenticforge/memory/manager";          // 7.6 KB
+import {createRagPipeline} from "@agenticforge/memory/rag";           // RAG only
+import {QdrantVectorStore} from "@agenticforge/memory/storage";       // storage only
+import {createDefaultTextEmbedder} from "@agenticforge/memory/embedding";
+```
 
-## 使用示例
+## Memory Types
+
+| Type | Description |
+|------|-------------|
+| `working` | Short-term context — session-scoped |
+| `episodic` | Historical events with timestamps and importance scores |
+| `semantic` | Knowledge and concepts — supports vector retrieval |
+| `perceptual` | Temporary buffer for raw inputs and outputs |
+
+## Usage
 
 ```ts
 import {MemoryManager} from "@agenticforge/memory";
@@ -33,22 +42,20 @@ const memory = new MemoryManager({
   enableSemantic: true,
 });
 
-// 存储
 await memory.addMemory({
-  content: "用户偏好深色主题",
+  content: "User prefers dark theme",
   memoryType: "semantic",
   importance: 0.8,
 });
 
-// 检索
 const results = await memory.retrieveMemories({
-  query: "用户界面偏好",
+  query: "UI preferences",
   limit: 3,
   memoryTypes: ["semantic"],
 });
 ```
 
-## 接入向量数据库
+## Connect to Qdrant + Neo4j
 
 ```ts
 const memory = new MemoryManager({
@@ -65,8 +72,8 @@ const memory = new MemoryManager({
 await memory.initialize();
 ```
 
-## 链接
+## Links
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/memory)
 - [npm](https://www.npmjs.com/package/@agenticforge/memory)
-- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)
+- [Root README](https://github.com/LittleBlacky/AgenticFORGE)

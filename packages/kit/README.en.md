@@ -3,9 +3,11 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/kit)](https://www.npmjs.com/package/@agenticforge/kit)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-All-in-one entry point for AgenticFORGE — install once, use everything.
+<p><strong>中文</strong> | <a href="./README.md">English</a></p>
 
-## Installation
+AgenticFORGE 一站式入口包，聚合所有子包的导出，一行安装即可使用框架全部能力。
+
+## 安装
 
 ```bash
 npm install @agenticforge/kit
@@ -13,21 +15,19 @@ npm install @agenticforge/kit
 pnpm add @agenticforge/kit
 ```
 
-## What's Included
+## 包含内容
 
-`@agenticforge/kit` re-exports everything from all sub-packages:
-
-| Package | Contents |
-|---------|----------|
-| `@agenticforge/core` | Core types, LLM client |
-| `@agenticforge/tools` | Tool abstraction, Registry, Chain |
+| 包 | 说明 |
+|----|------|
+| `@agenticforge/core` | 核心类型、LLM 客户端 |
+| `@agenticforge/tools` | Tool 抽象、Registry、Chain |
 | `@agenticforge/agents` | ReAct / Plan-Solve / Reflection / FunctionCall / Simple |
-| `@agenticforge/memory` | Multi-type memory manager, RAG, storage adapters |
-| `@agenticforge/tools-builtin` | Built-in tools: search, memory, notes, RAG, terminal |
-| `@agenticforge/context` | Token-aware context builder |
-| `@agenticforge/utils` | LRU cache, prompt utilities |
+| `@agenticforge/memory` | 多类型记忆管理器、RAG、存储适配层 |
+| `@agenticforge/tools-builtin` | 内置工具集 |
+| `@agenticforge/context` | Token 感知上下文构建器 |
+| `@agenticforge/utils` | 通用工具 |
 
-## Usage
+## 使用示例
 
 ```ts
 import {
@@ -35,52 +35,21 @@ import {
   FunctionCallAgent,
   Tool,
   toolAction,
-  MemoryManager,
-  ContextBuilder,
   SearchTool,
 } from "@agenticforge/kit";
 import {z} from "zod";
 
-// LLM client
-const llm = new LLMClient({provider: "openai", model: "gpt-4o"});
-
-// Custom tool
-const greetTool = new Tool({
-  name: "greet",
-  description: "Greet a user by name",
-  parameters: [{name: "name", type: "string", description: "User name", required: true}],
-  action: toolAction(z.object({name: z.string()}), async ({name}) => {
-    return `Hello, ${name}!`;
-  }),
-});
-
-// Agent with built-in + custom tools
 const agent = new FunctionCallAgent({
-  llm,
-  tools: [greetTool, new SearchTool()],
+  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
+  tools: [new SearchTool()],
 });
 
-const result = await agent.run("Greet Alice and then search for AgenticFORGE.");
+const result = await agent.run("搜索 AgenticFORGE 最新动态。");
 console.log(result);
 ```
 
-## Individual Package Imports
-
-For smaller bundles, import from individual sub-packages directly:
-
-```ts
-// Only includes MemoryManager — no qdrant/neo4j/openai
-import {MemoryManager} from "@agenticforge/memory/manager";
-
-// Only RAG pipeline
-import {createRagPipeline} from "@agenticforge/memory/rag";
-
-// Only storage adapters
-import {QdrantVectorStore} from "@agenticforge/memory/storage";
-```
-
-## Links
+## 链接
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/kit)
 - [npm](https://www.npmjs.com/package/@agenticforge/kit)
-- [Root README](https://github.com/LittleBlacky/AgenticFORGE)
+- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)

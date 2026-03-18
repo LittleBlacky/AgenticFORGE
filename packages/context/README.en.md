@@ -3,57 +3,41 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/context)](https://www.npmjs.com/package/@agenticforge/context)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-Token-aware context builder for precise LLM input window management.
+<p><strong>中文</strong> | <a href="./README.md">English</a></p>
 
-## Installation
+AgenticFORGE 上下文管理包，提供 Token 感知的上下文构建器，精准控制发送给 LLM 的输入窗口。
+
+## 安装
 
 ```bash
 npm install @agenticforge/context
 ```
 
-## Exports
+## 主要导出
 
-| Name | Description |
-|------|-------------|
-| `ContextBuilder` | Assembles messages by priority within a token budget |
-| `ContextPacketBuilder` | Builds structured context packets |
-| `estimateTokens` | Estimates token count for a string or message array |
-| `createTokenCounter` | Creates a reusable token counter instance |
+| 名称 | 说明 |
+|------|------|
+| `ContextBuilder` | 上下文构建器，按优先级与 Token 预算组装消息 |
+| `estimateTokens` | Token 数量估算函数 |
+| `createTokenCounter` | 创建 Token 计数器实例 |
 
-## Usage
+## 使用示例
 
 ```ts
 import {ContextBuilder, estimateTokens} from "@agenticforge/context";
 
 const builder = new ContextBuilder({maxTokens: 4096});
 
-builder.addSystemPrompt("You are a professional code assistant.");
+builder.addSystemPrompt("你是一个专业的代码助手");
 builder.addHistory(conversationHistory);
-builder.addUserMessage("Please optimize this function.");
+builder.addUserMessage("帮我优化这段代码");
 
 const context = builder.build();
-console.log(`Token usage: ${estimateTokens(context)}`);
-
-// Pass to LLM
-const response = await llm.chat(context);
+console.log(`Token 用量: ${estimateTokens(context)}`);
 ```
 
-### Token budget enforcement
-
-```ts
-const builder = new ContextBuilder({maxTokens: 2048});
-
-// Higher-priority items are preserved when the budget is tight.
-// History is trimmed from oldest to newest automatically.
-builder.addSystemPrompt("You are a helpful assistant."); // priority: high
-builder.addHistory(longHistory);                          // trimmed if needed
-builder.addUserMessage(userInput);                        // always included
-
-const trimmed = builder.build();
-```
-
-## Links
+## 链接
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/context)
 - [npm](https://www.npmjs.com/package/@agenticforge/context)
-- [Root README](https://github.com/LittleBlacky/AgenticFORGE)
+- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)

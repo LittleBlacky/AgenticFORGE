@@ -3,36 +3,35 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/memory)](https://www.npmjs.com/package/@agenticforge/memory)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-Multi-type memory manager, pluggable storage adapters, and RAG pipeline for AgenticFORGE.
+<p><strong>中文</strong> | <a href="./README.md">English</a></p>
 
-## Installation
+AgenticFORGE 记忆系统包，提供四种记忆类型的统一管理器，以及可插拔存储适配层与 RAG 流水线。
+
+## 安装
 
 ```bash
 npm install @agenticforge/memory
 ```
 
-### Sub-path imports (tree-shakeable, v1.1.0+)
+### 子路径按需导入（v1.1.0+）
 
 ```ts
-// Only download what you need
-import {MemoryManager} from "@agenticforge/memory/manager";    // 7.6 KB — no qdrant/neo4j
-import {createRagPipeline} from "@agenticforge/memory/rag";    // RAG pipeline only
-import {QdrantVectorStore} from "@agenticforge/memory/storage"; // storage adapters only
+import {MemoryManager} from "@agenticforge/memory/manager";          // 7.6 KB
+import {createRagPipeline} from "@agenticforge/memory/rag";           // 仅 RAG
+import {QdrantVectorStore} from "@agenticforge/memory/storage";       // 仅存储
 import {createDefaultTextEmbedder} from "@agenticforge/memory/embedding";
 ```
 
-## Memory Types
+## 记忆类型
 
-| Type | Description |
-|------|-------------|
-| `working` | Short-term context — session-scoped |
-| `episodic` | Historical events with timestamps and importance scores |
-| `semantic` | Knowledge and concepts — supports vector retrieval |
-| `perceptual` | Temporary buffer for raw inputs and outputs |
+| 类型 | 说明 |
+|------|------|
+| `working` | 工作记忆：短期上下文，会话级别 |
+| `episodic` | 情节记忆：历史事件，带时间戳与重要性 |
+| `semantic` | 语义记忆：知识与概念，支持向量检索 |
+| `perceptual` | 感知记忆：原始输入/输出的临时缓冲 |
 
-## Usage
-
-### Basic memory operations
+## 使用示例
 
 ```ts
 import {MemoryManager} from "@agenticforge/memory";
@@ -43,54 +42,21 @@ const memory = new MemoryManager({
   enableSemantic: true,
 });
 
-// Store
 await memory.addMemory({
-  content: "User prefers dark theme",
+  content: "用户偏好深色主题",
   memoryType: "semantic",
   importance: 0.8,
 });
 
-// Retrieve
 const results = await memory.retrieveMemories({
-  query: "UI preferences",
+  query: "用户界面偏好",
   limit: 3,
   memoryTypes: ["semantic"],
 });
 ```
 
-### Connect to Qdrant + Neo4j
-
-```ts
-const memory = new MemoryManager({
-  enableSemantic: true,
-  adapterConfigs: [
-    {type: "vectorStore", backend: "qdrant", options: {url: "http://localhost:6333"}},
-    {type: "graphStore", backend: "neo4j", options: {
-      url: "bolt://localhost:7687",
-      username: "neo4j",
-      password: "password",
-    }},
-  ],
-});
-await memory.initialize();
-```
-
-### RAG pipeline
-
-```ts
-import {createRagPipeline} from "@agenticforge/memory/rag";
-
-const rag = createRagPipeline({ragNamespace: "docs"});
-
-// Index documents
-await rag.addDocuments(["./guide.md", "./api.md"]);
-
-// Search
-const hits = await rag.search("how to configure memory", 5);
-```
-
-## Links
+## 链接
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/memory)
 - [npm](https://www.npmjs.com/package/@agenticforge/memory)
-- [Root README](https://github.com/LittleBlacky/AgenticFORGE)
+- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)

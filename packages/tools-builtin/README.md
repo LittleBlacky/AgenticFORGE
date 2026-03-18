@@ -3,49 +3,45 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/tools-builtin)](https://www.npmjs.com/package/@agenticforge/tools-builtin)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-AgenticFORGE 内置工具集，提供搜索、记忆、笔记、RAG、终端命令等常用工具，开箱即用。
+<p><a href="./README.en.md">中文</a> | <strong>English</strong></p>
 
-> Built-in tools for AgenticFORGE: search, memory, note, RAG, and terminal.
+Ready-to-use built-in tools for AgenticFORGE — search, memory, notes, RAG, and terminal.
 
-## 安装
+## Installation
 
 ```bash
 npm install @agenticforge/tools-builtin
 ```
 
-## 内置工具
+## Built-in Tools
 
-| 工具 | 说明 |
-|------|------|
-| `SearchTool` | 网络搜索工具，支持多种搜索引擎 |
-| `MemoryTool` | 记忆读写工具，对接 MemoryManager |
-| `NoteTool` | 笔记管理工具，支持创建/读取/搜索笔记 |
-| `RagTool` | RAG 检索增强工具，支持文档导入与语义检索 |
-| `TerminalTool` | 终端命令执行工具 |
+| Tool | Description |
+|------|-------------|
+| `SearchTool` | Web search supporting Tavily, SerpApi, DuckDuckGo, SearXNG, and Perplexity |
+| `MemoryTool` | Memory read/write tool backed by `MemoryManager` |
+| `NoteTool` | Structured note management — create, read, update, delete, and search |
+| `RagTool` | RAG retrieval tool — import documents and perform semantic Q&A |
+| `TerminalTool` | Safe terminal command execution with an allowlist |
 
-## 使用示例
+## Usage
 
 ```ts
 import {SearchTool, MemoryTool} from "@agenticforge/tools-builtin";
-import {FunctionCallAgent} from "@agenticforge/agents";
-import {LLMClient} from "@agenticforge/core";
-
-const llm = new LLMClient({provider: "openai", model: "gpt-4o"});
+import {FunctionCallAgent, LLMClient} from "@agenticforge/kit";
 
 const agent = new FunctionCallAgent({
-  llm,
-  tools: [
-    new SearchTool(),
-    new MemoryTool(),
-  ],
+  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
+  tools: [new SearchTool(), new MemoryTool()],
 });
 
-const result = await agent.run("搜索 AgenticFORGE 最新动态并记录到记忆");
+const result = await agent.run(
+  "Search for the latest AgenticFORGE updates and save them to memory"
+);
 console.log(result);
 ```
 
-## 链接
+## Links
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/tools-builtin)
 - [npm](https://www.npmjs.com/package/@agenticforge/tools-builtin)
-- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)
+- [Root README](https://github.com/LittleBlacky/AgenticFORGE)

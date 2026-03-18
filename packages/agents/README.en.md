@@ -3,83 +3,51 @@
 [![npm](https://img.shields.io/npm/v/@agenticforge/agents)](https://www.npmjs.com/package/@agenticforge/agents)
 [![license](https://img.shields.io/github/license/LittleBlacky/AgenticFORGE)](https://github.com/LittleBlacky/AgenticFORGE/blob/main/LICENSE)
 
-Classic agent workflow implementations for AgenticFORGE — ReAct, Plan-and-Solve, Reflection, FunctionCall, and Simple.
+<p><strong>中文</strong> | <a href="./README.md">English</a></p>
 
-## Installation
+AgenticFORGE Agent 实现包，内置 ReAct、Plan-and-Solve、Reflection、FunctionCall、Simple 五种经典 Agent 工作流。
+
+## 安装
 
 ```bash
 npm install @agenticforge/agents
 ```
 
-## Built-in Agents
+## 内置 Agent
 
-| Agent | Best For |
+| Agent | 适用场景 |
 |-------|----------|
-| `SimpleAgent` | Single-turn or multi-turn conversation without tools |
-| `FunctionCallAgent` | Tool-driven task execution |
-| `ReActAgent` | Reasoning-action loops for complex reasoning tasks |
-| `PlanSolveAgent` | Plan first, then execute step by step |
-| `ReflectionAgent` | Self-critique loop for high-quality generation |
+| `SimpleAgent` | 简单对话 Agent，支持多轮上下文 |
+| `FunctionCallAgent` | 工具调用驱动，适合任务型场景 |
+| `ReActAgent` | 推理-行动-观察循环，适合复杂推理 |
+| `PlanSolveAgent` | 先规划后逐步执行，适合多步骤任务 |
+| `ReflectionAgent` | 带自我反思与批评机制，适合高质量生成 |
 
-## Usage
-
-### FunctionCallAgent
+## 使用示例
 
 ```ts
-import {FunctionCallAgent} from "@agenticforge/agents";
-import {LLMClient} from "@agenticforge/core";
+import {FunctionCallAgent, LLMClient} from "@agenticforge/agents";
 import {Tool, toolAction} from "@agenticforge/tools";
 import {z} from "zod";
 
-const llm = new LLMClient({provider: "openai", model: "gpt-4o"});
-
 const calcTool = new Tool({
   name: "calculator",
-  description: "Evaluate a math expression",
-  parameters: [{name: "expr", type: "string", description: "Math expression", required: true}],
-  action: toolAction(z.object({expr: z.string()}), async ({expr}) => {
-    return String(eval(expr));
-  }),
+  description: "执行数学计算",
+  parameters: [{name: "expr", type: "string", required: true}],
+  action: toolAction(z.object({expr: z.string()}), async ({expr}) => String(eval(expr))),
 });
 
-const agent = new FunctionCallAgent({llm, tools: [calcTool]});
-const result = await agent.run("What is (123 + 456) * 2?");
-console.log(result);
-```
-
-### ReActAgent
-
-```ts
-import {ReActAgent} from "@agenticforge/agents";
-import {LLMClient} from "@agenticforge/core";
-
-const agent = new ReActAgent({
+const agent = new FunctionCallAgent({
   llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  tools: [/* your tools */],
-  maxIterations: 10,
+  tools: [calcTool],
 });
 
-const result = await agent.run("Research the top 3 AI frameworks and summarize their differences.");
+const result = await agent.run("计算 (123 + 456) * 2");
 console.log(result);
 ```
 
-### ReflectionAgent
-
-```ts
-import {ReflectionAgent} from "@agenticforge/agents";
-import {LLMClient} from "@agenticforge/core";
-
-const agent = new ReflectionAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  reflectionRounds: 2,
-});
-
-const result = await agent.run("Write a concise technical blog post about RAG.");
-console.log(result);
-```
-
-## Links
+## 链接
 
 - [GitHub](https://github.com/LittleBlacky/AgenticFORGE/tree/main/packages/agents)
 - [npm](https://www.npmjs.com/package/@agenticforge/agents)
-- [Root README](https://github.com/LittleBlacky/AgenticFORGE)
+- [主项目 README](https://github.com/LittleBlacky/AgenticFORGE)
