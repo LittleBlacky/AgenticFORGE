@@ -28,6 +28,5 @@ dist-ssr
 docs-site/node_modules
 docs-site/.vitepress/cache
 
-docs/
 TODO/
 HelloAgents/
