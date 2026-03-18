@@ -10,6 +10,24 @@ export interface Message {
   content: string;
 }
 
+/**
+ * Packet section type for structured template rendering.
+ * - `instructions` → [Role & Policies]
+ * - `task_state`   → [State]
+ * - `knowledge` / `retrieval` / `tool_result` / `related_memory` → [Evidence]
+ * - `history`      → [Context]
+ * - anything else  → [Evidence] by default
+ */
+export type ContextPacketType =
+  | "instructions"
+  | "task_state"
+  | "knowledge"
+  | "retrieval"
+  | "tool_result"
+  | "related_memory"
+  | "history"
+  | string;
+
 export interface ContextPacket {
   content: string;
   metadata: Record<string, unknown>;
@@ -17,6 +35,11 @@ export interface ContextPacket {
   relevanceScore?: number;
   /** Unix timestamp in ms (Date.now()). Used for recency scoring. */
   timestamp?: number;
+  /**
+   * Section type for structured template rendering.
+   * Falls back to `metadata.type` if not set.
+   */
+  type?: ContextPacketType;
 }
 
 /**
@@ -89,6 +112,19 @@ export interface ContextBuilderConfig {
    * If both `embedder` and `memoryEmbedder` are set, `embedder` takes precedence.
    */
   memoryEmbedder?: MemoryEmbedderLike;
+  /**
+   * When true, packets are rendered into a structured template:
+   * [Role & Policies] / [Task] / [State] / [Evidence] / [Context] / [Output]
+   * The structured string is returned in `BuiltContext.structuredSystem`.
+   * Default: false.
+   */
+  enableStructuredTemplate?: boolean;
+  /**
+   * When true, the structured context is truncated line-by-line
+   * if it exceeds the available token budget.
+   * Default: true.
+   */
+  enableCompression?: boolean;
 }
 
 export interface BuildContextInput {
@@ -100,9 +136,15 @@ export interface BuildContextInput {
 
 export interface BuiltContext {
   system: string;
+  /**
+   * Structured template string (only set when `enableStructuredTemplate: true`).
+   * Format: [Role & Policies] / [Task] / [State] / [Evidence] / [Context] / [Output]
+   */
+  structuredSystem?: string;
   messages: Message[];
   totalTokens: number;
   includedPackets: ContextPacket[];
+  /** True if the structured context was truncated to fit the token budget. */
   truncated: boolean;
 }
 
@@ -149,6 +191,8 @@ export class ContextBuilder {
       recencyTau: cfg.recencyTau ?? 3_600_000,
       // memoryEmbedder takes lower precedence than explicit embedder
       embedder: cfg.embedder ?? (cfg.memoryEmbedder ? fromMemoryEmbedder(cfg.memoryEmbedder) : undefined),
+      enableStructuredTemplate: cfg.enableStructuredTemplate ?? false,
+      enableCompression: cfg.enableCompression ?? true,
     };
   }
 
@@ -157,7 +201,6 @@ export class ContextBuilder {
     const maxTokens = this.config.maxTokens;
     let budget = maxTokens;
     let totalTokens = 0;
-    const truncated = false;
 
     const systemText = input.systemInstructions ?? "";
     const systemTokens = estimateTokens(systemText, counter);
@@ -198,19 +241,130 @@ export class ContextBuilder {
       0,
     );
     totalTokens += packetTokens;
-
     const messages: Message[] = [
       ...includedHistory,
       {role: "user" as const, content: input.userQuery},
     ];
 
+    // ------------------------------------------------------------------
+    // Structure + Compress
+    // ------------------------------------------------------------------
+    let structuredSystem: string | undefined;
+    let truncated = false;
+
+    if (this.config.enableStructuredTemplate) {
+      const raw = this.structureContext({
+        systemInstructions: input.systemInstructions,
+        userQuery: input.userQuery,
+        packets: selectedPackets,
+      });
+      if (this.config.enableCompression) {
+        const structTokenBudget = this.config.maxTokens - historyTokensUsed - estimateTokens(input.userQuery, counter);
+        const {text, wasTruncated} = this.compressContext(raw, Math.max(structTokenBudget, 256), counter);
+        structuredSystem = text;
+        truncated = wasTruncated;
+        totalTokens = historyTokensUsed + estimateTokens(input.userQuery, counter) + estimateTokens(text, counter);
+      } else {
+        structuredSystem = raw;
+      }
+    }
+
     return {
       system: systemText,
+      structuredSystem,
       messages,
       totalTokens,
       includedPackets: selectedPackets,
       truncated,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Structure: render selected packets into GSSC template
+  // ---------------------------------------------------------------------------
+
+  private structureContext(params: {
+    systemInstructions?: string;
+    userQuery: string;
+    packets: ContextPacket[];
+  }): string {
+    const sections: string[] = [];
+
+    // [Role & Policies] — system instructions
+    const instrPackets = params.packets.filter((p) => this.packetType(p) === "instructions");
+    const instrText = [
+      params.systemInstructions ?? "",
+      ...instrPackets.map((p) => p.content),
+    ].filter(Boolean).join("\n");
+    if (instrText) sections.push(`[Role & Policies]\n${instrText}`);
+
+    // [Task] — current user query
+    sections.push(`[Task]\n${params.userQuery}`);
+
+    // [State] — task_state packets
+    const statePackets = params.packets.filter((p) => this.packetType(p) === "task_state");
+    if (statePackets.length > 0) {
+      sections.push(`[State]\n${statePackets.map((p) => p.content).join("\n\n")}`);
+    }
+
+    // [Evidence] — knowledge / retrieval / tool_result / related_memory
+    const evidenceTypes = new Set(["knowledge", "retrieval", "tool_result", "related_memory"]);
+    const evidencePackets = params.packets.filter((p) => evidenceTypes.has(this.packetType(p)));
+    if (evidencePackets.length > 0) {
+      sections.push(`[Evidence]\n${evidencePackets.map((p) => p.content).join("\n\n")}`);
+    }
+
+    // [Context] — history packets
+    const ctxPackets = params.packets.filter((p) => this.packetType(p) === "history");
+    if (ctxPackets.length > 0) {
+      sections.push(`[Context]\n${ctxPackets.map((p) => p.content).join("\n\n")}`);
+    }
+
+    // [Output] — response format guidance
+    sections.push(
+      "[Output]\n" +
+      "Please respond with:\n" +
+      "1. Conclusion (concise and direct)\n" +
+      "2. Supporting evidence (with sources)\n" +
+      "3. Risks and assumptions (if any)\n" +
+      "4. Recommended next steps (if applicable)",
+    );
+
+    return sections.join("\n\n");
+  }
+
+  /** Resolve packet type from explicit `type` field or `metadata.type`. */
+  private packetType(p: ContextPacket): string {
+    return (
+      p.type ??
+      (typeof p.metadata["type"] === "string" ? (p.metadata["type"] as string) : "knowledge")
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compress: line-by-line truncation when over budget
+  // ---------------------------------------------------------------------------
+
+  private compressContext(
+    text: string,
+    budgetTokens: number,
+    counter?: TokenCounter,
+  ): {text: string; wasTruncated: boolean} {
+    const total = estimateTokens(text, counter);
+    if (total <= budgetTokens) return {text, wasTruncated: false};
+
+    const lines = text.split("\n");
+    const kept: string[] = [];
+    let used = 0;
+
+    for (const line of lines) {
+      const t = estimateTokens(line, counter);
+      if (used + t > budgetTokens) break;
+      kept.push(line);
+      used += t;
+    }
+
+    return {text: kept.join("\n"), wasTruncated: true};
   }
 
   private compositeScore(packet: ContextPacket, relevance: number): number {
