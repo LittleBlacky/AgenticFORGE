@@ -1,12 +1,19 @@
+<p align="center">
+  <img src="assets/LOGO.png" alt="AgenticFORGE" width="200" />
+</p>
 
+<h1 align="center">AgenticFORGE</h1>
 
-# AgenticFORGE
+<h3 align="center">A TypeScript Agent Framework Driven by Tool Invocation</h3>
 
-### A TypeScript Agent Framework Driven by Tool Invocation
+<p align="center">
+  <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
+</p>
 
-
-
-[中文](./README.zh_CN.md) | **English**
+<p align="center">
+  <a href="./README.zh_CN.md">中文</a> | <strong>English</strong>
+</p>
 
 ---
 

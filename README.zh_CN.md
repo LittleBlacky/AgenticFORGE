@@ -7,6 +7,11 @@
 <h3 align="center">以工具调用为核心的 TypeScript Agent 框架</h3>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
+</p>
+
+<p align="center">
   <strong>中文</strong> | <a href="./README.md">English</a>
 </p>
 
