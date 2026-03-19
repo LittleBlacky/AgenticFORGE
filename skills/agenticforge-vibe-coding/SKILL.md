@@ -25,7 +25,7 @@ When the user describes what they want to build, you:
 @agenticforge/core         — LLMClient, Agent base, Message, Config
 @agenticforge/tools        — Tool, FunctionTool, toolAction, ToolRegistry, ToolChain
 @agenticforge/agents       — FunctionCallAgent, ReActAgent, PlanSolveAgent,
-                             ReflectionAgent, SimpleAgent, SkillAgent
+                             ReflectionAgent, SimpleAgent, SkillAgent, WorkflowAgent
 @agenticforge/skills       — AgentSkill, SkillRegistry, SkillRunner,
                              MarkdownSkill, SkillLoader
 @agenticforge/memory       — MemoryManager, WorkingMemory, EpisodicMemory,
@@ -49,6 +49,7 @@ When the user says "build me an agent", choose based on their description:
 | Plan first, then execute | `PlanSolveAgent` |
 | High quality writing / code review | `ReflectionAgent` |
 | Multiple capabilities, auto-route | `SkillAgent` |
+| DAG workflow, concurrent node execution | `WorkflowAgent` |
 
 ---
 
@@ -107,6 +108,40 @@ const skills = await SkillLoader.fromDirectory(".cursor/skills");
 
 const agent = new SkillAgent({ name: "assistant", llm, skills });
 const reply = await agent.run("user query");
+```
+
+### WorkflowAgent pattern
+```typescript
+import "dotenv/config";
+import { WorkflowAgent, LLMClient } from "@agenticforge/kit";
+import type { WorkflowDefinition } from "@agenticforge/agents";
+
+const agent = new WorkflowAgent({
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  // registry, // ToolRegistry — required for type:"tool" nodes
+  verbose: true,
+});
+
+const definition: WorkflowDefinition = {
+  name: "bilingual-report",
+  nodes: [
+    // fetch runs first
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                          depends: [] },
+    // analyze and translate run concurrently (both depend only on fetch)
+    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                   depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                      depends: ["fetch"] },
+    // report waits for both
+    { id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",          depends: ["analyze", "translate"] },
+  ],
+};
+
+const result = await agent.runWorkflow(definition, "State of AI in 2024");
+console.log(result.output);
+console.log(result.nodeResults); // per-node timing + status
+
+// Or: preset workflow and use run() interface
+agent.setWorkflow(definition);
+const output = await agent.run("State of AI in 2024");
 ```
 
 ### RAG setup pattern
