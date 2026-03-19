@@ -1,6 +1,6 @@
 # Agent
 
-AgenticFORGE 内置五种 Agent 工作流实现，每种封装不同的推理循环。
+AgenticFORGE 内置七种 Agent 工作流实现，每种封装不同的推理循环。
 
 ## 如何选择
 
@@ -11,6 +11,8 @@ AgenticFORGE 内置五种 Agent 工作流实现，每种封装不同的推理循
 | `ReActAgent` | 思考 → 行动 → 观察 | 复杂多步推理 |
 | `PlanSolveAgent` | 规划全部步骤 → 逐步执行 | 长链路任务、研究 |
 | `ReflectionAgent` | 生成 → 批评 → 改进 | 高质量内容生成 |
+| `SkillAgent` | LLM 意图路由 | 多能力切换助手 |
+| `WorkflowAgent` | DAG 节点执行 | 企业自动化、数据流水线 |
 
 ## FunctionCallAgent
 

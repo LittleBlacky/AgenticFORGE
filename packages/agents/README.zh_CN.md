@@ -5,7 +5,7 @@
 
 <p><strong>中文</strong> | <a href="./README.md">English</a></p>
 
-AgenticFORGE Agent 实现包，内置 ReAct、Plan-and-Solve、Reflection、FunctionCall、Simple 五种经典 Agent 工作流。
+AgenticFORGE Agent 实现包，内置 ReAct、Plan-and-Solve、Reflection、FunctionCall、Simple、SkillAgent、WorkflowAgent 七种 Agent 工作流。
 
 ## 安装
 
@@ -23,6 +23,7 @@ npm install @agenticforge/agents
 | `PlanSolveAgent` | 先规划后逐步执行，适合多步骤任务 |
 | `ReflectionAgent` | 带自我反思与批评机制，适合高质量生成 |
 | `SkillAgent` | 自动路由到最合适的 Skill，适合多能力切换场景 |
+| `WorkflowAgent` | DAG 工作流编排，支持并发节点执行 |
 
 ## SkillAgent
 
@@ -69,6 +70,38 @@ const agent = new FunctionCallAgent({
 
 const result = await agent.run("计算 (123 + 456) * 2");
 console.log(result);
+```
+
+## WorkflowAgent
+
+`WorkflowAgent` 按 DAG 拓扑顺序执行节点，无相互依赖的节点在同一波次内并发执行。每个节点的输出以 `nodeId` 为 key 写入共享 context，后续节点可通过 `{nodeId}` 插值引用。
+
+支持节点类型：`tool` · `llm` · `fn` · `passthrough`
+
+```ts
+import { WorkflowAgent, LLMClient } from "@agenticforge/agents";
+import type { WorkflowDefinition } from "@agenticforge/agents";
+
+const agent = new WorkflowAgent({
+  name: "report-workflow",
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  verbose: true,
+});
+
+const definition: WorkflowDefinition = {
+  name: "fan-out-report",
+  nodes: [
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                          depends: [] },
+    { id: "analyze",   type: "llm",  promptTemplate: "分析以下内容：\n{fetch}",                              depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "将以下内容翻译成英文：\n{fetch}",                      depends: ["fetch"] },
+    { id: "report",    type: "llm",  promptTemplate: "综合分析与翻译写出双语简报：\n{analyze}\n{translate}",  depends: ["analyze", "translate"] },
+  ],
+};
+
+// analyze 与 translate 在 fetch 完成后并发执行
+const result = await agent.runWorkflow(definition, "2024年AI行业发展趋势");
+console.log(result.output);
+console.log(result.nodeResults); // 每个节点的耗时与状态
 ```
 
 ## 链接

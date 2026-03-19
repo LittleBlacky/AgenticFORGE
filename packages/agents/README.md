@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Classic agent workflow implementations for AgenticFORGE — ReAct, Plan-and-Solve, Reflection, FunctionCall, Simple, and SkillAgent.
+Classic agent workflow implementations for AgenticFORGE — ReAct, Plan-and-Solve, Reflection, FunctionCall, Simple, SkillAgent, and WorkflowAgent.
 
 ## Installation
 
@@ -22,6 +22,8 @@ npm install @agenticforge/agents
 | `ReActAgent` | Reasoning-action loops for complex reasoning tasks |
 | `PlanSolveAgent` | Plan first, then execute step by step |
 | `ReflectionAgent` | Self-critique loop for high-quality generation |
+| `SkillAgent` | Multi-capability routing via Skills |
+| `WorkflowAgent` | DAG-based workflow orchestration with concurrent nodes |
 
 ## Usage
 
@@ -70,6 +72,38 @@ const reply = await agent.run("Is it raining in Tokyo?");
 // Call a specific skill directly
 const result = await agent.runSkill("stock-query", "Apple stock price?");
 console.log(result.output);
+```
+
+## WorkflowAgent
+
+`WorkflowAgent` executes a DAG of nodes. Nodes without mutual dependencies run concurrently; each node's output is stored in a shared context and can be referenced by downstream nodes via `{nodeId}` interpolation.
+
+Supported node types: `tool` · `llm` · `fn` · `passthrough`
+
+```ts
+import { WorkflowAgent, LLMClient } from "@agenticforge/agents";
+import type { WorkflowDefinition } from "@agenticforge/agents";
+
+const agent = new WorkflowAgent({
+  name: "report-workflow",
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  verbose: true,
+});
+
+const definition: WorkflowDefinition = {
+  name: "fan-out-report",
+  nodes: [
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                        depends: [] },
+    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                 depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "Translate to English:\n{fetch}",                    depends: ["fetch"] },
+    { id: "report",    type: "llm",  promptTemplate: "Write a bilingual report:\n{analyze}\n{translate}",  depends: ["analyze", "translate"] },
+  ],
+};
+
+// analyze and translate run concurrently after fetch completes
+const result = await agent.runWorkflow(definition, "State of AI in 2024");
+console.log(result.output);
+console.log(result.nodeResults); // per-node timing and status
 ```
 
 ## Links
