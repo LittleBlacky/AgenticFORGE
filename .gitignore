@@ -29,5 +29,4 @@ docs-site/node_modules
 docs-site/.vitepress/cache
 
 TODO/
-HelloAgents/
-docs/
+docs/*
