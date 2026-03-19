@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-All-in-one entry point for AgenticFORGE �?install once, use everything.
+All-in-one entry point for AgenticFORGE �?install once, use everything.
 
 ## Installation
 

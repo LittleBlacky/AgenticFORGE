@@ -26,9 +26,9 @@ import {createDefaultTextEmbedder} from "@agenticforge/memory/embedding";
 
 | Type | Description |
 |------|-------------|
-| `working` | Short-term context â€?session-scoped |
+| `working` | Short-term context ï¿½?session-scoped |
 | `episodic` | Historical events with timestamps and importance scores |
-| `semantic` | Knowledge and concepts â€?supports vector retrieval |
+| `semantic` | Knowledge and concepts ï¿½?supports vector retrieval |
 | `perceptual` | Temporary buffer for raw inputs and outputs |
 
 ## Usage

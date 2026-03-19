@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">ä¸­æ–‡</a> | <strong>English</strong></p>
 
-Tool abstraction layer for AgenticFORGE â€?`Tool` base class, `ToolRegistry`, `ToolChain`, and async executor.
+Tool abstraction layer for AgenticFORGE ï¿½?`Tool` base class, `ToolRegistry`, `ToolChain`, and async executor.
 
 ## Installation
 
@@ -17,10 +17,10 @@ npm install @agenticforge/tools
 
 | Name | Description |
 |------|-------------|
-| `Tool` | Tool base class â€?wraps parameter definitions and execution logic |
+| `Tool` | Tool base class ï¿½?wraps parameter definitions and execution logic |
 | `toolAction` | Tool action factory with Zod-based parameter validation |
 | `ToolRegistry` | Registry for managing available tools |
-| `ToolChain` | Tool chain â€?compose multiple tools in sequence or parallel |
+| `ToolChain` | Tool chain ï¿½?compose multiple tools in sequence or parallel |
 | `AsyncToolExecutor` | Async tool executor with timeout and concurrency control |
 
 ## Usage

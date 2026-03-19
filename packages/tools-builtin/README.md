@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">ä¸­æ–‡</a> | <strong>English</strong></p>
 
-Ready-to-use built-in tools for AgenticFORGE â€?search, memory, notes, RAG, and terminal.
+Ready-to-use built-in tools for AgenticFORGE ï¿½?search, memory, notes, RAG, and terminal.
 
 ## Installation
 
@@ -19,8 +19,8 @@ npm install @agenticforge/tools-builtin
 |------|-------------|
 | `SearchTool` | Web search supporting Tavily, SerpApi, DuckDuckGo, SearXNG, and Perplexity |
 | `MemoryTool` | Memory read/write tool backed by `MemoryManager` |
-| `NoteTool` | Structured note management â€?create, read, update, delete, and search |
-| `RagTool` | RAG retrieval tool â€?import documents and perform semantic Q&A |
+| `NoteTool` | Structured note management ï¿½?create, read, update, delete, and search |
+| `RagTool` | RAG retrieval tool ï¿½?import documents and perform semantic Q&A |
 | `TerminalTool` | Safe terminal command execution with an allowlist |
 
 ## Usage

@@ -5,7 +5,7 @@
 
 <p><a href="./README.zh_CN.md">中文</a> | <strong>English</strong></p>
 
-Utility helpers for AgenticFORGE �?LRU cache, prompt utilities, and more.
+Utility helpers for AgenticFORGE �?LRU cache, prompt utilities, and more.
 
 ## Installation
 
