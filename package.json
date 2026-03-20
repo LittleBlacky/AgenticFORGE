@@ -7,6 +7,9 @@
     "example": "node scripts/run-example.js",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "publish:dry": "node scripts/publish.js",
     "publish:beta": "node scripts/publish.js --publish --tag beta",
     "publish:release": "node scripts/publish.js --publish",
@@ -47,11 +50,13 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@types/node": "^25.3.3",
     "@types/proper-lockfile": "^4.1.3",
+    "@vitest/coverage-v8": "^4.1.0",
     "rimraf": "^6.0.1",
     "rollup": "^4.50.1",
     "rollup-plugin-esbuild": "^6.2.1",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
   },
   "packageManager": "pnpm@10.17.1"
 }

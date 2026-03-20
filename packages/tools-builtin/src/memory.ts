@@ -137,7 +137,7 @@ export class MemoryTool extends Tool {
   async run(parameters: Record<string, unknown>): Promise<string> {
     const validation = this.validateAndNormalizeParameters(parameters);
     if (!validation.success) {
-      return `❌ 参数验证失败: ${validation.error}`;
+      return `❌ 参数验证失败: ${(validation as {success: false; error: string}).error}`;
     }
 
     const action = String(validation.data.action ?? "") as MemoryAction;
@@ -147,7 +147,7 @@ export class MemoryTool extends Tool {
     );
 
     if (!actionValidation.success) {
-      return `❌ 参数验证失败: ${actionValidation.error}`;
+      return `❌ 参数验证失败: ${(actionValidation as {success: false; error: string}).error}`;
     }
 
     const p = actionValidation.data;

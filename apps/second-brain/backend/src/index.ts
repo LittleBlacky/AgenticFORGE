@@ -6,10 +6,11 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import { initGateway, route } from "./gateway/index.js";
 import { initANP } from "./protocols/index.js";
-import { ragPipeline, memoryManager, episodicMemory } from "./memory/index.js";
+import { memoryManager, semanticMemory, episodicMemory } from "./memory/index.js";
 import { generateWeeklyInsight } from "./agents/generator.js";
 import { captureWorkflowAgent, capturePipelineDefinition } from "./agents/capture.js";
 import { parallelExecutor } from "./tools/index.js";
+import { randomUUID } from "node:crypto";
 
 const app = express();
 const server = createServer(app);
@@ -60,7 +61,7 @@ app.post("/api/ingest/text", async (req, res) => {
   const { content, source } = req.body as { content: string; source?: string };
   if (!content) return res.status(400).json({ error: "content is required" });
   try {
-    await ragPipeline.ingest([{ content, metadata: { source: source ?? "manual", timestamp: new Date().toISOString() } }]);
+    await semanticMemory.add({ id: randomUUID(), content, memoryType: "semantic", userId: "default", timestamp: new Date(), importance: 0.8, metadata: { source: source ?? "manual" } });
     return res.json({ success: true, chars: content.length });
   } catch (e) {
     return res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
@@ -71,7 +72,7 @@ app.get("/api/search", async (req, res) => {
   const { q, topK } = req.query as { q: string; topK?: string };
   if (!q) return res.status(400).json({ error: "q is required" });
   try {
-    const results = await ragPipeline.retrieve(q, { topK: parseInt(topK ?? "5") });
+    const results = await semanticMemory.retrieve(q, parseInt(topK ?? "5"));
     return res.json({ results });
   } catch (e) {
     return res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
@@ -93,7 +94,8 @@ app.get("/api/search/parallel", async (req, res) => {
   const { q } = req.query as { q: string };
   if (!q) return res.status(400).json({ error: "q is required" });
   try {
-    const results = await parallelExecutor.runAll({ input: q });
+    const requests = [{ id: "r1", toolName: "search", parameters: { input: q } }, { id: "r2", toolName: "rag", parameters: { input: q } }];
+    const results = await parallelExecutor.executeBatch(requests);
     return res.json({ results });
   } catch (e) {
     return res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
@@ -102,7 +104,7 @@ app.get("/api/search/parallel", async (req, res) => {
 
 app.get("/api/memory/stats", async (_req, res) => {
   try {
-    const stats = await memoryManager.getStats();
+    const stats = await memoryManager.getMemoryStats();
     return res.json(stats);
   } catch (e) {
     return res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
@@ -117,7 +119,7 @@ async function main() {
   console.log("Starting Second Brain...");
   await initGateway();
   initANP();
-  const PORT = process.env.PORT ?? 3005;
+  const PORT = process.env.PORT ?? 3010;
   server.listen(PORT, () => {
     console.log(`Second Brain API: http://localhost:${PORT}`);
     console.log(`WebSocket: ws://localhost:${PORT}`);

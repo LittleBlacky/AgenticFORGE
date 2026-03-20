@@ -1,0 +1,199 @@
+/**
+ * @agenticforge/core — 单元测试
+ * 覆盖：Message, Agent(基类), LLMClient(mock)
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Message } from "../../packages/core/src/message";
+import { Agent } from "../../packages/core/src/agent";
+import { Config } from "../../packages/core/src/config";
+import { z } from "zod";
+
+// ---------------------------------------------------------------------------
+// Minimal concrete Agent for testing abstract base
+// ---------------------------------------------------------------------------
+class TestAgent extends Agent {
+  async run(inputText: string): Promise<string> {
+    const response = await this.llm.think([
+      { role: "user", content: inputText },
+    ]);
+    this.addMessage(new Message({ role: "user", content: inputText }));
+    this.addMessage(new Message({ role: "assistant", content: response }));
+    return response;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mock LLMClient
+// ---------------------------------------------------------------------------
+function makeMockLLM(response = "mocked response") {
+  return {
+    think: vi.fn().mockResolvedValue(response),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
+    client: { chat: { completions: { create: vi.fn() } } },
+    model: "mock-model",
+  } as any;
+}
+
+// ===========================================================================
+// Message
+// ===========================================================================
+describe("Message", () => {
+  it("constructs with required fields", () => {
+    const msg = new Message({ role: "user", content: "hello" });
+    expect(msg.role).toBe("user");
+    expect(msg.content).toBe("hello");
+    expect(msg.timestamp).toBeInstanceOf(Date);
+    expect(msg.metadata).toEqual({});
+  });
+
+  it("accepts optional timestamp and metadata", () => {
+    const ts = new Date("2024-01-01");
+    const meta = { sessionId: "abc" };
+    const msg = new Message({ role: "assistant", content: "hi", timestamp: ts, metadata: meta });
+    expect(msg.timestamp).toBe(ts);
+    expect(msg.metadata).toEqual(meta);
+  });
+
+  it("toDict returns role and content", () => {
+    const msg = new Message({ role: "system", content: "sys" });
+    expect(msg.toDict()).toEqual({ role: "system", content: "sys" });
+  });
+
+  it("toString formats correctly", () => {
+    const msg = new Message({ role: "user", content: "test" });
+    expect(msg.toString()).toBe("[user] test");
+  });
+
+  it("supports all valid roles", () => {
+    for (const role of ["user", "assistant", "system", "tool"] as const) {
+      const msg = new Message({ role, content: "x" });
+      expect(msg.role).toBe(role);
+    }
+  });
+});
+
+// ===========================================================================
+// Config
+// ===========================================================================
+describe("Config", () => {
+  it("creates with defaults", () => {
+    const cfg = new Config();
+    expect(cfg).toBeDefined();
+  });
+
+  it("can be instantiated multiple times independently", () => {
+    const c1 = new Config();
+    const c2 = new Config();
+    expect(c1).not.toBe(c2);
+  });
+});
+
+// ===========================================================================
+// Agent (abstract base via TestAgent)
+// ===========================================================================
+describe("Agent (base class)", () => {
+  let agent: TestAgent;
+  let mockLLM: ReturnType<typeof makeMockLLM>;
+
+  beforeEach(() => {
+    mockLLM = makeMockLLM();
+    agent = new TestAgent({ name: "test", llm: mockLLM });
+  });
+
+  it("initialises with empty history", () => {
+    expect(agent.getHistory()).toHaveLength(0);
+  });
+
+  it("run() calls llm.think and adds messages to history", async () => {
+    const result = await agent.run("hello");
+    expect(result).toBe("mocked response");
+    expect(mockLLM.think).toHaveBeenCalledOnce();
+    expect(agent.getHistory()).toHaveLength(2);
+  });
+
+  it("addMessage() appends to history", () => {
+    agent.addMessage(new Message({ role: "user", content: "a" }));
+    agent.addMessage(new Message({ role: "assistant", content: "b" }));
+    expect(agent.getHistory()).toHaveLength(2);
+  });
+
+  it("clearHistory() empties history", async () => {
+    await agent.run("hello");
+    agent.clearHistory();
+    expect(agent.getHistory()).toHaveLength(0);
+  });
+
+  it("getHistory() returns a copy, not the internal reference", () => {
+    agent.addMessage(new Message({ role: "user", content: "x" }));
+    const h1 = agent.getHistory();
+    const h2 = agent.getHistory();
+    expect(h1).not.toBe(h2); // different array instances
+    expect(h1).toEqual(h2);
+  });
+
+  it("toString() includes name", () => {
+    expect(agent.toString()).toContain("test");
+  });
+
+  // -------------------------------------------------------------------------
+  // runStructured
+  // -------------------------------------------------------------------------
+  describe("runStructured()", () => {
+    const schema = z.object({ answer: z.string(), score: z.number() });
+
+    it("parses valid JSON response", async () => {
+      mockLLM.think.mockResolvedValue('{"answer":"yes","score":42}');
+      const result = await agent.runStructured({ inputText: "q", schema });
+      expect(result).toEqual({ answer: "yes", score: 42 });
+    });
+
+    it("parses JSON wrapped in markdown code block", async () => {
+      mockLLM.think.mockResolvedValue('```json\n{"answer":"ok","score":1}\n```');
+      const result = await agent.runStructured({ inputText: "q", schema });
+      expect(result).toEqual({ answer: "ok", score: 1 });
+    });
+
+    it("throws after maxRetries on persistent JSON parse failure", async () => {
+      mockLLM.think.mockResolvedValue("not json at all");
+      await expect(
+        agent.runStructured({ inputText: "q", schema, maxRetries: 1 })
+      ).rejects.toThrow();
+    });
+
+    it("throws after maxRetries on schema validation failure", async () => {
+      mockLLM.think.mockResolvedValue('{"wrong":"shape"}');
+      await expect(
+        agent.runStructured({ inputText: "q", schema, maxRetries: 0 })
+      ).rejects.toThrow();
+    });
+
+    it("retries and eventually succeeds", async () => {
+      mockLLM.think
+        .mockResolvedValueOnce("bad")
+        .mockResolvedValueOnce('{"answer":"retry","score":99}');
+      const result = await agent.runStructured({ inputText: "q", schema, maxRetries: 2 });
+      expect(result).toEqual({ answer: "retry", score: 99 });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // extractJsonBlock (tested via runStructured side-effects)
+  // -------------------------------------------------------------------------
+  describe("extractJsonBlock edge cases", () => {
+    const schema = z.object({ x: z.number() });
+
+    it("handles bare JSON object", async () => {
+      mockLLM.think.mockResolvedValue('{"x":7}');
+      const r = await agent.runStructured({ inputText: "q", schema });
+      expect(r).toEqual({ x: 7 });
+    });
+
+    it("extracts JSON embedded in surrounding text", async () => {
+      mockLLM.think.mockResolvedValue('Here is your answer: {"x":3} end.');
+      const r = await agent.runStructured({ inputText: "q", schema });
+      expect(r).toEqual({ x: 3 });
+    });
+  });
+});
