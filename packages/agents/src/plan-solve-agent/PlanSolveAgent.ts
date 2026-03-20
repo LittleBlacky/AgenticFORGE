@@ -101,6 +101,63 @@ export class PlanSolveAgent extends Agent {
     return this.lastPlan;
   }
 
+  /**
+   * Stream the final synthesis answer token by token.
+   * Planning and step-execution run non-streaming; only the final
+   * "write the report" call is streamed.
+   */
+  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+    const planPrompt = buildPlanPrompt(inputText);
+    const planRaw = await this.llm.think(
+      [
+        {role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT},
+        {role: "user", content: planPrompt},
+      ],
+      options?.temperature,
+    );
+
+    const plan = this.parsePlan(inputText, planRaw);
+    this.lastPlan = plan;
+
+    if (this.verbose) {
+      console.log(`[PlanSolve] Plan created with ${plan.steps.length} steps`);
+    }
+
+    let context = "";
+    const steps = plan.steps.slice(0, this.maxSteps);
+
+    for (const step of steps) {
+      if (this.verbose) {
+        console.log(`[PlanSolve] Executing step ${step.id}: ${step.description}`);
+      }
+      try {
+        const result = await this.executor.execute(step, context);
+        markStepDone(plan, step.id, result);
+        context += `\n步骤${step.id}(${step.description}): ${result}`;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        markStepFailed(plan, step.id, msg);
+        context += `\n步骤${step.id}失败: ${msg}`;
+      }
+    }
+
+    const results = getCompletedResults(plan);
+    const finalPrompt = buildFinalPrompt(inputText, results);
+    const finalMessages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
+      {role: "system", content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。"},
+      {role: "user", content: finalPrompt},
+    ];
+
+    let fullResponse = "";
+    for await (const chunk of this.llm.streamThink(finalMessages, options?.temperature)) {
+      fullResponse += chunk;
+      yield chunk;
+    }
+
+    this.addMessage(new Message({role: "user", content: inputText}));
+    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+  }
+
   private parsePlan(goal: string, raw: string): Plan {
     try {
       const jsonMatch =

@@ -79,4 +79,76 @@ export class ReflectionAgent extends Agent {
     return draft;
   }
 
+  /**
+   * Stream the final (post-reflection) answer token by token.
+   * The critique/revision rounds run non-streaming, then the last revision
+   * is streamed live.
+   */
+  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+    const sys = this.systemPrompt ?? "你是一个反思型AI助手，擅长自我批评和改进回答。";
+
+    // Initial draft — non-streaming (needed for critique)
+    let draft = await this.llm.think(
+      [{role: "system", content: sys}, {role: "user", content: inputText}],
+      options?.temperature,
+    );
+
+    // Run all but the last reflection round non-streaming
+    const totalRounds = this.maxRounds;
+    for (let round = 1; round < totalRounds; round++) {
+      const critique = await this.llm.think(
+        [
+          {role: "system", content: sys},
+          {role: "user", content: inputText},
+          {role: "assistant", content: draft},
+          {role: "user", content: `${this.critiquePrompt}\n\n${draft}`},
+        ],
+        options?.temperature,
+      );
+      const revision = await this.llm.think(
+        [
+          {role: "system", content: sys},
+          {role: "user", content: inputText},
+          {role: "assistant", content: draft},
+          {role: "user", content: `${this.critiquePrompt}\n\n${draft}`},
+          {role: "assistant", content: critique},
+          {role: "user", content: `${this.revisionPrompt}\n\n批评：${critique}\n\n原始回答：${draft}`},
+        ],
+        options?.temperature,
+      );
+      this.memory.add({draft, critique, revision, round});
+      draft = revision;
+    }
+
+    // Last round — stream the final revision
+    const critique = await this.llm.think(
+      [
+        {role: "system", content: sys},
+        {role: "user", content: inputText},
+        {role: "assistant", content: draft},
+        {role: "user", content: `${this.critiquePrompt}\n\n${draft}`},
+      ],
+      options?.temperature,
+    );
+
+    const revisionMessages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
+      {role: "system", content: sys},
+      {role: "user", content: inputText},
+      {role: "assistant", content: draft},
+      {role: "user", content: `${this.critiquePrompt}\n\n${draft}`},
+      {role: "assistant", content: critique},
+      {role: "user", content: `${this.revisionPrompt}\n\n批评：${critique}\n\n原始回答：${draft}`},
+    ];
+
+    let fullResponse = "";
+    for await (const chunk of this.llm.streamThink(revisionMessages, options?.temperature)) {
+      fullResponse += chunk;
+      yield chunk;
+    }
+
+    this.memory.add({draft, critique, revision: fullResponse, round: totalRounds});
+    this.addMessage(new Message({role: "user", content: inputText}));
+    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+  }
+
 }

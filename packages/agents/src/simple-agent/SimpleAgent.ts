@@ -140,6 +140,87 @@ export class SimpleAgent extends Agent {
     return finalResponse;
   }
 
+  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+    const sys = this.systemPrompt ?? "你是一个简洁、高效的AI助手。";
+    const messages: Array<Record<string, unknown>> = [
+      {role: "system", content: sys},
+      ...this.history.map((m) => ({role: m.role, content: m.content})),
+      {role: "user", content: inputText},
+    ];
+
+    const toolSchemas = this.buildToolSchemas();
+
+    // No tools — stream directly
+    if (toolSchemas.length === 0) {
+      let fullResponse = "";
+      for await (const chunk of this.llm.streamThink(
+        messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
+        options?.temperature,
+      )) {
+        fullResponse += chunk;
+        yield chunk;
+      }
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: fullResponse}));
+      return;
+    }
+
+    // Tool loop (non-streaming), then stream the final synthesis
+    for (let i = 0; i < this.maxToolIterations; i++) {
+      const response = await this.invokeWithTools(
+        messages,
+        toolSchemas,
+        "auto",
+        options?.temperature,
+      ) as {choices?: Array<{message?: {content?: string; tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>}}>};
+
+      const msg = response.choices?.[0]?.message;
+      const content = msg?.content ?? "";
+      const toolCalls = msg?.tool_calls ?? [];
+
+      if (toolCalls.length === 0) break;
+
+      messages.push({role: "assistant", content, tool_calls: toolCalls});
+
+      for (const call of toolCalls) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
+        let result = "";
+        try {
+          result = await this.toolRegistry!.execute(call.function.name, args);
+        } catch (e) {
+          result = `Error: ${e instanceof Error ? e.message : String(e)}`;
+        }
+        messages.push({role: "tool", tool_call_id: call.id, name: call.function.name, content: result});
+      }
+    }
+
+    // Stream the final answer
+    const client = (this.llm as any).client;
+    const model = (this.llm as any).model;
+    const streamResponse = await client.chat.completions.create({
+      model,
+      messages,
+      tool_choice: "none",
+      tools: toolSchemas,
+      temperature: options?.temperature ?? (this.config as unknown as Record<string, unknown>).temperature ?? 0,
+      stream: true,
+    });
+
+    let fullResponse = "";
+    for await (const chunk of streamResponse) {
+      const delta = chunk.choices[0]?.delta;
+      const text = delta?.content;
+      if (typeof text === "string" && text.length > 0) {
+        fullResponse += text;
+        yield text;
+      }
+    }
+
+    this.addMessage(new Message({role: "user", content: inputText}));
+    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+  }
+
 }
 
 export {z};

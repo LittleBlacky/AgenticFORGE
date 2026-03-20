@@ -121,4 +121,100 @@ export class ReActAgent extends Agent {
     return [...this.steps];
   }
 
+  /**
+   * Stream the final answer token by token.
+   * The Thought/Action/Observation loop runs synchronously (tool results must
+   * be awaited), and only the last "Final Answer" synthesis is streamed.
+   */
+  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+    this.steps.length = 0;
+
+    const toolDescriptions = this.toolRegistry
+      ? this.toolRegistry.getAvailableTools()
+      : "（无可用工具）";
+
+    const systemContent = [
+      this.systemPrompt ?? REACT_SYSTEM,
+      "",
+      "可用工具：",
+      toolDescriptions,
+    ].join("\n");
+
+    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
+      {role: "system", content: systemContent},
+      {role: "user", content: inputText},
+    ];
+
+    let scratchpad = "";
+    let finalAnswer: string | undefined;
+
+    for (let step = 0; step < this.maxSteps; step++) {
+      const promptMessages = scratchpad
+        ? [...messages, {role: "assistant" as const, content: scratchpad}]
+        : messages;
+
+      // Run each reasoning step non-streaming (we need to parse Thought/Action)
+      const raw = await this.llm.think(promptMessages, options?.temperature);
+      scratchpad += (scratchpad ? "\n" : "") + raw;
+
+      if (this.verbose) console.log(`[ReAct step ${step + 1}]\n${raw}`);
+
+      const finalMatch = raw.match(/Final\s+Answer\s*:\s*([\s\S]+)/i);
+      if (finalMatch) {
+        finalAnswer = finalMatch[1]!.trim();
+        this.steps.push({thought: raw, isFinal: true, finalAnswer});
+        break;
+      }
+
+      const actionMatch = raw.match(/Action\s*:\s*(.+)/i);
+      const actionInputMatch = raw.match(/Action\s+Input\s*:\s*([\s\S]*?)(?=\nObservation:|\nThought:|\nAction:|\nFinal|$)/i);
+
+      if (actionMatch && this.toolRegistry) {
+        const toolName = actionMatch[1]!.trim();
+        const toolInput = actionInputMatch ? actionInputMatch[1]!.trim() : "";
+
+        let observation: string;
+        try {
+          observation = await this.toolRegistry.execute(toolName, {input: toolInput});
+        } catch (e) {
+          observation = `Error: ${e instanceof Error ? e.message : String(e)}`;
+        }
+
+        if (this.verbose) console.log(`[ReAct observation] ${observation}`);
+        scratchpad += `\nObservation: ${observation}`;
+        this.steps.push({thought: raw, action: toolName, actionInput: toolInput, observation, isFinal: false});
+      } else {
+        // No action and no final answer — treat raw as final answer
+        finalAnswer = raw;
+        this.steps.push({thought: raw, isFinal: true, finalAnswer: raw});
+        break;
+      }
+    }
+
+    // If we exhausted steps without a Final Answer, use last observation/thought
+    if (finalAnswer === undefined) {
+      const lastStep = this.steps[this.steps.length - 1];
+      finalAnswer = lastStep?.finalAnswer ?? lastStep?.observation ?? inputText;
+    }
+
+    // Now stream the final answer token-by-token
+    // We synthesise by asking the LLM to produce the final answer from the scratchpad
+    const synthMessages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
+      ...messages,
+      {role: "assistant", content: scratchpad},
+      {
+        role: "user",
+        content: "根据以上推理过程，请直接给出最终答案（Final Answer 之后的内容），不要重复推理步骤。",
+      },
+    ];
+
+    let fullResponse = "";
+    for await (const chunk of this.llm.streamThink(synthMessages, options?.temperature)) {
+      fullResponse += chunk;
+      yield chunk;
+    }
+
+    this.addMessage(new Message({role: "user", content: inputText}));
+    this.addMessage(new Message({role: "assistant", content: fullResponse || finalAnswer}));
+  }
 }
