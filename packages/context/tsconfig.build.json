@@ -4,6 +4,11 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "noEmit": false,
-    "outDir": "dist/types"
-  }
+    "rootDir": "src",
+    "outDir": "dist/types",
+    "paths": {
+      "@agenticforge/core": ["../core/dist/types"]
+    }
+  },
+  "include": ["src/**/*.ts"]
 }
