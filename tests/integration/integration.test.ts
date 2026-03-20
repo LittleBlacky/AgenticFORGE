@@ -11,7 +11,7 @@ import { MemoryManager } from "../../packages/memory/src/manager";
 import { ContextBuilder } from "../../packages/context/src/ContextBuilder";
 import { AgentSkill } from "@agenticforge/skills";
 import { SkillRunner } from "@agenticforge/skills";
-import type { ToolParameter } from "../../packages/tools/src/types";
+import type { ToolParameter } from "@agenticforge/tools";
 import type { WorkflowDefinition } from "../../packages/agents/src/workflow-agent/types";
 
 class UpperTool extends Tool {

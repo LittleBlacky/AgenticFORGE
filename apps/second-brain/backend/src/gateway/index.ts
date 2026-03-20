@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_DIR = path.join(__dirname, "../skills");
 
-const llm = new LLMClient({ model: "gpt-4o" });
+const llm = new LLMClient();
 let runner: SkillRunner | null = null;
 
 export async function initGateway() {
