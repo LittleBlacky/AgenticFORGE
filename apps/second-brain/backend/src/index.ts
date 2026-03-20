@@ -6,7 +6,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import { initGateway, route } from "./gateway/index.js";
 import { initANP } from "./protocols/index.js";
-import { memoryManager, semanticMemory, episodicMemory } from "./memory/index.js";
+import { memoryManager, semanticMemory, episodicMemory, vectorStore, graphStore, shutdownMemory } from "./memory/index.js";
 import { generateWeeklyInsight } from "./agents/generator.js";
 import { captureWorkflowAgent, capturePipelineDefinition } from "./agents/capture.js";
 import { parallelExecutor } from "./tools/index.js";
@@ -111,19 +111,56 @@ app.get("/api/memory/stats", async (_req, res) => {
   }
 });
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/api/health", async (_req, res) => {
+  const qdrantOk = "health" in vectorStore
+    ? await (vectorStore as { health(): Promise<boolean> }).health().catch(() => false)
+    : true;
+  const neo4jOk = graphStore
+    ? await graphStore.health().catch(() => false)
+    : null;
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    adapters: {
+      vectorStore: qdrantOk ? "healthy" : "unreachable",
+      graphStore: neo4jOk === null ? "disabled" : neo4jOk ? "healthy" : "unreachable",
+    },
+  });
 });
 
 async function main() {
   console.log("Starting Second Brain...");
   await initGateway();
   initANP();
-  const PORT = process.env.PORT ?? 3010;
+
+  // ── 适配器健康检查 ──────────────────────────────────────────────────────────
+  const qdrantOk = "health" in vectorStore
+    ? await (vectorStore as { health(): Promise<boolean> }).health().catch(() => false)
+    : true;
+  console.log(`[Startup] Qdrant: ${qdrantOk ? "✓ connected" : "✗ unreachable (fallback: in-memory)"}`);
+
+  if (graphStore) {
+    const neo4jOk = await graphStore.health().catch(() => false);
+    console.log(`[Startup] Neo4j:  ${neo4jOk ? "✓ connected" : "✗ unreachable"}`);
+  } else {
+    console.log("[Startup] Neo4j:  disabled (NEO4J_URI not set)");
+  }
+
+  const PORT = process.env["PORT"] ?? 3010;
   server.listen(PORT, () => {
     console.log(`Second Brain API: http://localhost:${PORT}`);
     console.log(`WebSocket: ws://localhost:${PORT}`);
   });
 }
+
+// ── 优雅关闭 ────────────────────────────────────────────────────────────────
+async function shutdown(signal: string) {
+  console.log(`\n[Shutdown] Received ${signal}`);
+  server.close(() => console.log("[Shutdown] HTTP server closed"));
+  await shutdownMemory();
+  process.exit(0);
+}
+process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 main().catch(console.error);
