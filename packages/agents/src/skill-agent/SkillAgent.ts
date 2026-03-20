@@ -154,7 +154,7 @@ export class SkillAgent extends Agent {
 
   async *streamRun(
     inputText: string,
-    options?: {skillName?: string; metadata?: Record<string, unknown>},
+    options?: {skillName?: string; metadata?: Record<string, unknown>; temperature?: number},
   ): AsyncGenerator<string> {
     yield await this.run(inputText, options);
   }

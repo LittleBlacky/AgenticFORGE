@@ -101,10 +101,6 @@ export class PlanSolveAgent extends Agent {
     return this.lastPlan;
   }
 
-  async *streamRun(inputText: string): AsyncGenerator<string> {
-    yield await this.run(inputText);
-  }
-
   private parsePlan(goal: string, raw: string): Plan {
     try {
       const jsonMatch =

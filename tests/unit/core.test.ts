@@ -197,3 +197,153 @@ describe("Agent (base class)", () => {
     });
   });
 });
+
+// ===========================================================================
+// Agent.streamRun() — 基类真流式
+// ===========================================================================
+describe("Agent.streamRun() (base class)", () => {
+  it("yields chunks and records history", async () => {
+    const mockLLM = {
+      think: vi.fn(),
+      streamThink: vi.fn(async function* () {
+        yield "hello ";
+        yield "world";
+      }),
+      client: {},
+      model: "mock",
+    } as any;
+    const agent = new TestAgent({ name: "stream-test", llm: mockLLM });
+    const chunks: string[] = [];
+    for await (const chunk of agent.streamRun("hi")) {
+      chunks.push(chunk);
+    }
+    expect(chunks).toEqual(["hello ", "world"]);
+    const history = agent.getHistory();
+    expect(history).toHaveLength(2);
+    expect(history[0]!.role).toBe("user");
+    expect(history[0]!.content).toBe("hi");
+    expect(history[1]!.role).toBe("assistant");
+    expect(history[1]!.content).toBe("hello world");
+  });
+
+  it("includes systemPrompt and prior history in messages", async () => {
+    const captured: Array<{role: string}> = [];
+    const mockLLM = {
+      think: vi.fn(),
+      streamThink: vi.fn(async function* (msgs: Array<{role: string}>) {
+        for (const m of msgs) captured.push(m);
+        yield "ok";
+      }),
+      client: {},
+      model: "mock",
+    } as any;
+    const agent = new TestAgent({ name: "s", llm: mockLLM, systemPrompt: "be helpful" });
+    agent.addMessage(new Message({ role: "user", content: "prev" }));
+    agent.addMessage(new Message({ role: "assistant", content: "sure" }));
+    for await (const _ of agent.streamRun("new question")) { /* consume */ }
+    expect(captured.map((m) => m.role)).toEqual(["system", "user", "assistant", "user"]);
+  });
+
+  it("passes temperature option to streamThink", async () => {
+    let capturedTemp: unknown;
+    const mockLLM = {
+      think: vi.fn(),
+      streamThink: vi.fn(async function* (_msgs: unknown[], temp: unknown) {
+        capturedTemp = temp;
+        yield "result";
+      }),
+      client: {},
+      model: "mock",
+    } as any;
+    const agent = new TestAgent({ name: "t", llm: mockLLM });
+    for await (const _ of agent.streamRun("q", { temperature: 0.7 })) { /* consume */ }
+    expect(capturedTemp).toBe(0.7);
+  });
+});
+
+// ===========================================================================
+// streamThinkChunked — thinking model support
+// ===========================================================================
+import { LLMClient } from "../../packages/core/src/llm";
+import type { StreamChunk } from "../../packages/core/src/types";
+
+describe("LLMClient.streamThinkChunked()", () => {
+  function makeLLMWithDeltas(deltas: Array<Record<string, string>>): LLMClient {
+    const stream = (async function* () {
+      for (const d of deltas) yield { choices: [{ delta: d }] };
+    })();
+    const fake = {
+      chat: { completions: { create: vi.fn().mockResolvedValue(stream) } },
+    };
+    const llm = Object.create(LLMClient.prototype) as LLMClient;
+    (llm as any).client = fake;
+    (llm as any).model = "mock";
+    return llm;
+  }
+
+  it("yields content chunks from normal model", async () => {
+    const llm = makeLLMWithDeltas([
+      { content: "hello " },
+      { content: "world" },
+    ]);
+    const chunks: StreamChunk[] = [];
+    for await (const c of llm.streamThinkChunked([])) chunks.push(c);
+    expect(chunks).toEqual([
+      { type: "content", text: "hello " },
+      { type: "content", text: "world" },
+    ]);
+  });
+
+  it("yields thinking chunks from thinking model", async () => {
+    const llm = makeLLMWithDeltas([
+      { reasoning_content: "let me think" },
+      { content: "answer" },
+    ]);
+    const chunks: StreamChunk[] = [];
+    for await (const c of llm.streamThinkChunked([])) chunks.push(c);
+    expect(chunks).toEqual([
+      { type: "thinking", text: "let me think" },
+      { type: "content", text: "answer" },
+    ]);
+  });
+
+  it("streamThink content-only mode skips thinking chunks", async () => {
+    const llm = makeLLMWithDeltas([
+      { reasoning_content: "thinking..." },
+      { content: "final answer" },
+    ]);
+    const chunks: string[] = [];
+    for await (const c of llm.streamThink([], 0, "content-only")) chunks.push(c);
+    expect(chunks).toEqual(["final answer"]);
+  });
+
+  it("streamThink thinking-only mode skips content chunks", async () => {
+    const llm = makeLLMWithDeltas([
+      { reasoning_content: "reasoning" },
+      { content: "answer" },
+    ]);
+    const chunks: string[] = [];
+    for await (const c of llm.streamThink([], 0, "thinking-only")) chunks.push(c);
+    expect(chunks).toEqual(["reasoning"]);
+  });
+
+  it("streamThink all mode yields both thinking and content", async () => {
+    const llm = makeLLMWithDeltas([
+      { reasoning_content: "step1" },
+      { content: "result" },
+    ]);
+    const chunks: string[] = [];
+    for await (const c of llm.streamThink([], 0, "all")) chunks.push(c);
+    expect(chunks).toEqual(["step1", "result"]);
+  });
+
+  it("think() assembles full content string (ignores reasoning_content)", async () => {
+    const llm = makeLLMWithDeltas([
+      { reasoning_content: "internal" },
+      { content: "hello " },
+      { content: "world" },
+    ]);
+    const result = await llm.think([]);
+    expect(result).toBe("hello world");
+  });
+});

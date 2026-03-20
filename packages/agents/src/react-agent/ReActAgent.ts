@@ -121,7 +121,4 @@ export class ReActAgent extends Agent {
     return [...this.steps];
   }
 
-  async *streamRun(inputText: string): AsyncGenerator<string> {
-    yield await this.run(inputText);
-  }
 }

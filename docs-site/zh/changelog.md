@@ -1,5 +1,21 @@
 # 更新日志
 
+## v1.3.2 — 2026-03-20
+
+### 新增
+- `@agenticforge/core` `LLMClient`：新增 `streamThinkChunked()` 方法，每个 chunk 携带类型标记（`"thinking" | "content"`），原生支持 DeepSeek R1、Claude 等思考模型的 reasoning token 流式输出
+- `@agenticforge/core` `LLMClient.streamThink()`：新增可选第三参数 `streamMode`（`"content-only"` | `"thinking-only"` | `"all"`），默认 `"content-only"` 完全向后兼容
+- `@agenticforge/core` `Agent` 基类：新增默认 `streamRun()` 实现，直接调用 `llm.streamThink()` 逐 token yield，所有子类无需重复实现即可获得真流式输出
+- `@agenticforge/core` 新增导出类型 `StreamChunk`、`StreamMode`
+
+### 变更
+- `@agenticforge/agents`：移除 `SimpleAgent`、`ReActAgent`、`PlanSolveAgent`、`ReflectionAgent` 中的伪流式 `streamRun()`（原实现为 `yield await this.run()`），改为继承基类真流式实现；`FunctionCallAgent`、`SkillAgent` 的 `streamRun()` 保留不变
+
+### 测试
+- `tests/unit/core.test.ts`：新增 9 个测试用例，覆盖 `streamRun()` 基类行为（chunk yield、history 记录、systemPrompt 注入、temperature 透传）及 `streamThinkChunked()` 全部 `StreamMode` 模式
+
+---
+
 ## v1.3.0 — 2026-03-20
 
 ### 新增

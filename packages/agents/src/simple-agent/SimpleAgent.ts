@@ -140,9 +140,6 @@ export class SimpleAgent extends Agent {
     return finalResponse;
   }
 
-  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
-    yield await this.run(inputText, options);
-  }
 }
 
 export {z};

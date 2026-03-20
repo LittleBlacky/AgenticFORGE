@@ -26,6 +26,43 @@ export abstract class Agent {
   /** 运行 Agent */
   abstract run(inputText: string, ...args: unknown[]): Promise<string> | string;
 
+  /**
+   * 流式运行 Agent — 逐 token yield。
+   * 默认实现直接调用 llm.streamThink()，无需在子类重复实现。
+   * 涉及多步工具调用的子类（FunctionCallAgent 等）可覆盖此方法。
+   *
+   * 使用示例：
+   * ```ts
+   * for await (const chunk of agent.streamRun("你好")) {
+   *   process.stdout.write(chunk);
+   * }
+   * ```
+   */
+  async *streamRun(
+    inputText: string,
+    options?: {temperature?: number},
+  ): AsyncGenerator<string> {
+    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [];
+    if (this.systemPrompt) {
+      messages.push({role: "system", content: this.systemPrompt});
+    }
+    for (const msg of this.history) {
+      if (msg.role === "user" || msg.role === "assistant" || msg.role === "system") {
+        messages.push({role: msg.role, content: msg.content});
+      }
+    }
+    messages.push({role: "user", content: inputText});
+
+    let fullResponse = "";
+    for await (const chunk of this.llm.streamThink(messages, options?.temperature)) {
+      fullResponse += chunk;
+      yield chunk;
+    }
+
+    this.addMessage(new Message({role: "user", content: inputText}));
+    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+  }
+
   /** 添加消息到历史记录 */
   addMessage(message: Message): void {
     this.history.push(message);

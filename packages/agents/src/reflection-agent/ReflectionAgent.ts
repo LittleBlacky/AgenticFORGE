@@ -79,8 +79,4 @@ export class ReflectionAgent extends Agent {
     return draft;
   }
 
-  async *streamRun(inputText: string): AsyncGenerator<string> {
-    const result = await this.run(inputText);
-    yield result;
-  }
 }

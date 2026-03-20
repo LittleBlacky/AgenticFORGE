@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/agents",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Agent implementations for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
