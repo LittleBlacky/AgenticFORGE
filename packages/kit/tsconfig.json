@@ -2,7 +2,17 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "outDir": "dist/types"
+    "outDir": "dist/types",
+    "paths": {
+      "@agenticforge/core": ["../core/src"],
+      "@agenticforge/context": ["../context/src"],
+      "@agenticforge/tools": ["../tools/src"],
+      "@agenticforge/tools-builtin": ["../tools-builtin/src"],
+      "@agenticforge/memory": ["../memory/src"],
+      "@agenticforge/utils": ["../utils/src"],
+      "@agenticforge/agents": ["../agents/src"],
+      "@agenticforge/skills": ["../skills/src"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

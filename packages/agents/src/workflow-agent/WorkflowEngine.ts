@@ -124,22 +124,6 @@ export interface WorkflowEngineOptions {
   maxConcurrency?: number;
 }
 
-/**
- * WorkflowEngine — 支持四种执行模式
- *
- * ## Sequential（顺序）
- * 通过 `depends` 形成线性链：A → B → C。
- *
- * ## Parallel（并行）
- * 同一波次内无依赖关系的节点并发执行（受 maxConcurrency 限制）。
- *
- * ## Branch（条件分支）
- * `type: "branch"` 节点：condition 返回分支名，引擎执行对应子 DAG。
- *
- * ## Loop（循环）
- * `type: "loop"` 节点：反复执行 body 子 DAG，直到 condition 返回 false
- * 或达到 maxIterations（do-while 语义）。
- */
 export class WorkflowEngine {
   private readonly llm: LLMClient;
   private readonly registry?: ToolRegistry;

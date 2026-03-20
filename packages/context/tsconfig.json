@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "outDir": "dist/types"
+    "outDir": "dist/types",
+    "paths": {
+      "@agenticforge/core": ["../core/src"]
+    }
   },
   "include": ["src/**/*.ts"]
 }
