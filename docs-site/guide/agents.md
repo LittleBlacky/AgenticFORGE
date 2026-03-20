@@ -12,7 +12,7 @@ AgenticFORGE ships seven agent workflow implementations. Each wraps a different 
 | `PlanSolveAgent` | Plan all steps → execute each | Long-horizon tasks, research |
 | `ReflectionAgent` | Generate → Critique → Refine | High-quality writing, code review |
 | `SkillAgent` | LLM-based intent routing | Multi-capability assistants |
-| `WorkflowAgent` | DAG node execution | Enterprise automation, data pipelines |
+| `WorkflowAgent` | DAG node execution, four execution modes | Enterprise automation, data pipelines |
 
 ## FunctionCallAgent
 
@@ -112,7 +112,14 @@ const result = await agent.run("Explain RAG in one paragraph.");
 
 ## WorkflowAgent
 
-`WorkflowAgent` executes a **DAG (Directed Acyclic Graph)** of nodes. Nodes with no mutual dependencies run **concurrently** in the same wave; each node's output is written to a shared context and can be referenced by downstream nodes via `{nodeId}` interpolation.
+`WorkflowAgent` executes a **DAG (Directed Acyclic Graph)** of nodes with four execution modes:
+
+| Mode | How it works |
+|------|--------------|
+| **Sequential** | Nodes form a linear chain via `depends`: A → B → C |
+| **Parallel** | Nodes with no mutual dependencies run concurrently in the same wave |
+| **Branch** | `type: "branch"` node: `condition(ctx)` returns a branch name, engine runs the matching sub-DAG |
+| **Loop** | `type: "loop"` node: `body` sub-DAG runs repeatedly until `condition` returns `false` or `maxIterations` is reached (do-while) |
 
 ### Node types
 
@@ -122,6 +129,8 @@ const result = await agent.run("Explain RAG in one paragraph.");
 | `llm` | Call the LLM directly; `promptTemplate` supports `{var}` interpolation |
 | `fn` | Custom async function with full context access |
 | `passthrough` | Forward a context value unchanged |
+| `branch` | Conditional branch: `condition(ctx)` returns a branch name, engine executes the matching sub-DAG |
+| `loop` | do-while loop: execute `body` sub-DAG until `condition` returns `false` or `maxIterations` is reached |
 
 ### Linear pipeline
 
@@ -155,14 +164,62 @@ console.log(result.output);
 const definition: WorkflowDefinition = {
   name: "bilingual-report",
   nodes: [
-    {id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                          depends: []},
+    {id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                         depends: []},
     // analyze and translate run concurrently — both depend only on fetch
-    {id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                   depends: ["fetch"]},
-    {id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                      depends: ["fetch"]},
+    {id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                  depends: ["fetch"]},
+    {id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                     depends: ["fetch"]},
     // report waits for both
-    {id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",          depends: ["analyze", "translate"]},
+    {id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",         depends: ["analyze", "translate"]},
   ],
 };
+```
+
+### Conditional branch
+
+```ts
+const definition: WorkflowDefinition = {
+  name: "smart-answer",
+  nodes: [
+    {
+      id: "classify",
+      type: "llm",
+      promptTemplate: "Classify the question complexity, output only 'simple' or 'complex': {input}",
+      depends: [],
+    },
+    {
+      id: "router",
+      type: "branch",
+      condition: (ctx) => ctx["classify"].includes("complex") ? "complex" : "simple",
+      branches: {
+        simple:  [{id: "quick",  type: "llm", promptTemplate: "Brief answer: {input}",    depends: []}],
+        complex: [{id: "detail", type: "llm", promptTemplate: "Detailed analysis: {input}", depends: []}],
+      },
+      depends: ["classify"],
+    },
+  ],
+};
+```
+
+### Loop (iterative refinement)
+
+```ts
+const definition: WorkflowDefinition = {
+  name: "iterative-refine",
+  nodes: [
+    {
+      id: "refine",
+      type: "loop",
+      maxIterations: 3,
+      // do-while: checked after each iteration; return true to continue, false to stop
+      condition: (ctx, iter) => !ctx["refine"].includes("satisfied"),
+      body: [
+        {id: "critique", type: "llm", promptTemplate: "Critique the previous version: {refine}",   depends: []},
+        {id: "improve",  type: "llm", promptTemplate: "Improve based on critique: {critique}",     depends: ["critique"]},
+      ],
+    },
+  ],
+};
+// Body nodes access the previous iteration output via {refine}; empty string on first iteration
 ```
 
 ### Custom fn node

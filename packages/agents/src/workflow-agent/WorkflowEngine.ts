@@ -6,6 +6,8 @@ import type {
   WorkflowContext,
   WorkflowResult,
   NodeResult,
+  BranchNode,
+  LoopNode,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -13,17 +15,20 @@ import type {
 // ---------------------------------------------------------------------------
 
 function interpolate(template: string, ctx: WorkflowContext): string {
-  return template.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? `{${key}}`);
+  return template.replace(/\{([\w-]+)\}/g, (_m, key: string) => ctx[key] ?? `{${key}}`);
 }
 
 // ---------------------------------------------------------------------------
 // Topological sort — Kahn's algorithm
 // ---------------------------------------------------------------------------
 
+/**
+ * 对节点列表做拓扑排序。
+ * branch/loop 节点的子 DAG 在递归执行时再单独排序，不参与顶层排序。
+ */
 function topoSort(nodes: WorkflowNode[]): WorkflowNode[] {
   const idToNode = new Map<string, WorkflowNode>(nodes.map((n) => [n.id, n]));
   const inDegree = new Map<string, number>();
-  // dep → list of nodes that depend on dep
   const children = new Map<string, string[]>();
 
   for (const node of nodes) {
@@ -66,11 +71,13 @@ function topoSort(nodes: WorkflowNode[]): WorkflowNode[] {
 }
 
 // ---------------------------------------------------------------------------
-// Single-node executor
+// Leaf node executor (tool / llm / fn / passthrough)
 // ---------------------------------------------------------------------------
 
-async function executeNode(
-  node: WorkflowNode,
+type LeafNode = Exclude<WorkflowNode, BranchNode | LoopNode>;
+
+async function executeLeafNode(
+  node: LeafNode,
   ctx: WorkflowContext,
   llm: LLMClient,
   registry: ToolRegistry | undefined,
@@ -111,20 +118,27 @@ export interface WorkflowEngineOptions {
   registry?: ToolRegistry;
   verbose?: boolean;
   /**
-   * 单波次最大并发节点数。
+   * 单波次最大并发节点数（Parallel 模式）。
    * 默认不限制（同一波次内所有就绪节点并发执行）。
    */
   maxConcurrency?: number;
 }
 
 /**
- * WorkflowEngine 按 DAG 拓扑顺序执行工作流节点。
+ * WorkflowEngine — 支持四种执行模式
  *
- * 执行策略：
- * 1. 拓扑排序所有节点，检测循环依赖
- * 2. 每轮选出所有依赖已完成的节点（同一波次 wave）
- * 3. 波次内节点并发执行（受 maxConcurrency 限制）
- * 4. 每个节点的输出以 nodeId 为 key 写入 context，供后续节点插值
+ * ## Sequential（顺序）
+ * 通过 `depends` 形成线性链：A → B → C。
+ *
+ * ## Parallel（并行）
+ * 同一波次内无依赖关系的节点并发执行（受 maxConcurrency 限制）。
+ *
+ * ## Branch（条件分支）
+ * `type: "branch"` 节点：condition 返回分支名，引擎执行对应子 DAG。
+ *
+ * ## Loop（循环）
+ * `type: "loop"` 节点：反复执行 body 子 DAG，直到 condition 返回 false
+ * 或达到 maxIterations（do-while 语义）。
  */
 export class WorkflowEngine {
   private readonly llm: LLMClient;
@@ -139,24 +153,43 @@ export class WorkflowEngine {
     this.maxConcurrency = opts.maxConcurrency ?? Number.POSITIVE_INFINITY;
   }
 
+  // -------------------------------------------------------------------------
+  // Public entry
+  // -------------------------------------------------------------------------
+
   async execute(
     definition: WorkflowDefinition,
     input: string,
   ): Promise<WorkflowResult> {
-    const sorted = topoSort(definition.nodes);
     const ctx: WorkflowContext = {input};
     const nodeResults: NodeResult[] = [];
+    await this.executeDAG(definition.nodes, ctx, nodeResults);
+
+    const lastDone = [...nodeResults].reverse().find((r) => r.status === "done");
+    const output = lastDone?.output ?? "";
+    return {output, nodeResults, context: {...ctx}};
+  }
+
+  // -------------------------------------------------------------------------
+  // DAG executor — recursive, used for top-level + branch/loop sub-DAGs
+  // -------------------------------------------------------------------------
+
+  private async executeDAG(
+    nodes: WorkflowNode[],
+    ctx: WorkflowContext,
+    nodeResults: NodeResult[],
+  ): Promise<void> {
+    const sorted = topoSort(nodes);
     const done = new Set<string>();
     let remaining = [...sorted];
 
     while (remaining.length > 0) {
-      // Collect nodes whose all deps are done
+      // Collect nodes whose all deps are satisfied
       const wave = remaining.filter((n) =>
         (n.depends ?? []).every((dep) => done.has(dep)),
       );
 
       if (wave.length === 0) {
-        // Guard: should not happen after valid topo sort
         throw new Error("[WorkflowEngine] 调度异常：存在无法就绪的节点，请检查依赖配置");
       }
 
@@ -166,25 +199,11 @@ export class WorkflowEngine {
         : wave;
 
       if (this.verbose) {
-        console.log(
-          `[WorkflowEngine] 执行波次: [${batch.map((n) => n.id).join(", ")}]`,
-        );
+        console.log(`[WorkflowEngine] 执行波次: [${batch.map((n) => n.id).join(", ")}]`);
       }
 
       const settled = await Promise.allSettled(
-        batch.map(async (node): Promise<NodeResult> => {
-          const start = Date.now();
-          try {
-            const output = await executeNode(node, ctx, this.llm, this.registry);
-            return {nodeId: node.id, status: "done", output, durationMs: Date.now() - start};
-          } catch (e) {
-            const error = e instanceof Error ? e.message : String(e);
-            if (this.verbose) {
-              console.warn(`[WorkflowEngine] 节点 "${node.id}" 失败: ${error}`);
-            }
-            return {nodeId: node.id, status: "failed", output: "", error, durationMs: Date.now() - start};
-          }
-        }),
+        batch.map((node) => this.executeNode(node, ctx, nodeResults)),
       );
 
       const batchIds = new Set(batch.map((n) => n.id));
@@ -201,11 +220,131 @@ export class WorkflowEngine {
 
       remaining = remaining.filter((n) => !batchIds.has(n.id));
     }
+  }
 
-    // Final output: last node in topo order that succeeded
-    const lastDone = [...nodeResults].reverse().find((r) => r.status === "done");
+  // -------------------------------------------------------------------------
+  // Single node dispatcher
+  // -------------------------------------------------------------------------
+
+  private async executeNode(
+    node: WorkflowNode,
+    ctx: WorkflowContext,
+    nodeResults: NodeResult[],
+  ): Promise<NodeResult> {
+    const start = Date.now();
+    try {
+      if (node.type === "branch") {
+        return await this.executeBranch(node, ctx, nodeResults, start);
+      }
+      if (node.type === "loop") {
+        return await this.executeLoop(node, ctx, nodeResults, start);
+      }
+      const output = await executeLeafNode(node, ctx, this.llm, this.registry);
+      return {nodeId: node.id, status: "done", output, durationMs: Date.now() - start};
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      if (this.verbose) {
+        console.warn(`[WorkflowEngine] 节点 "${node.id}" 失败: ${error}`);
+      }
+      return {nodeId: node.id, status: "failed", output: "", error, durationMs: Date.now() - start};
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Branch executor
+  // -------------------------------------------------------------------------
+
+  private async executeBranch(
+    node: BranchNode,
+    ctx: WorkflowContext,
+    nodeResults: NodeResult[],
+    start: number,
+  ): Promise<NodeResult> {
+    const branchName = await node.condition(ctx);
+
+    if (!(branchName in node.branches)) {
+      throw new Error(
+        `[WorkflowEngine] branch 节点 "${node.id}" 返回了未定义的分支 "${branchName}"，` +
+        `可用分支: ${Object.keys(node.branches).join(", ")}`,
+      );
+    }
+
+    if (this.verbose) {
+      console.log(`[WorkflowEngine] branch "${node.id}" → 执行分支 "${branchName}"`);
+    }
+
+    const subResults: NodeResult[] = [];
+    await this.executeDAG(node.branches[branchName], ctx, subResults);
+    nodeResults.push(...subResults);
+
+    const lastDone = [...subResults].reverse().find((r) => r.status === "done");
     const output = lastDone?.output ?? "";
 
-    return {output, nodeResults, context: {...ctx}};
+    return {
+      nodeId: node.id,
+      status: "done",
+      output,
+      durationMs: Date.now() - start,
+      branch: branchName,
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Loop executor
+  // -------------------------------------------------------------------------
+
+  private async executeLoop(
+    node: LoopNode,
+    ctx: WorkflowContext,
+    nodeResults: NodeResult[],
+    start: number,
+  ): Promise<NodeResult> {
+    const maxIter = node.maxIterations ?? 10;
+    let iteration = 0;
+    let lastOutput = "";
+
+    // Initialise loop output key so body nodes can reference {node.id} from the very first iteration
+    ctx[node.id] = "";
+
+    while (iteration < maxIter) {
+      iteration++;
+
+      if (this.verbose) {
+        console.log(`[WorkflowEngine] loop "${node.id}" — 第 ${iteration}/${maxIter} 次迭代`);
+      }
+
+      const subResults: NodeResult[] = [];
+      await this.executeDAG(node.body, ctx, subResults);
+      nodeResults.push(...subResults);
+
+      const lastDone = [...subResults].reverse().find((r) => r.status === "done");
+      lastOutput = lastDone?.output ?? lastOutput;
+
+      // Update ctx so the next iteration body and the condition can reference it
+      ctx[node.id] = lastOutput;
+
+      // Evaluate continuation condition (do-while: checked after each execution)
+      if (node.condition) {
+        const shouldContinue = await node.condition(ctx, iteration);
+        if (!shouldContinue) {
+          if (this.verbose) {
+            console.log(`[WorkflowEngine] loop "${node.id}" — condition 返回 false，停止循环`);
+          }
+          break;
+        }
+      }
+    }
+
+    if (this.verbose && iteration >= maxIter && node.condition) {
+      console.log(`[WorkflowEngine] loop "${node.id}" — 达到最大迭代次数 ${maxIter}，停止`);
+    }
+
+    return {
+      nodeId: node.id,
+      status: "done",
+      output: lastOutput,
+      durationMs: Date.now() - start,
+      iterations: iteration,
+    };
   }
 }

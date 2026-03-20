@@ -206,6 +206,133 @@ async function demo4SetWorkflow() {
 }
 
 // ---------------------------------------------------------------------------
+// 示例 5：条件分支（Branch）
+// ---------------------------------------------------------------------------
+
+async function demo5Branch() {
+  console.log("\n=== Demo 5: 条件分支（Branch）===」");
+
+  const definition: WorkflowDefinition = {
+    name: "smart-answer",
+    nodes: [
+      {
+        id: "classify",
+        type: "llm",
+        promptTemplate:
+          "判断以下问题的复杂度，只输出 'simple' 或 'complex' 两个词之一，不要有其他内容：{input}",
+        depends: [],
+      },
+      {
+        id: "router",
+        type: "branch",
+        // condition 接收 ctx，返回分支名
+        condition: (ctx) =>
+          ctx["classify"].toLowerCase().includes("complex") ? "complex" : "simple",
+        branches: {
+          simple: [
+            {
+              id: "quick-answer",
+              type: "llm",
+              promptTemplate: "请简洁地回答（不超过50字）：{input}",
+              depends: [],
+            },
+          ],
+          complex: [
+            {
+              id: "analysis",
+              type: "llm",
+              promptTemplate: "请对以下问题进行深入分析（200字以内）：{input}",
+              depends: [],
+            },
+            {
+              id: "summary",
+              type: "llm",
+              promptTemplate: "请将以下分析总结为3个要点：\n{analysis}",
+              depends: ["analysis"],
+            },
+          ],
+        },
+        depends: ["classify"],
+      },
+    ],
+  };
+
+  const agent = new WorkflowAgent({
+    name: "branch-agent",
+    llm,
+    verbose: true,
+  });
+
+  const result = await agent.runWorkflow(definition, "什么是机器学习？");
+  console.log("\n[分类结果]", result.context["classify"]);
+  console.log("[执行分支]", result.nodeResults.find((r) => r.nodeId === "router")?.branch);
+  console.log("[最终回答]", result.output);
+}
+
+// ---------------------------------------------------------------------------
+// 示例 6：循环节点（Loop）
+// ---------------------------------------------------------------------------
+
+async function demo6Loop() {
+  console.log("\n=== Demo 6: 循环节点（Loop）— 迭代优化 ===");
+
+  const definition: WorkflowDefinition = {
+    name: "iterative-refine",
+    nodes: [
+      {
+        id: "draft",
+        type: "llm",
+        promptTemplate: "请为以下主题写一段简短介绍（约100字）：{input}",
+        depends: [],
+      },
+      {
+        id: "refine",
+        type: "loop",
+        maxIterations: 3,
+        // do-while：每轮执行结束后调用 condition
+        // 返回 true 继续，false 停止
+        condition: (ctx, iter) => {
+          const output = ctx["refine"];
+          // 如果输出包含「优化完成」或已达2轮则停止
+          return !output.includes("优化完成") && iter < 2;
+        },
+        body: [
+          {
+            id: "critique",
+            type: "llm",
+            // {refine} 引用上一次迭代的输出（首次为空，此时引用 {draft}）
+            promptTemplate:
+              "请指出以下文章的1个主要不足（简洁指出，不超过30字）：\n" +
+              "{refine}" +
+              "\n\n如果文章已经很好，请输出「优化完成」。",
+            depends: [],
+          },
+          {
+            id: "improve",
+            type: "llm",
+            promptTemplate:
+              "请根据以下批评意见改进文章：\n批评：{critique}\n\n原文：{refine}",
+            depends: ["critique"],
+          },
+        ],
+        depends: ["draft"],
+      },
+    ],
+  };
+
+  const agent = new WorkflowAgent({
+    name: "loop-agent",
+    llm,
+    verbose: true,
+  });
+
+  const result = await agent.runWorkflow(definition, "AgenticFORGE SDK");
+  const loopResult = result.nodeResults.find((r) => r.nodeId === "refine");
+  console.log("\n[实际迭代次数]", loopResult?.iterations);
+  console.log("[最终输出]", result.output);
+}
+
+// ---------------------------------------------------------------------------
 // 运行所有示例
 // ---------------------------------------------------------------------------
 
@@ -214,4 +341,6 @@ async function demo4SetWorkflow() {
   await demo2FanOutIn();
   await demo3FnNode();
   await demo4SetWorkflow();
+  await demo5Branch();
+  await demo6Loop();
 })();

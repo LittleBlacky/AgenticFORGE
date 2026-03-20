@@ -12,7 +12,7 @@ AgenticFORGE 内置七种 Agent 工作流实现，每种封装不同的推理循
 | `PlanSolveAgent` | 规划全部步骤 → 逐步执行 | 长链路任务、研究 |
 | `ReflectionAgent` | 生成 → 批评 → 改进 | 高质量内容生成 |
 | `SkillAgent` | LLM 意图路由 | 多能力切换助手 |
-| `WorkflowAgent` | DAG 节点执行 | 企业自动化、数据流水线 |
+| `WorkflowAgent` | DAG 节点执行，四种执行模式 | 企业自动化、数据流水线 |
 
 ## FunctionCallAgent
 
@@ -98,3 +98,112 @@ const agent = new SimpleAgent({
 
 const result = await agent.run("用一段话解释 RAG。");
 ```
+
+## WorkflowAgent
+
+`WorkflowAgent` 支持四种执行模式，通过声明式 DAG 节点定义，由 `WorkflowEngine` 自动调度：
+
+| 模式 | 实现方式 |
+|------|----------|
+| **Sequential**（顺序） | 通过 `depends` 形成线性链 A → B → C |
+| **Parallel**（并发） | 同一波次内无依赖关系的节点自动并发执行 |
+| **Branch**（条件分支） | `type: "branch"` 节点，`condition` 返回分支名，执行对应子 DAG |
+| **Loop**（循环） | `type: "loop"` 节点，反复执行 `body` 子 DAG（do-while 语义） |
+
+### 节点类型
+
+| 类型 | 说明 |
+|------|------|
+| `tool` | 调用已注册工具，`inputTemplate` 支持 `{变量}` 插值 |
+| `llm` | 直接调用 LLM，`promptTemplate` 支持 `{变量}` 插值 |
+| `fn` | 自定义异步函数，可访问完整 context |
+| `passthrough` | 透传某个 context 变量 |
+| `branch` | 条件分支，`condition(ctx)` 返回分支名 |
+| `loop` | 循环执行，`body` 子 DAG 反复运行直到条件不满足 |
+
+### 顺序 + 并发
+
+```ts
+import {WorkflowAgent, LLMClient} from "@agenticforge/kit";
+import type {WorkflowDefinition} from "@agenticforge/agents";
+
+const agent = new WorkflowAgent({
+  name: "report",
+  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
+  registry, // ToolRegistry，type: "tool" 节点必须提供
+  verbose: true,
+});
+
+const definition: WorkflowDefinition = {
+  name: "bilingual-report",
+  nodes: [
+    {id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",           depends: []},
+    // analyze 和 translate 并发执行（同依赖 fetch，互不依赖）
+    {id: "analyze",   type: "llm",  promptTemplate: "分析：\n{fetch}",                      depends: ["fetch"]},
+    {id: "translate", type: "llm",  promptTemplate: "翻译成英文：\n{fetch}",                depends: ["fetch"]},
+    // report 等待两者完成后执行
+    {id: "report",    type: "llm",  promptTemplate: "双语报告：\n{analyze}\n\n{translate}",  depends: ["analyze", "translate"]},
+  ],
+};
+
+const result = await agent.runWorkflow(definition, "2024年AI行业趋势");
+console.log(result.output);
+console.log(result.nodeResults); // 每个节点的状态和耗时
+```
+
+### 条件分支（Branch）
+
+```ts
+const definition: WorkflowDefinition = {
+  name: "smart-answer",
+  nodes: [
+    {
+      id: "classify",
+      type: "llm",
+      promptTemplate: "判断问题复杂度，只输出 simple 或 complex：{input}",
+      depends: [],
+    },
+    {
+      id: "router",
+      type: "branch",
+      condition: (ctx) => ctx["classify"].includes("complex") ? "complex" : "simple",
+      branches: {
+        simple:  [{id: "quick",  type: "llm", promptTemplate: "简洁回答：{input}", depends: []}],
+        complex: [{id: "detail", type: "llm", promptTemplate: "详细分析：{input}", depends: []}],
+      },
+      depends: ["classify"],
+    },
+  ],
+};
+```
+
+### 循环（Loop）
+
+```ts
+const definition: WorkflowDefinition = {
+  name: "iterative-refine",
+  nodes: [
+    {
+      id: "refine",
+      type: "loop",
+      maxIterations: 3,
+      // do-while：每轮结束后判断，返回 true 继续，false 停止
+      condition: (ctx, iter) => !ctx["refine"].includes("满意"),
+      body: [
+        {id: "critique", type: "llm", promptTemplate: "批评上一版本：{refine}",   depends: []},
+        {id: "improve",  type: "llm", promptTemplate: "根据批评改进：{critique}", depends: ["critique"]},
+      ],
+    },
+  ],
+};
+// body 内通过 {refine} 引用上一次迭代输出，首次为空字符串
+```
+
+### 配置项
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `llm` | `LLMClient` | 必填 | LLM 实例 |
+| `registry` | `ToolRegistry` | — | `tool` 节点必须提供 |
+| `verbose` | `boolean` | `false` | 打印每个波次的执行日志 |
+| `maxConcurrency` | `number` | 不限制 | 单波次最大并发节点数 |

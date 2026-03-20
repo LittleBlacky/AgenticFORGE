@@ -17,15 +17,17 @@ export interface WorkflowAgentOptions {
 }
 
 /**
- * WorkflowAgent — DAG 工作流 Agent
+ * WorkflowAgent — 支持四种执行模式的工作流 Agent
  *
- * 将一组有依赖关系的节点组织成有向无环图（DAG），由 WorkflowEngine 驱动执行：
- * - 自动拓扑排序，检测循环依赖
- * - 同一波次（wave）内无依赖关系的节点并发执行
- * - 每个节点的输出以 nodeId 为 key 写入 context，供后续节点通过 {nodeId} 插值引用
- * - 支持四种节点类型：tool / llm / fn / passthrough
+ * 由 WorkflowEngine 驱动，支持：
+ * - **Sequential**：通过 `depends` 形成线性执行链
+ * - **Parallel**：同一波次内无依赖的节点自动并发执行（受 maxConcurrency 控制）
+ * - **Branch**：`type: "branch"` 节点，condition 函数返回分支名，执行对应子 DAG
+ * - **Loop**：`type: "loop"` 节点，反复执行 body 子 DAG 直到 condition 返回 false 或达到 maxIterations
  *
- * @example
+ * 节点类型：`tool` / `llm` / `fn` / `passthrough` / `branch` / `loop`
+ *
+ * @example Sequential + Parallel
  * ```ts
  * const agent = new WorkflowAgent({
  *   name: "report-workflow",
@@ -38,13 +40,45 @@ export interface WorkflowAgentOptions {
  *     name: "data-report",
  *     nodes: [
  *       { id: "fetch",   type: "tool", toolName: "search", inputTemplate: "{input}", depends: [] },
- *       { id: "analyze", type: "llm",  promptTemplate: "分析：\n{fetch}",           depends: ["fetch"] },
- *       { id: "report",  type: "llm",  promptTemplate: "写报告：\n{analyze}",       depends: ["analyze"] },
+ *       // analyze 和 translate 并发执行（同依赖 fetch，互不依赖）
+ *       { id: "analyze",   type: "llm", promptTemplate: "分析：{fetch}",   depends: ["fetch"] },
+ *       { id: "translate", type: "llm", promptTemplate: "翻译：{fetch}",   depends: ["fetch"] },
+ *       { id: "report",    type: "llm", promptTemplate: "报告：{analyze}\n译文：{translate}", depends: ["analyze", "translate"] },
  *     ],
  *   },
  *   "AI行业趋势",
  * );
- * console.log(result.output);
+ * ```
+ *
+ * @example Branch
+ * ```ts
+ * nodes: [
+ *   { id: "classify", type: "llm", promptTemplate: "分类 {input}，输出 simple 或 complex", depends: [] },
+ *   {
+ *     id: "router", type: "branch",
+ *     condition: (ctx) => ctx["classify"].includes("complex") ? "complex" : "simple",
+ *     branches: {
+ *       simple:  [{ id: "quick",  type: "llm", promptTemplate: "简答：{input}", depends: [] }],
+ *       complex: [{ id: "detail", type: "llm", promptTemplate: "详答：{input}", depends: [] }],
+ *     },
+ *     depends: ["classify"],
+ *   },
+ * ]
+ * ```
+ *
+ * @example Loop
+ * ```ts
+ * nodes: [
+ *   {
+ *     id: "refine", type: "loop",
+ *     maxIterations: 3,
+ *     condition: (ctx, iter) => !ctx["refine"].includes("满意"),
+ *     body: [
+ *       { id: "critique", type: "llm", promptTemplate: "批评上一版本：{refine}", depends: [] },
+ *       { id: "improve",  type: "llm", promptTemplate: "根据批评改进：{critique}", depends: ["critique"] },
+ *     ],
+ *   },
+ * ]
  * ```
  */
 export class WorkflowAgent extends Agent {
