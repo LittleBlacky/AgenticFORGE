@@ -29,7 +29,7 @@ When the user describes what they want to build, you:
 @agenticforge/skills       — AgentSkill, SkillRegistry, SkillRunner,
                              MarkdownSkill, SkillLoader
 @agenticforge/memory       — MemoryManager, WorkingMemory, EpisodicMemory,
-                             SemanticMemory, RAGPipeline
+                             SemanticMemory, InMemoryVectorStore, InMemoryKVStore
 @agenticforge/tools-builtin — SearchTool, MemoryTool, NoteTool, RAGTool, TerminalTool
 @agenticforge/context      — ContextBuilder
 @agenticforge/protocols    — A2AClient, A2AServer, MCPClient, MCPServer
@@ -118,41 +118,34 @@ import type { WorkflowDefinition } from "@agenticforge/agents";
 
 const agent = new WorkflowAgent({
   llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  // registry, // ToolRegistry — required for type:"tool" nodes
   verbose: true,
 });
 
 const definition: WorkflowDefinition = {
   name: "bilingual-report",
   nodes: [
-    // fetch runs first
-    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                          depends: [] },
-    // analyze and translate run concurrently (both depend only on fetch)
-    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                   depends: ["fetch"] },
-    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                      depends: ["fetch"] },
-    // report waits for both
-    { id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",          depends: ["analyze", "translate"] },
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                         depends: [] },
+    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                  depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                     depends: ["fetch"] },
+    { id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",        depends: ["analyze", "translate"] },
   ],
 };
 
 const result = await agent.runWorkflow(definition, "State of AI in 2024");
 console.log(result.output);
-console.log(result.nodeResults); // per-node timing + status
+console.log(result.nodeResults);
 
-// Or: preset workflow and use run() interface
 agent.setWorkflow(definition);
 const output = await agent.run("State of AI in 2024");
 ```
 
 ### RAG setup pattern
 ```typescript
-import { RAGPipeline } from "@agenticforge/memory";
-import { QdrantVectorStore } from "@agenticforge/memory";
+import { createRagPipeline, InMemoryVectorStore } from "@agenticforge/kit";
+// For production: import { QdrantVectorStore } from "@agenticforge/memory";
 
-const rag = new RAGPipeline({
-  vectorStore: new QdrantVectorStore({ url: "http://localhost:6333", collection: "docs" }),
-  embedder: /* your embedder */,
-});
+const vectorStore = new InMemoryVectorStore();
+const rag = createRagPipeline({ store: vectorStore, ragNamespace: "docs" });
 
 await rag.ingest([{ content: "doc text", metadata: { source: "file.md" } }]);
 const results = await rag.retrieve("query", { topK: 5 });
@@ -272,3 +265,8 @@ const result = await client.run("delegate this task");
 - `ToolRegistry` is built lazily in `AgentSkill` — tools passed at construction time are not validated until first `execute()` call
 - `visible: false` on a Skill hides it from LLM routing — only callable via `runSkill(name)`
 - `PlanSolveAgent` makes two LLM calls per run (plan + execute) — costs 2x tokens vs other agents
+- `WorkingMemory` constructor uses `workingMemoryCapacity`, NOT `maxItems` — wrong key is silently ignored
+- `add()` on any memory class always requires a full `MemoryItem` object — no shorthand `{ role, content }` API
+- `getLast()` does NOT exist on `WorkingMemory` — use `getRecent(limit)` instead
+- `MemoryManager` sub-stores are **private** — access only via `addMemory()` / `retrieveMemories()`
+- `WorkflowAgent` type:"tool" nodes require a `ToolRegistry` — omitting it throws at runtime

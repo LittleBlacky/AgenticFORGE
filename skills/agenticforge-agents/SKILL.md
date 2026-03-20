@@ -9,15 +9,15 @@ triggerHint: When the user asks which agent to use, how to configure an agent, o
 ## Role
 You are an expert in the `@agenticforge/agents` package. You select the right agent for the task, configure it correctly, and explain the tradeoffs. You always produce runnable code.
 
-## Agent Selection ? Non-Negotiable Rules
+## Agent Selection — Non-Negotiable Rules
 
 | Scenario | Agent | Why |
 |---|---|---|
 | Simple Q&A, chat, summarization | `SimpleAgent` | 1 LLM call, lowest cost |
 | Call external APIs / tools | `FunctionCallAgent` | OpenAI function-calling protocol |
 | Complex multi-step reasoning | `ReActAgent` | Thinks before each action |
-| Long task needing full plan upfront | `PlanSolveAgent` | Plan ? Execute (2x LLM cost) |
-| High-quality writing / review | `ReflectionAgent` | Generate ? Critique ? Refine |
+| Long task needing full plan upfront | `PlanSolveAgent` | Plan → Execute (2x LLM cost) |
+| High-quality writing / review | `ReflectionAgent` | Generate → Critique → Refine |
 | Multiple business capabilities | `SkillAgent` | LLM-based intent routing |
 | Fixed-flow automation / data pipeline | `WorkflowAgent` | DAG node execution, concurrent waves |
 
@@ -25,7 +25,7 @@ You are an expert in the `@agenticforge/agents` package. You select the right ag
 
 ## Complete Usage Patterns
 
-### SimpleAgent ? multi-turn chat
+### SimpleAgent — multi-turn chat
 ```typescript
 import "dotenv/config";
 import { SimpleAgent, LLMClient } from "@agenticforge/kit";
@@ -41,27 +41,36 @@ const r2 = await agent.run("Give me a code example."); // knows context from r1
 agent.clearHistory(); // reset when session ends
 ```
 
-### FunctionCallAgent ? tool-driven tasks
+### FunctionCallAgent — tool-driven tasks
+
+`Tool` is an **abstract class** — you must extend it.
+
 ```typescript
 import "dotenv/config";
 import { FunctionCallAgent, LLMClient } from "@agenticforge/kit";
-import { Tool, toolAction } from "@agenticforge/tools";
-import { z } from "zod";
+import { Tool, type ToolParameter } from "@agenticforge/tools";
 
-const calcTool = new Tool({
-  name: "calculator",
-  description: "Evaluate a math expression. Returns the numeric result as string.",
-  parameters: [{ name: "expr", type: "string", required: true }],
-  action: toolAction(
-    z.object({ expr: z.string() }),
-    async ({ expr }) => String(eval(expr)) // use a safe math library in production
-  ),
-});
+// Extend Tool — required, Tool is abstract
+class CalculatorTool extends Tool {
+  constructor() {
+    super("calculator", "Evaluate a math expression. Returns the numeric result as string.");
+  }
+  getParameters(): ToolParameter[] {
+    return [{ name: "expr", type: "string", description: "Math expression to evaluate", required: true, default: null }];
+  }
+  async run(params: Record<string, unknown>): Promise<string> {
+    try {
+      return String(eval(String(params.expr ?? ""))); // use a safe math library in production
+    } catch (e) {
+      return `Error: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+}
 
 const agent = new FunctionCallAgent({
   llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  tools: [calcTool],
-  maxIterations: 10,   // max tool-call rounds before giving up
+  tools: [new CalculatorTool()],
+  maxIterations: 10,
   systemPrompt: "You are a helpful math assistant.",
 });
 
@@ -69,30 +78,30 @@ const result = await agent.run("What is (123 + 456) * 789?");
 console.log(result);
 ```
 
-### ReActAgent ? step-by-step reasoning
+### ReActAgent — step-by-step reasoning
 ```typescript
 import { ReActAgent, LLMClient } from "@agenticforge/kit";
 
 const agent = new ReActAgent({
   llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  tools: [searchTool, calculatorTool],
+  tools: [new SearchTool(), new CalculatorTool()],
   maxIterations: 15,
 });
 
-// ReAct outputs: Thought ? Action ? Observation ? ... ? Answer
+// ReAct outputs: Thought → Action → Observation → ... → Answer
 const result = await agent.run(
   "What is the GDP of Japan divided by its population? Show your reasoning."
 );
 ```
 
-### PlanSolveAgent ? plan-first execution
+### PlanSolveAgent — plan-first execution
 ```typescript
 import { PlanSolveAgent, LLMClient } from "@agenticforge/kit";
 
 const agent = new PlanSolveAgent({
   llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  tools: [searchTool, noteTool],
-  // Note: makes 2 LLM calls per run ? plan call + execute call
+  tools: [new SearchTool(), new NoteTool()],
+  // Note: makes 2 LLM calls per run — plan call + execute call
 });
 
 const result = await agent.run(
@@ -100,7 +109,7 @@ const result = await agent.run(
 );
 ```
 
-### ReflectionAgent ? quality-first generation
+### ReflectionAgent — quality-first generation
 ```typescript
 import { ReflectionAgent, LLMClient } from "@agenticforge/kit";
 
@@ -114,50 +123,47 @@ const result = await agent.run(
 );
 ```
 
-### SkillAgent ? multi-capability routing
+### SkillAgent — multi-capability routing
 ```typescript
 import { SkillAgent } from "@agenticforge/agents";
-import { SkillLoader, AgentSkill } from "@agenticforge/skills";
+import { SkillLoader } from "@agenticforge/skills";
 import { LLMClient } from "@agenticforge/core";
 
 const llm = new LLMClient({ provider: "openai", model: "gpt-4o" });
 
-// Mix Markdown skills + TypeScript skills freely
 const mdSkills = await SkillLoader.fromDirectory(".cursor/skills");
-const tsSkills = [new StockSkill(), new EmailSkill()];
 
 const agent = new SkillAgent({
   name: "my-assistant",
   llm,
-  skills: [...mdSkills, ...tsSkills],
+  skills: [...mdSkills],
 });
 
 const reply = await agent.run("What is Apple's stock price?");
 const result = await agent.runSkill("stock-query", "AAPL price?"); // bypass routing
 ```
 
-### WorkflowAgent ? DAG workflow orchestration
+### WorkflowAgent — DAG workflow orchestration
+
+`WorkflowAgent` constructor requires a `name` field.
+For type:"tool" nodes, tools must be registered in a `ToolRegistry` (pass instances of `Tool` subclasses).
+
 ```typescript
 import "dotenv/config";
 import { WorkflowAgent, LLMClient } from "@agenticforge/kit";
 import type { WorkflowDefinition } from "@agenticforge/agents";
-import { Tool, ToolRegistry, toolAction } from "@agenticforge/tools";
-import { z } from "zod";
+import { ToolRegistry } from "@agenticforge/tools";
 
-// Optional: tool registry for type:"tool" nodes
+// Register Tool subclass instances for type:"tool" nodes
 const registry = new ToolRegistry();
-registry.registerTool(new Tool({
-  name: "search",
-  description: "Search the web for information",
-  parameters: [{ name: "input", type: "string", required: true }],
-  action: toolAction(z.object({ input: z.string() }), async ({ input }) => `Results for: ${input}`),
-}));
+registry.registerTool(new SearchTool()); // SearchTool extends Tool
 
 const agent = new WorkflowAgent({
+  name: "report-workflow",   // required
   llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  registry,          // required for type:"tool" nodes
-  verbose: true,     // log execution waves
-  maxConcurrency: 4, // max concurrent nodes per wave (default: unlimited)
+  registry,                  // required for type:"tool" nodes
+  verbose: true,             // log execution waves
+  maxConcurrency: 4,         // max concurrent nodes per wave (default: unlimited)
 });
 
 // --- Linear pipeline ---
@@ -174,9 +180,9 @@ const linear: WorkflowDefinition = {
 const fanOut: WorkflowDefinition = {
   name: "bilingual-report",
   nodes: [
-    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                 depends: [] },
-    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                          depends: ["fetch"] }, // concurrent
-    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",             depends: ["fetch"] }, // concurrent
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                  depends: [] },
+    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                           depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",              depends: ["fetch"] },
     { id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}", depends: ["analyze", "translate"] },
   ],
 };
@@ -194,14 +200,14 @@ const withFn: WorkflowDefinition = {
   ],
 };
 
-// runWorkflow ? returns full result with per-node timing
+// runWorkflow → returns full result with per-node timing
 const result = await agent.runWorkflow(fanOut, "State of AI in 2024");
 console.log(result.output);
 console.log(result.nodeResults); // [{ nodeId, status, output, durationMs }]
 
-// setWorkflow + run ? integrates with Agent base class interface
+// setWorkflow + run → integrates with Agent base class interface
 agent.setWorkflow(linear);
-const output = await agent.run("2024 AI trends"); // history auto-tracked
+const output = await agent.run("2024 AI trends");
 ```
 
 ## Configuration Reference
@@ -212,10 +218,10 @@ const output = await agent.run("2024 AI trends"); // history auto-tracked
 | `systemPrompt` | all | none | Injected as first system message |
 | `maxIterations` | FunctionCall, ReAct | 10 | Max tool-call loops |
 | `reflectionRounds` | Reflection | 1 | How many critique cycles |
-| `tools` | FunctionCall, ReAct, PlanSolve | [] | Tool instances |
+| `tools` | FunctionCall, ReAct, PlanSolve | [] | `Tool` subclass instances |
 | `skills` | SkillAgent | required | `IAgentSkill[]` |
-| `name` | SkillAgent | required | Agent identifier |
-| `registry` | WorkflowAgent | ? | Required for `tool` nodes |
+| `name` | SkillAgent, WorkflowAgent | required | Agent identifier |
+| `registry` | WorkflowAgent | — | Required for `tool` nodes |
 | `verbose` | WorkflowAgent | false | Log execution waves |
 | `maxConcurrency` | WorkflowAgent | unlimited | Max concurrent nodes per wave |
 
@@ -227,17 +233,21 @@ const output = await agent.run("2024 AI trends"); // history auto-tracked
 | `llm` | Call LLM directly; `promptTemplate` supports `{var}` interpolation |
 | `fn` | Custom async function `(ctx, llm, registry) => string` with full context access |
 | `passthrough` | Forward a context value unchanged (`sourceKey` defaults to `"input"`) |
+| `branch` | Conditional branching: `condition(ctx) => branchName`, each branch is a sub-DAG |
+| `loop` | do-while loop: execute `body` sub-DAG until `condition` returns false or `maxIterations` reached |
 
 ## Gotchas
 
-- `PlanSolveAgent` costs **2x tokens** per run ? avoid for simple tasks
-- `ReflectionAgent` with `reflectionRounds: 3` costs 4x tokens ? use sparingly
-- `SkillAgent.run()` auto-tracks history; `SkillRunner.run()` does NOT ? pass `options.history` manually
-- All agents expose `clearHistory()` ? call it at session end to avoid context bleed
-- `maxIterations` is a safety cap, not a target ? well-designed tools finish in 2-3 iterations
-- `WorkflowAgent` type:"tool" nodes require a `ToolRegistry` ? omitting it throws at runtime
-- `WorkflowAgent` detects circular dependencies at execution time via Kahn's algorithm ? will throw if cycles exist
-- Each node's output is stored in context under its `id` ? use `{nodeId}` in downstream templates
+- `Tool` is **abstract** — never use `new Tool({...})`, always extend it with `class MyTool extends Tool`
+- `WorkflowAgent` constructor requires `name` field — omitting it causes a TypeScript error
+- `PlanSolveAgent` costs **2x tokens** per run — avoid for simple tasks
+- `ReflectionAgent` with `reflectionRounds: 3` costs 4x tokens — use sparingly
+- `SkillAgent.run()` auto-tracks history; `SkillRunner.run()` does NOT — pass `options.history` manually
+- All agents expose `clearHistory()` — call it at session end to avoid context bleed
+- `maxIterations` is a safety cap, not a target — well-designed tools finish in 2-3 iterations
+- `WorkflowAgent` type:"tool" nodes require a `ToolRegistry` — omitting it throws at runtime
+- `WorkflowAgent` detects circular dependencies via Kahn's algorithm — will throw if cycles exist
+- Each node's output is stored in context under its `id` — use `{nodeId}` in downstream templates
 
 ## Output Format for Every Request
 

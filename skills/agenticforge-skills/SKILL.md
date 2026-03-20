@@ -73,28 +73,36 @@ Focus on correctness first, then performance, then style.
 
 ## TypeScript Skill Patterns
 
-### Option A — Direct instantiation (simple, no custom logic)
+### Option A — Direct instantiation with Tool subclasses
+
+`AgentSkill` accepts a `tools` array of `Tool` instances.
+`Tool` is an **abstract class** — you must extend it, not instantiate it directly.
+
 ```typescript
 import { AgentSkill } from "@agenticforge/skills";
-import { Tool, toolAction } from "@agenticforge/tools";
-import { z } from "zod";
+import { Tool, type ToolParameter } from "@agenticforge/tools";
 
-const stockTool = new Tool({
-  name: "get-stock-price",
-  description: "Get real-time stock price for a ticker symbol",
-  parameters: [{ name: "ticker", type: "string", required: true }],
-  action: toolAction(
-    z.object({ ticker: z.string() }),
-    async ({ ticker }) => `${ticker}: $${(Math.random() * 200 + 50).toFixed(2)}`
-  ),
-});
+// 1. Extend Tool (required — Tool is abstract)
+class StockPriceTool extends Tool {
+  constructor() {
+    super("get-stock-price", "Get real-time stock price for a ticker symbol");
+  }
+  getParameters(): ToolParameter[] {
+    return [{ name: "ticker", type: "string", description: "Stock ticker", required: true, default: null }];
+  }
+  async run(params: Record<string, unknown>): Promise<string> {
+    const ticker = String(params.ticker ?? "");
+    return `${ticker}: $${(Math.random() * 200 + 50).toFixed(2)}`;
+  }
+}
 
+// 2. Pass instances to AgentSkill
 const stockSkill = new AgentSkill({
   name: "stock-query",
   description: "Look up real-time stock prices and market data",
   triggerHint: "When the user asks about stock price, market cap, ticker, or shares",
   systemPrompt: "You are a financial data assistant. Report prices clearly with currency.",
-  tools: [stockTool],
+  tools: [new StockPriceTool()],
 });
 ```
 
@@ -114,7 +122,6 @@ class TranslatorSkill extends AgentSkill {
   }
 
   override async execute(ctx: SkillContext, llm: LLMClient): Promise<SkillResult> {
-    // Detect target language from query, default to English
     const targetLang = ctx.metadata?.targetLang as string ?? "English";
     const messages = [
       { role: "system" as const, content: `Translate to ${targetLang}. Output only the translation.` },
@@ -141,7 +148,7 @@ const mdSkills = await SkillLoader.fromDirectory(".cursor/skills");
 const runner = new SkillRunner({
   llm,
   skills: [...mdSkills, new TranslatorSkill(), stockSkill],
-  fallbackPrompt: "You are a helpful general assistant.", // used when no skill matches
+  fallbackPrompt: "You are a helpful general assistant.",
 });
 
 // Auto-route
@@ -179,10 +186,10 @@ project/
 // Load all at once
 const registry = await SkillLoader.registryFromDirectory(".cursor/skills");
 
-// Merge multiple sources
+// Merge multiple sources — toRegistry is NOT async
 const r = new SkillRegistry();
-await SkillLoader.toRegistry(await SkillLoader.fromDirectory(".cursor/skills"), r);
-await SkillLoader.toRegistry(await SkillLoader.fromDirectory("./skills"), r);
+SkillLoader.toRegistry(await SkillLoader.fromDirectory(".cursor/skills"), r);
+SkillLoader.toRegistry(await SkillLoader.fromDirectory("./skills"), r);
 r.register(new TranslatorSkill()); // add TS skill
 ```
 
@@ -200,6 +207,8 @@ The description is the **routing signal**. Bad descriptions = wrong routing.
 
 ## Gotchas
 
+- `Tool` is **abstract** — you cannot use `new Tool({...})`, you must extend it with `class MyTool extends Tool`
+- `SkillLoader.toRegistry()` is **NOT async** — do not `await` it
 - `SkillLoader.fromDirectory()` only loads `SKILL.md` and `*.skill.md` — `README.md`, `examples.md` etc. are ignored
 - `visible: false` hides a skill from LLM routing — it can only be called via `runSkill(name)` directly
 - `AgentSkill` tool-calling uses duck-typing on `llm.client` — only works with built-in `LLMClient`
