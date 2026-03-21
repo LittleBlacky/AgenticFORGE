@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/core",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Core types and LLM client for AgenticFORGE",
   "type": "module",
   "sideEffects": false,
