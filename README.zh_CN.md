@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg" alt="License" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
 </p>
 
@@ -38,18 +39,18 @@ AgenticFORGE 是一个用于构建 Agent 的 TypeScript 框架，以**工具调�
 
 ## 子包列表
 
-| 包名 | 描述 |
-|------|------|
-| [`@agenticforge/core`](packages/core) | 核心类型、LLM 客户端、消息结构 |
-| [`@agenticforge/tools`](packages/tools) | Tool 抽象层、ToolRegistry、ToolChain、AsyncToolExecutor |
-| [`@agenticforge/agents`](packages/agents) | ReAct / Plan-Solve / Reflection / FunctionCall / Simple / SkillAgent |
-| [`@agenticforge/skills`](packages/skills) | 可组合、可路由的 Skill 系统，支持 Markdown 和 TypeScript Skill |
-| [`@agenticforge/memory`](packages/memory) | 多类型记忆管理器、RAG 管道、存储适配器 |
-| [`@agenticforge/tools-builtin`](packages/tools-builtin) | 内置工具：搜索、记忆、笔记、RAG、终端 |
-| [`@agenticforge/context`](packages/context) | Token 感知上下文构建器 |
-| [`@agenticforge/utils`](packages/utils) | LRU 缓存、Prompt 工具函数等 |
-| [`@agenticforge/protocols`](packages/protocols) | MCP / A2A / ANP 协议实现 |
-| [`@agenticforge/kit`](packages/kit) | 一体化入口，重新导出全部模块 |
+| 包名                                                    | 描述                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------- |
+| [`@agenticforge/core`](packages/core)                   | 核心类型、LLM 客户端、消息结构                                       |
+| [`@agenticforge/tools`](packages/tools)                 | Tool 抽象层、ToolRegistry、ToolChain、AsyncToolExecutor              |
+| [`@agenticforge/agents`](packages/agents)               | ReAct / Plan-Solve / Reflection / FunctionCall / Simple / SkillAgent |
+| [`@agenticforge/skills`](packages/skills)               | 可组合、可路由的 Skill 系统，支持 Markdown 和 TypeScript Skill       |
+| [`@agenticforge/memory`](packages/memory)               | 多类型记忆管理器、RAG 管道、存储适配器                               |
+| [`@agenticforge/tools-builtin`](packages/tools-builtin) | 内置工具：搜索、记忆、笔记、RAG、终端                                |
+| [`@agenticforge/context`](packages/context)             | Token 感知上下文构建器                                               |
+| [`@agenticforge/utils`](packages/utils)                 | LRU 缓存、Prompt 工具函数等                                          |
+| [`@agenticforge/protocols`](packages/protocols)         | MCP / A2A / ANP 协议实现                                             |
+| [`@agenticforge/kit`](packages/kit)                     | 一体化入口，重新导出全部模块                                         |
 
 ---
 
@@ -63,14 +64,14 @@ npm install @agenticforge/kit
 
 ## Agent 类型对照
 
-| Agent | 适用场景 |
-|-------|----------|
-| `SimpleAgent` | 单轮/多轮对话，无需工具 |
-| `FunctionCallAgent` | 工具调用驱动的任务型 Agent |
-| `ReActAgent` | 推理-行动循环，适合复杂推理 |
-| `PlanSolveAgent` | 先规划后逐步执行多步骤任务 |
-| `ReflectionAgent` | 带自我批评机制，适合高质量生成 |
-| `SkillAgent` | 自动路由到最合适的 Skill，多能力切换 |
+| Agent               | 适用场景                             |
+| ------------------- | ------------------------------------ |
+| `SimpleAgent`       | 单轮/多轮对话，无需工具              |
+| `FunctionCallAgent` | 工具调用驱动的任务型 Agent           |
+| `ReActAgent`        | 推理-行动循环，适合复杂推理          |
+| `PlanSolveAgent`    | 先规划后逐步执行多步骤任务           |
+| `ReflectionAgent`   | 带自我批评机制，适合高质量生成       |
+| `SkillAgent`        | 自动路由到最合适的 Skill，多能力切换 |
 
 ---
 
