@@ -1,0 +1,209 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/second-brain/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:10"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/second-brain/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:20"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/agents"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/context"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:31"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/core"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:32"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/kit"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:33"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/memory"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:34"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/protocols"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:35"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/skills"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:36"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/tools"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:37"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/tools-builtin"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:38"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/utils"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:39"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
