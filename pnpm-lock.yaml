@@ -46,8 +46,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -214,8 +214,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -263,8 +263,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -300,8 +300,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -355,8 +355,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -401,8 +401,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -434,8 +434,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -474,8 +474,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -514,8 +514,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -563,8 +563,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -599,8 +599,8 @@ importers:
         specifier: ^16.0.1
         version: 16.0.3(rollup@4.59.1)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.59.1)
+        specifier: ^1.0.0
+        version: 1.0.0(rollup@4.59.1)
       '@types/node':
         specifier: ^25.3.3
         version: 25.5.0
@@ -1080,9 +1080,9 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-terser@0.4.4':
-    resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
-    engines: {node: '>=14.0.0'}
+  '@rollup/plugin-terser@1.0.0':
+    resolution: {integrity: sha512-FnCxhTBx6bMOYQrar6C8h3scPt8/JwIzw3+AJ2K++6guogH5fYaIFia+zZuhqv0eo1RN7W1Pz630SyvLbDjhtQ==}
+    engines: {node: '>=20.0.0'}
     peerDependencies:
       rollup: ^2.0.0||^3.0.0||^4.0.0
     peerDependenciesMeta:
@@ -2248,9 +2248,6 @@ packages:
     resolution: {integrity: sha512-mAZTtNCeetKMH+pSjrb76NAM8V9a05I9aBZOHztWy/UqcJdQYNsf59vrRKWnojAT9Y+GbIvoTBC++CPHqpDBhQ==}
     engines: {node: '>=0.6'}
 
-  randombytes@2.1.0:
-    resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
-
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
@@ -2365,8 +2362,9 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  serialize-javascript@6.0.2:
-    resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
+  serialize-javascript@7.0.4:
+    resolution: {integrity: sha512-DuGdB+Po43Q5Jxwpzt1lhyFSYKryqoNjQSA9M92tyw0lyHIOur+XCalOUe0KTJpyqzT8+fQ5A0Jf7vCx/NKmIg==}
+    engines: {node: '>=20.0.0'}
 
   serpapi@2.2.1:
     resolution: {integrity: sha512-1HXXaIwDmYueFPauAggIkzozMi5P/a4/yRUxB8Z1kad0VQE/7ohf9a6xRQ99aXR252itDChfmJUfBdCA4phCYA==}
@@ -2985,9 +2983,9 @@ snapshots:
     optionalDependencies:
       rollup: 4.59.1
 
-  '@rollup/plugin-terser@0.4.4(rollup@4.59.1)':
+  '@rollup/plugin-terser@1.0.0(rollup@4.59.1)':
     dependencies:
-      serialize-javascript: 6.0.2
+      serialize-javascript: 7.0.4
       smob: 1.6.1
       terser: 5.46.1
     optionalDependencies:
@@ -4258,10 +4256,6 @@ snapshots:
     dependencies:
       side-channel: 1.1.0
 
-  randombytes@2.1.0:
-    dependencies:
-      safe-buffer: 5.2.1
-
   range-parser@1.2.1: {}
 
   raw-body@3.0.2:
@@ -4464,9 +4458,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serialize-javascript@6.0.2:
-    dependencies:
-      randombytes: 2.1.0
+  serialize-javascript@7.0.4: {}
 
   serpapi@2.2.1: {}
 
