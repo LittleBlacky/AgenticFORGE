@@ -22,7 +22,7 @@ importers:
         version: 5.28.3
       openai:
         specifier: ^6.25.0
-        version: 6.32.0(ws@8.19.0)(zod@4.3.6)
+        version: 6.32.0(ws@8.20.0)(zod@4.3.6)
       proper-lockfile:
         specifier: ^4.1.2
         version: 4.1.2
@@ -118,8 +118,8 @@ importers:
         specifier: ^5.1.0
         version: 5.2.1
       ws:
-        specifier: ^8.18.3
-        version: 8.19.0
+        specifier: ^8.20.0
+        version: 8.20.0
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -146,8 +146,8 @@ importers:
   apps/second-brain/frontend:
     dependencies:
       lucide-react:
-        specifier: ^0.511.0
-        version: 0.511.0(react@18.3.1)
+        specifier: ^0.577.0
+        version: 0.577.0(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -288,7 +288,7 @@ importers:
     dependencies:
       openai:
         specifier: ^6.25.0
-        version: 6.32.0(ws@8.19.0)(zod@4.3.6)
+        version: 6.32.0(ws@8.20.0)(zod@4.3.6)
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.8
@@ -389,7 +389,7 @@ importers:
         version: 5.28.3
       openai:
         specifier: ^6.25.0
-        version: 6.32.0(ws@8.19.0)(zod@4.3.6)
+        version: 6.32.0(ws@8.20.0)(zod@4.3.6)
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.8
@@ -2010,8 +2010,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.511.0:
-    resolution: {integrity: sha512-VK5a2ydJ7xm8GvBeKLS9mu1pVK6ucef9780JVUjw6bAjJL/QXnd4Y0p7SPeOUMC27YhzNCZvm5d/QX0Tp3rc0w==}
+  lucide-react@0.577.0:
+    resolution: {integrity: sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -2630,8 +2630,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.19.0:
-    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
+  ws@8.20.0:
+    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3899,7 +3899,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.511.0(react@18.3.1):
+  lucide-react@0.577.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
@@ -4193,9 +4193,9 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@6.32.0(ws@8.19.0)(zod@4.3.6):
+  openai@6.32.0(ws@8.20.0)(zod@4.3.6):
     optionalDependencies:
-      ws: 8.19.0
+      ws: 8.20.0
       zod: 4.3.6
 
   package-json-from-dist@1.0.1: {}
@@ -4708,7 +4708,7 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@8.19.0: {}
+  ws@8.20.0: {}
 
   yallist@3.1.1: {}
 
