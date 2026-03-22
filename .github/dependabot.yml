@@ -31,7 +31,7 @@ updates:
         patterns:
           - "*"
 
-  # 2) React ecosystem in second-brain frontend (separate label)
+  # 2) second-brain frontend
   - package-ecosystem: "npm"
     directory: "/apps/second-brain/frontend"
     schedule:
@@ -39,115 +39,70 @@ updates:
       day: "monday"
       time: "03:10"
       timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "dependabot"
-      - "deps:react"
+      - "deps:frontend"
     commit-message:
       prefix: "chore"
       include: "scope"
     versioning-strategy: "increase"
-    allow:
-      - dependency-name: "react"
-      - dependency-name: "react-dom"
-      - dependency-name: "react-markdown"
-      - dependency-name: "@types/react"
-      - dependency-name: "@types/react-dom"
     ignore:
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
     groups:
-      second-brain-react:
+      frontend-react:
         patterns:
           - "react"
           - "react-dom"
           - "react-markdown"
           - "@types/react*"
-
-  # 3) Rollup ecosystem in SDK packages (separate label)
-  - package-ecosystem: "npm"
-    directories:
-      - "/packages/agents"
-      - "/packages/context"
-      - "/packages/core"
-      - "/packages/kit"
-      - "/packages/memory"
-      - "/packages/protocols"
-      - "/packages/skills"
-      - "/packages/tools"
-      - "/packages/tools-builtin"
-      - "/packages/utils"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:20"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "dependabot"
-      - "deps:rollup"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    versioning-strategy: "increase"
-    allow:
-      - dependency-name: "rollup"
-      - dependency-name: "@rollup/*"
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - "version-update:semver-major"
-    groups:
-      rollup-ecosystem:
-        patterns:
-          - "rollup"
-          - "@rollup/*"
-
-  # 4) Other second-brain app deps (excluding React ecosystem)
-  - package-ecosystem: "npm"
-    directories:
-      - "/apps/second-brain/frontend"
-      - "/apps/second-brain/backend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:30"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 4
-    labels:
-      - "dependencies"
-      - "dependabot"
-      - "deps:app"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    versioning-strategy: "increase"
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - "version-update:semver-major"
-      - dependency-name: "react"
-      - dependency-name: "react-dom"
-      - dependency-name: "react-markdown"
-      - dependency-name: "@types/react"
-      - dependency-name: "@types/react-dom"
-    groups:
-      second-brain-build:
+      frontend-build:
         dependency-type: "development"
         patterns:
           - "vite"
           - "@vitejs/*"
           - "rollup"
           - "@rollup/*"
-      second-brain-runtime:
+      frontend-runtime:
         dependency-type: "production"
         patterns:
           - "*"
 
-  # 5) Other SDK package deps (excluding Rollup ecosystem)
+  # 3) second-brain backend
+  - package-ecosystem: "npm"
+    directory: "/apps/second-brain/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:20"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "dependabot"
+      - "deps:backend"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    versioning-strategy: "increase"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      backend-runtime:
+        dependency-type: "production"
+        patterns:
+          - "*"
+      backend-dev:
+        dependency-type: "development"
+        patterns:
+          - "*"
+
+  # 4) SDK packages
   - package-ecosystem: "npm"
     directories:
       - "/packages/agents"
@@ -163,7 +118,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:40"
+      time: "03:30"
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 5
     labels:
@@ -178,9 +133,11 @@ updates:
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
-      - dependency-name: "rollup"
-      - dependency-name: "@rollup/*"
     groups:
+      packages-rollup:
+        patterns:
+          - "rollup"
+          - "@rollup/*"
       packages-dev-deps:
         dependency-type: "development"
         patterns:
