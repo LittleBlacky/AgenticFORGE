@@ -2,6 +2,7 @@ import {Message} from "./message";
 import {LLMClient} from "./llm";
 import {Config} from "./config";
 import {z, type ZodType} from "zod";
+import type {AgentHook, AgentHookContext, AgentHookEvent} from "./hooks";
 
 /** Agent 基类 */
 export abstract class Agent {
@@ -10,6 +11,7 @@ export abstract class Agent {
   protected readonly systemPrompt?: string;
   protected readonly config: Config;
   protected readonly history: Message[] = [];
+  private readonly hooks: AgentHook[] = [];
 
   constructor(params: {
     name: string;
@@ -42,6 +44,13 @@ export abstract class Agent {
     inputText: string,
     options?: {temperature?: number},
   ): AsyncGenerator<string> {
+    const traceId = this.createTraceId();
+    await this.emitHook("beforeRun", {
+      traceId,
+      inputText,
+      metadata: {mode: "stream"},
+    });
+
     const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [];
     if (this.systemPrompt) {
       messages.push({role: "system", content: this.systemPrompt});
@@ -54,13 +63,100 @@ export abstract class Agent {
     messages.push({role: "user", content: inputText});
 
     let fullResponse = "";
-    for await (const chunk of this.llm.streamThink(messages, options?.temperature)) {
-      fullResponse += chunk;
-      yield chunk;
-    }
+    try {
+      await this.emitHook("beforeLLMCall", {
+        traceId,
+        inputText,
+        llmRequest: {messages, temperature: options?.temperature, mode: "stream"},
+      });
 
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+      for await (const chunk of this.llm.streamThink(messages, options?.temperature)) {
+        fullResponse += chunk;
+        yield chunk;
+      }
+
+      await this.emitHook("afterLLMCall", {
+        traceId,
+        inputText,
+        llmResponse: {outputText: fullResponse, mode: "stream"},
+      });
+
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: fullResponse}));
+
+      await this.emitHook("afterRun", {
+        traceId,
+        inputText,
+        outputText: fullResponse,
+        metadata: {mode: "stream"},
+      });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.emitHook("onError", {
+        traceId,
+        inputText,
+        error: err,
+        metadata: {mode: "stream"},
+      });
+      throw err;
+    }
+  }
+
+  useHook(hook: AgentHook): this {
+    this.hooks.push(hook);
+    this.hooks.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+    return this;
+  }
+
+  useHooks(hooks: AgentHook[]): this {
+    for (const hook of hooks) {
+      this.useHook(hook);
+    }
+    return this;
+  }
+
+  removeHook(name: string): this {
+    const idx = this.hooks.findIndex((h) => h.name === name);
+    if (idx >= 0) this.hooks.splice(idx, 1);
+    return this;
+  }
+
+  clearHooks(): this {
+    this.hooks.length = 0;
+    return this;
+  }
+
+  protected async emitHook(
+    event: AgentHookEvent,
+    payload: Omit<AgentHookContext, "event" | "agentName" | "traceId" | "timestamp"> & {
+      traceId?: string;
+    } = {},
+  ): Promise<void> {
+    if (this.hooks.length === 0) return;
+
+    const context: AgentHookContext = {
+      event,
+      agentName: this.name,
+      traceId: payload.traceId ?? this.createTraceId(),
+      timestamp: new Date().toISOString(),
+      ...payload,
+    };
+
+    for (const hook of this.hooks) {
+      if (hook.events && !hook.events.includes(event)) continue;
+
+      try {
+        await hook.handle(context);
+      } catch (error) {
+        if (hook.strict) {
+          throw error instanceof Error ? error : new Error(String(error));
+        }
+      }
+    }
+  }
+
+  protected createTraceId(): string {
+    return `trace_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
   /** 添加消息到历史记录 */

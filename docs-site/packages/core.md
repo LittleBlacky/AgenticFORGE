@@ -15,9 +15,24 @@ npm install @agenticforge/core
 | Name | Description |
 |------|-------------|
 | `LLMClient` | Unified LLM client supporting OpenAI and compatible providers |
-| `BaseAgent` | Base class for all agents |
+| `Agent` | Base class for all agents with hook lifecycle support |
 | `Message` | Message type — `system` / `user` / `assistant` / `tool` |
-| `AgentConfig` | Shared agent configuration type |
+| `Config` | Shared agent configuration object |
+| `createConsoleLoggingHook` | Built-in logging hook factory |
+| `MetricsHook` | Built-in metrics collector hook |
+
+## Hooks Quick Example
+
+```ts
+import {createConsoleLoggingHook, MetricsHook} from "@agenticforge/core";
+
+const metrics = new MetricsHook();
+agent
+  .useHook(createConsoleLoggingHook({events: ["afterRun", "onError"]}))
+  .useHook(metrics.hook);
+
+console.log(metrics.getSnapshot());
+```
 
 ## LLMClient
 

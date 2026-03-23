@@ -76,68 +76,122 @@ export class SimpleAgent extends Agent {
   }
 
   async run(inputText: string, options?: {temperature?: number}): Promise<string> {
-    const sys = this.systemPrompt ?? "你是一个简洁、高效的AI助手。";
-    const messages: Array<Record<string, unknown>> = [
-      {role: "system", content: sys},
-      ...this.history.map((m) => ({role: m.role, content: m.content})),
-      {role: "user", content: inputText},
-    ];
+    const traceId = this.createTraceId();
+    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "simple"}});
 
-    const toolSchemas = this.buildToolSchemas();
-    if (toolSchemas.length === 0) {
-      const response = await this.llm.think(
-        messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
-        options?.temperature,
-      );
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: response}));
-      return response;
-    }
+    try {
+      const sys = this.systemPrompt ?? "你是一个简洁、高效的AI助手。";
+      const messages: Array<Record<string, unknown>> = [
+        {role: "system", content: sys},
+        ...this.history.map((m) => ({role: m.role, content: m.content})),
+        {role: "user", content: inputText},
+      ];
 
-    let finalResponse = "";
-    for (let i = 0; i < this.maxToolIterations; i++) {
-      const response = await this.invokeWithTools(
-        messages,
-        toolSchemas,
-        "auto",
-        options?.temperature,
-      ) as {choices?: Array<{message?: {content?: string; tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>}}>};
-
-      const msg = response.choices?.[0]?.message;
-      const content = msg?.content ?? "";
-      const toolCalls = msg?.tool_calls ?? [];
-
-      if (toolCalls.length === 0) {
-        finalResponse = content;
-        messages.push({role: "assistant", content});
-        break;
+      const toolSchemas = this.buildToolSchemas();
+      if (toolSchemas.length === 0) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, temperature: options?.temperature, mode: "non-tool"},
+        });
+        const response = await this.llm.think(
+          messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
+          options?.temperature,
+        );
+        await this.emitHook("afterLLMCall", {
+          traceId,
+          inputText,
+          llmResponse: {outputText: response, mode: "non-tool"},
+        });
+        this.addMessage(new Message({role: "user", content: inputText}));
+        this.addMessage(new Message({role: "assistant", content: response}));
+        await this.emitHook("afterRun", {traceId, inputText, outputText: response, metadata: {mode: "run"}});
+        return response;
       }
 
-      messages.push({role: "assistant", content, tool_calls: toolCalls});
+      let finalResponse = "";
+      for (let i = 0; i < this.maxToolIterations; i++) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, tools: toolSchemas, toolChoice: "auto", temperature: options?.temperature},
+        });
+        const response = await this.invokeWithTools(
+          messages,
+          toolSchemas,
+          "auto",
+          options?.temperature,
+        ) as {choices?: Array<{message?: {content?: string; tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>}}>};
+        await this.emitHook("afterLLMCall", {
+          traceId,
+          inputText,
+          llmResponse: response,
+        });
 
-      for (const call of toolCalls) {
-        let args: Record<string, unknown> = {};
-        try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
-        let result = "";
-        try {
-          result = await this.toolRegistry!.execute(call.function.name, args);
-        } catch (e) {
-          result = `Error: ${e instanceof Error ? e.message : String(e)}`;
+        const msg = response.choices?.[0]?.message;
+        const content = msg?.content ?? "";
+        const toolCalls = msg?.tool_calls ?? [];
+
+        if (toolCalls.length === 0) {
+          finalResponse = content;
+          messages.push({role: "assistant", content});
+          break;
         }
-        messages.push({role: "tool", tool_call_id: call.id, name: call.function.name, content: result});
+
+        messages.push({role: "assistant", content, tool_calls: toolCalls});
+
+        for (const call of toolCalls) {
+          let args: Record<string, unknown> = {};
+          try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
+          await this.emitHook("beforeToolCall", {
+            traceId,
+            inputText,
+            toolName: call.function.name,
+            toolInput: args,
+          });
+          let result = "";
+          try {
+            result = await this.toolRegistry!.execute(call.function.name, args);
+          } catch (e) {
+            result = `Error: ${e instanceof Error ? e.message : String(e)}`;
+          }
+          await this.emitHook("afterToolCall", {
+            traceId,
+            inputText,
+            toolName: call.function.name,
+            toolInput: args,
+            toolOutput: result,
+          });
+          messages.push({role: "tool", tool_call_id: call.id, name: call.function.name, content: result});
+        }
       }
-    }
 
-    if (!finalResponse) {
-      const last = await this.invokeWithTools(messages, toolSchemas, "none", options?.temperature) as {
-        choices?: Array<{message?: {content?: string}}>;
-      };
-      finalResponse = last.choices?.[0]?.message?.content ?? "";
-    }
+      if (!finalResponse) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, tools: toolSchemas, toolChoice: "none", temperature: options?.temperature},
+        });
+        const last = await this.invokeWithTools(messages, toolSchemas, "none", options?.temperature) as {
+          choices?: Array<{message?: {content?: string}}>;
+        };
+        await this.emitHook("afterLLMCall", {
+          traceId,
+          inputText,
+          llmResponse: last,
+        });
+        finalResponse = last.choices?.[0]?.message?.content ?? "";
+      }
 
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: finalResponse}));
-    return finalResponse;
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: finalResponse}));
+      await this.emitHook("afterRun", {traceId, inputText, outputText: finalResponse, metadata: {mode: "run"}});
+      return finalResponse;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      throw err;
+    }
   }
 
   async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {

@@ -77,6 +77,55 @@ describe("SimpleAgent", () => {
     // client.chat.completions.create should NOT be called for plain LLM
     expect(mockLLM.client.chat.completions.create).not.toHaveBeenCalled();
   });
+
+  it("hook order: beforeToolCall -> afterToolCall in SimpleAgent", async () => {
+    let callCount = 0;
+    const createMock = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          choices: [{
+            message: {
+              content: "",
+              tool_calls: [{ id: "t1", function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) } }],
+            },
+          }],
+        };
+      }
+      return { choices: [{ message: { content: "done", tool_calls: [] } }] };
+    });
+
+    const llm = {
+      ...makeMockLLM(),
+      client: { chat: { completions: { create: createMock } } },
+      model: "gpt-4o",
+    } as any;
+
+    const events: string[] = [];
+    const a = new SimpleAgent({
+      name: "simple-hooks",
+      llm,
+      tools: [
+        {
+          name: "echo",
+          description: "echo",
+          func: async ({ input }: { input: string }) => input,
+        } as any,
+      ],
+    });
+
+    a.useHook({
+      name: "tool-order",
+      events: ["beforeToolCall", "afterToolCall"],
+      handle: (ctx) => {
+        events.push(`${ctx.event}:${ctx.toolName}`);
+      },
+    });
+
+    const result = await a.run("use tool");
+    expect(result).toBe("done");
+    expect(events).toEqual(["beforeToolCall:echo", "afterToolCall:echo"]);
+  });
 });
 
 // ===========================================================================
@@ -198,5 +247,46 @@ describe("FunctionCallAgent — with ToolRegistry", () => {
     const result = await agent.run("use echo tool");
     expect(result).toBe("done after tool");
     expect(callCount).toBe(2);
+  });
+
+  it("hook order: beforeToolCall -> afterToolCall in FunctionCallAgent", async () => {
+    let callCount = 0;
+    const createMock = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          choices: [{
+            message: {
+              content: "",
+              tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) } }],
+            },
+          }],
+        };
+      }
+      return { choices: [{ message: { content: "done after tool", tool_calls: [] } }] };
+    });
+
+    const mockLLM = {
+      ...makeMockLLM(),
+      client: { chat: { completions: { create: createMock } } },
+      model: "gpt-4o",
+    } as any;
+
+    const registry = new ToolRegistry();
+    registry.registerTool(new EchoTool());
+
+    const events: string[] = [];
+    const agent = new FunctionCallAgent({ name: "fca", llm: mockLLM, toolRegistry: registry });
+    agent.useHook({
+      name: "tool-order",
+      events: ["beforeToolCall", "afterToolCall"],
+      handle: (ctx) => {
+        events.push(`${ctx.event}:${ctx.toolName}`);
+      },
+    });
+
+    const result = await agent.run("use echo tool");
+    expect(result).toBe("done after tool");
+    expect(events).toEqual(["beforeToolCall:echo", "afterToolCall:echo"]);
   });
 });

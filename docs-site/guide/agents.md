@@ -2,6 +2,8 @@
 
 AgenticFORGE ships seven agent workflow implementations. Each wraps a different reasoning loop.
 
+> Need runtime observability and lifecycle extension? See the [Hooks Guide](./hooks.md).
+
 ## Choosing the right agent
 
 | Agent | Reasoning Pattern | Best For |

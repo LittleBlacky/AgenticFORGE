@@ -19,9 +19,29 @@ npm install @agenticforge/core
 | 名称 | 说明 |
 |------|------|
 | `LLMClient` | 统一的 LLM 调用客户端，支持 OpenAI 等 provider |
-| `BaseAgent` | 所有 Agent 的基类，定义生命周期接口 |
+| `Agent` | 所有 Agent 的基类，内置 Hook 生命周期能力 |
 | `Message` | 消息类型（system / user / assistant / tool）|
-| `AgentConfig` | Agent 通用配置类型 |
+| `Config` | Agent 通用配置对象 |
+| `createConsoleLoggingHook` | 内置日志 Hook 工厂 |
+| `MetricsHook` | 内置指标统计 Hook |
+
+## Hooks 快速示例
+
+```ts
+import {
+  Agent,
+  createConsoleLoggingHook,
+  MetricsHook,
+} from "@agenticforge/core";
+
+const metrics = new MetricsHook();
+agent
+  .useHook(createConsoleLoggingHook({events: ["afterRun", "onError"]}))
+  .useHook(metrics.hook);
+
+// ... 执行 agent ...
+console.log(metrics.getSnapshot());
+```
 
 ## 使用示例
 

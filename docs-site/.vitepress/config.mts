@@ -24,7 +24,7 @@ export default defineConfig({
           {text: "Guide", link: "/guide/introduction"},
           {text: "Packages", link: "/packages/kit"},
           {
-            text: "v1.2.0",
+            text: "v1.4.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},

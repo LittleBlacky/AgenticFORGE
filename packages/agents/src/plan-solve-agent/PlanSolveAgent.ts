@@ -51,50 +51,95 @@ export class PlanSolveAgent extends Agent {
   }
 
   async run(inputText: string): Promise<string> {
-    const planPrompt = buildPlanPrompt(inputText);
-    const planRaw = await this.llm.think([
-      {role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT},
-      {role: "user", content: planPrompt},
-    ]);
+    const traceId = this.createTraceId();
+    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "plan-solve"}});
 
-    const plan = this.parsePlan(inputText, planRaw);
-    this.lastPlan = plan;
+    try {
+      const planPrompt = buildPlanPrompt(inputText);
+      await this.emitHook("beforeLLMCall", {
+        traceId,
+        inputText,
+        llmRequest: {phase: "plan", planPrompt},
+      });
+      const planRaw = await this.llm.think([
+        {role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT},
+        {role: "user", content: planPrompt},
+      ]);
+      await this.emitHook("afterLLMCall", {
+        traceId,
+        inputText,
+        llmResponse: {phase: "plan", planRaw},
+      });
 
-    if (this.verbose) {
-      console.log(`[PlanSolve] Plan created with ${plan.steps.length} steps`);
-    }
+      const plan = this.parsePlan(inputText, planRaw);
+      this.lastPlan = plan;
 
-    let context = "";
-    const steps = plan.steps.slice(0, this.maxSteps);
-
-    for (const step of steps) {
       if (this.verbose) {
-        console.log(`[PlanSolve] Executing step ${step.id}: ${step.description}`);
+        console.log(`[PlanSolve] Plan created with ${plan.steps.length} steps`);
       }
-      try {
-        const result = await this.executor.execute(step, context);
-        markStepDone(plan, step.id, result);
-        context += `\n步骤${step.id}(${step.description}): ${result}`;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        markStepFailed(plan, step.id, msg);
-        context += `\n步骤${step.id}失败: ${msg}`;
+
+      let context = "";
+      const steps = plan.steps.slice(0, this.maxSteps);
+
+      for (const step of steps) {
+        if (this.verbose) {
+          console.log(`[PlanSolve] Executing step ${step.id}: ${step.description}`);
+        }
+        try {
+          await this.emitHook("beforeToolCall", {
+            traceId,
+            inputText,
+            toolName: step.tool ?? "step-executor",
+            toolInput: {step, context},
+            metadata: {phase: "execute-step"},
+          });
+          const result = await this.executor.execute(step, context);
+          await this.emitHook("afterToolCall", {
+            traceId,
+            inputText,
+            toolName: step.tool ?? "step-executor",
+            toolInput: {step, context},
+            toolOutput: result,
+            metadata: {phase: "execute-step"},
+          });
+          markStepDone(plan, step.id, result);
+          context += `\n步骤${step.id}(${step.description}): ${result}`;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          markStepFailed(plan, step.id, msg);
+          context += `\n步骤${step.id}失败: ${msg}`;
+        }
       }
+
+      const results = getCompletedResults(plan);
+      const finalPrompt = buildFinalPrompt(inputText, results);
+      await this.emitHook("beforeLLMCall", {
+        traceId,
+        inputText,
+        llmRequest: {phase: "final", finalPrompt},
+      });
+      const finalAnswer = await this.llm.think([
+        {
+          role: "system",
+          content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。",
+        },
+        {role: "user", content: finalPrompt},
+      ]);
+      await this.emitHook("afterLLMCall", {
+        traceId,
+        inputText,
+        llmResponse: {phase: "final", finalAnswer},
+      });
+
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: finalAnswer}));
+      await this.emitHook("afterRun", {traceId, inputText, outputText: finalAnswer, metadata: {mode: "run"}});
+      return finalAnswer;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      throw err;
     }
-
-    const results = getCompletedResults(plan);
-    const finalPrompt = buildFinalPrompt(inputText, results);
-    const finalAnswer = await this.llm.think([
-      {
-        role: "system",
-        content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。",
-      },
-      {role: "user", content: finalPrompt},
-    ]);
-
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: finalAnswer}));
-    return finalAnswer;
   }
 
   getLastPlan(): Plan | undefined {

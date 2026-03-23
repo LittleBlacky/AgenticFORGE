@@ -141,53 +141,89 @@ export class FunctionCallAgent extends Agent {
     inputText: string,
     options: {maxToolIterations?: number; toolChoice?: ToolChoice; temperature?: number} = {},
   ): Promise<string> {
-    const messages: Array<Record<string, unknown>> = [];
-    messages.push({role: "system", content: this.getSystemPrompt()});
-    for (const msg of this.history) messages.push({role: msg.role, content: msg.content});
-    messages.push({role: "user", content: inputText});
-    const toolSchemas = this.buildToolSchemas();
-    if (toolSchemas.length === 0) {
-      const response = await this.llm.think(
-        messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
-        options.temperature ?? (this.config as unknown as Record<string, unknown>).temperature as number | undefined,
-      );
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: response}));
-      return response;
-    }
-    const iterationsLimit = options.maxToolIterations ?? this.maxToolIterations;
-    const effectiveToolChoice = options.toolChoice ?? this.defaultToolChoice;
-    let currentIteration = 0;
-    let finalResponse = "";
-    while (currentIteration < iterationsLimit) {
-      const response = await this.invokeWithTools(messages, toolSchemas as Array<Record<string, unknown>>, effectiveToolChoice, options);
-      const assistantMessage = response?.choices?.[0]?.message;
-      const content = FunctionCallAgent.extractMessageContent(assistantMessage?.content);
-      const toolCalls = Array.isArray(assistantMessage?.tool_calls) ? assistantMessage.tool_calls : [];
-      if (toolCalls.length > 0) {
-        messages.push({role: "assistant", content, tool_calls: toolCalls});
-        for (const toolCall of toolCalls) {
-          const toolName = toolCall?.function?.name;
-          if (!toolName || typeof toolName !== "string") continue;
-          const argsText = typeof toolCall?.function?.arguments === "string" ? toolCall.function.arguments : "";
-          const result = await this.executeToolCall(toolName, FunctionCallAgent.parseFunctionCallArguments(argsText));
-          messages.push({role: "tool", tool_call_id: toolCall.id, name: toolName, content: result});
-        }
-        currentIteration += 1;
-        continue;
+    const traceId = this.createTraceId();
+    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "function-call"}});
+
+    try {
+      const messages: Array<Record<string, unknown>> = [];
+      messages.push({role: "system", content: this.getSystemPrompt()});
+      for (const msg of this.history) messages.push({role: msg.role, content: msg.content});
+      messages.push({role: "user", content: inputText});
+      const toolSchemas = this.buildToolSchemas();
+      if (toolSchemas.length === 0) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, temperature: options.temperature, mode: "non-tool"},
+        });
+        const response = await this.llm.think(
+          messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
+          options.temperature ?? (this.config as unknown as Record<string, unknown>).temperature as number | undefined,
+        );
+        await this.emitHook("afterLLMCall", {
+          traceId,
+          inputText,
+          llmResponse: {outputText: response, mode: "non-tool"},
+        });
+        this.addMessage(new Message({role: "user", content: inputText}));
+        this.addMessage(new Message({role: "assistant", content: response}));
+        await this.emitHook("afterRun", {traceId, inputText, outputText: response, metadata: {mode: "run"}});
+        return response;
       }
-      finalResponse = content;
-      messages.push({role: "assistant", content: finalResponse});
-      break;
+      const iterationsLimit = options.maxToolIterations ?? this.maxToolIterations;
+      const effectiveToolChoice = options.toolChoice ?? this.defaultToolChoice;
+      let currentIteration = 0;
+      let finalResponse = "";
+      while (currentIteration < iterationsLimit) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, tools: toolSchemas, toolChoice: effectiveToolChoice, temperature: options.temperature},
+        });
+        const response = await this.invokeWithTools(messages, toolSchemas as Array<Record<string, unknown>>, effectiveToolChoice, options);
+        await this.emitHook("afterLLMCall", {traceId, inputText, llmResponse: response});
+        const assistantMessage = response?.choices?.[0]?.message;
+        const content = FunctionCallAgent.extractMessageContent(assistantMessage?.content);
+        const toolCalls = Array.isArray(assistantMessage?.tool_calls) ? assistantMessage.tool_calls : [];
+        if (toolCalls.length > 0) {
+          messages.push({role: "assistant", content, tool_calls: toolCalls});
+          for (const toolCall of toolCalls) {
+            const toolName = toolCall?.function?.name;
+            if (!toolName || typeof toolName !== "string") continue;
+            const argsText = typeof toolCall?.function?.arguments === "string" ? toolCall.function.arguments : "";
+            const parsedArgs = FunctionCallAgent.parseFunctionCallArguments(argsText);
+            await this.emitHook("beforeToolCall", {traceId, inputText, toolName, toolInput: parsedArgs});
+            const result = await this.executeToolCall(toolName, parsedArgs);
+            await this.emitHook("afterToolCall", {traceId, inputText, toolName, toolInput: parsedArgs, toolOutput: result});
+            messages.push({role: "tool", tool_call_id: toolCall.id, name: toolName, content: result});
+          }
+          currentIteration += 1;
+          continue;
+        }
+        finalResponse = content;
+        messages.push({role: "assistant", content: finalResponse});
+        break;
+      }
+      if (currentIteration >= iterationsLimit && !finalResponse) {
+        await this.emitHook("beforeLLMCall", {
+          traceId,
+          inputText,
+          llmRequest: {messages, tools: toolSchemas, toolChoice: "none", temperature: options.temperature},
+        });
+        const finalTry = await this.invokeWithTools(messages, toolSchemas as Array<Record<string, unknown>>, "none", options);
+        await this.emitHook("afterLLMCall", {traceId, inputText, llmResponse: finalTry});
+        finalResponse = FunctionCallAgent.extractMessageContent(finalTry?.choices?.[0]?.message?.content);
+        messages.push({role: "assistant", content: finalResponse});
+      }
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: finalResponse}));
+      await this.emitHook("afterRun", {traceId, inputText, outputText: finalResponse, metadata: {mode: "run"}});
+      return finalResponse;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      throw err;
     }
-    if (currentIteration >= iterationsLimit && !finalResponse) {
-      const finalTry = await this.invokeWithTools(messages, toolSchemas as Array<Record<string, unknown>>, "none", options);
-      finalResponse = FunctionCallAgent.extractMessageContent(finalTry?.choices?.[0]?.message?.content);
-      messages.push({role: "assistant", content: finalResponse});
-    }
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: finalResponse}));
-    return finalResponse;
   }
 
   addTool(tool: Tool): void { if (this.toolRegistry) this.toolRegistry.registerTool(tool); }

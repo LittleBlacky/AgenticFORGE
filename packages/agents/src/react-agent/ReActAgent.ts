@@ -46,75 +46,91 @@ export class ReActAgent extends Agent {
   }
 
   async run(inputText: string): Promise<string> {
-    this.steps.length = 0;
+    const traceId = this.createTraceId();
+    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "react"}});
 
-    const toolDescriptions = this.toolRegistry
-      ? this.toolRegistry.getAvailableTools()
-      : "（无可用工具）";
+    try {
+      this.steps.length = 0;
 
-    const systemContent = [
-      this.systemPrompt ?? REACT_SYSTEM,
-      "",
-      "可用工具：",
-      toolDescriptions,
-    ].join("\n");
+      const toolDescriptions = this.toolRegistry
+        ? this.toolRegistry.getAvailableTools()
+        : "（无可用工具）";
 
-    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
-      {role: "system", content: systemContent},
-      {role: "user", content: inputText},
-    ];
+      const systemContent = [
+        this.systemPrompt ?? REACT_SYSTEM,
+        "",
+        "可用工具：",
+        toolDescriptions,
+      ].join("\n");
 
-    let scratchpad = "";
+      const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
+        {role: "system", content: systemContent},
+        {role: "user", content: inputText},
+      ];
 
-    for (let step = 0; step < this.maxSteps; step++) {
-      const promptMessages = scratchpad
-        ? [...messages, {role: "assistant" as const, content: scratchpad}]
-        : messages;
+      let scratchpad = "";
 
-      const raw = await this.llm.think(promptMessages);
-      scratchpad += (scratchpad ? "\n" : "") + raw;
+      for (let step = 0; step < this.maxSteps; step++) {
+        const promptMessages = scratchpad
+          ? [...messages, {role: "assistant" as const, content: scratchpad}]
+          : messages;
 
-      if (this.verbose) console.log(`[ReAct step ${step + 1}]\n${raw}`);
+        await this.emitHook("beforeLLMCall", {traceId, inputText, llmRequest: {promptMessages, step}});
+        const raw = await this.llm.think(promptMessages);
+        await this.emitHook("afterLLMCall", {traceId, inputText, llmResponse: {raw, step}});
+        scratchpad += (scratchpad ? "\n" : "") + raw;
 
-      const finalMatch = raw.match(/Final\s+Answer\s*:\s*([\s\S]+)/i);
-      if (finalMatch) {
-        const answer = finalMatch[1]!.trim();
-        this.steps.push({thought: raw, isFinal: true, finalAnswer: answer});
-        this.addMessage(new Message({role: "user", content: inputText}));
-        this.addMessage(new Message({role: "assistant", content: answer}));
-        return answer;
-      }
+        if (this.verbose) console.log(`[ReAct step ${step + 1}]\n${raw}`);
 
-      const actionMatch = raw.match(/Action\s*:\s*(.+)/i);
-      const actionInputMatch = raw.match(/Action\s+Input\s*:\s*([\s\S]*?)(?=\nObservation:|\nThought:|\nAction:|\nFinal|$)/i);
-
-      if (actionMatch && this.toolRegistry) {
-        const toolName = actionMatch[1]!.trim();
-        const toolInput = actionInputMatch ? actionInputMatch[1]!.trim() : "";
-
-        let observation: string;
-        try {
-          observation = await this.toolRegistry.execute(toolName, {input: toolInput});
-        } catch (e) {
-          observation = `Error: ${e instanceof Error ? e.message : String(e)}`;
+        const finalMatch = raw.match(/Final\s+Answer\s*:\s*([\s\S]+)/i);
+        if (finalMatch) {
+          const answer = finalMatch[1]!.trim();
+          this.steps.push({thought: raw, isFinal: true, finalAnswer: answer});
+          this.addMessage(new Message({role: "user", content: inputText}));
+          this.addMessage(new Message({role: "assistant", content: answer}));
+          await this.emitHook("afterRun", {traceId, inputText, outputText: answer, metadata: {mode: "run"}});
+          return answer;
         }
 
-        if (this.verbose) console.log(`[ReAct observation] ${observation}`);
-        scratchpad += `\nObservation: ${observation}`;
-        this.steps.push({thought: raw, action: toolName, actionInput: toolInput, observation, isFinal: false});
-      } else {
-        this.steps.push({thought: raw, isFinal: true, finalAnswer: raw});
-        this.addMessage(new Message({role: "user", content: inputText}));
-        this.addMessage(new Message({role: "assistant", content: raw}));
-        return raw;
-      }
-    }
+        const actionMatch = raw.match(/Action\s*:\s*(.+)/i);
+        const actionInputMatch = raw.match(/Action\s+Input\s*:\s*([\s\S]*?)(?=\nObservation:|\nThought:|\nAction:|\nFinal|$)/i);
 
-    const lastStep = this.steps[this.steps.length - 1];
-    const fallback = lastStep?.finalAnswer ?? lastStep?.observation ?? inputText;
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: fallback}));
-    return fallback;
+        if (actionMatch && this.toolRegistry) {
+          const toolName = actionMatch[1]!.trim();
+          const toolInput = actionInputMatch ? actionInputMatch[1]!.trim() : "";
+
+          await this.emitHook("beforeToolCall", {traceId, inputText, toolName, toolInput: {input: toolInput}});
+          let observation: string;
+          try {
+            observation = await this.toolRegistry.execute(toolName, {input: toolInput});
+          } catch (e) {
+            observation = `Error: ${e instanceof Error ? e.message : String(e)}`;
+          }
+          await this.emitHook("afterToolCall", {traceId, inputText, toolName, toolInput: {input: toolInput}, toolOutput: observation});
+
+          if (this.verbose) console.log(`[ReAct observation] ${observation}`);
+          scratchpad += `\nObservation: ${observation}`;
+          this.steps.push({thought: raw, action: toolName, actionInput: toolInput, observation, isFinal: false});
+        } else {
+          this.steps.push({thought: raw, isFinal: true, finalAnswer: raw});
+          this.addMessage(new Message({role: "user", content: inputText}));
+          this.addMessage(new Message({role: "assistant", content: raw}));
+          await this.emitHook("afterRun", {traceId, inputText, outputText: raw, metadata: {mode: "run"}});
+          return raw;
+        }
+      }
+
+      const lastStep = this.steps[this.steps.length - 1];
+      const fallback = lastStep?.finalAnswer ?? lastStep?.observation ?? inputText;
+      this.addMessage(new Message({role: "user", content: inputText}));
+      this.addMessage(new Message({role: "assistant", content: fallback}));
+      await this.emitHook("afterRun", {traceId, inputText, outputText: fallback, metadata: {mode: "run"}});
+      return fallback;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      throw err;
+    }
   }
 
   getSteps(): AgentStep[] {

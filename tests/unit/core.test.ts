@@ -262,6 +262,114 @@ describe("Agent.streamRun() (base class)", () => {
 });
 
 // ===========================================================================
+// Agent Hooks
+// ===========================================================================
+import type { AgentHook } from "../../packages/core/src/hooks";
+import { createConsoleLoggingHook } from "../../packages/core/src/hooks/logging-hook";
+import { MetricsHook } from "../../packages/core/src/hooks/metrics-hook";
+
+describe("Agent Hooks", () => {
+  it("useHook() registers and receives lifecycle events from streamRun", async () => {
+    const events: string[] = [];
+    const mockLLM = {
+      think: vi.fn(),
+      streamThink: vi.fn(async function* () { yield "ok"; }),
+      client: {},
+      model: "mock",
+    } as any;
+
+    const hook: AgentHook = {
+      name: "collector",
+      handle: async (ctx) => {
+        events.push(ctx.event);
+      },
+    };
+
+    const agent = new TestAgent({ name: "hooked", llm: mockLLM });
+    agent.useHook(hook);
+
+    for await (const _ of agent.streamRun("hello")) { /* consume */ }
+
+    expect(events).toEqual(["beforeRun", "beforeLLMCall", "afterLLMCall", "afterRun"]);
+  });
+
+  it("events filter only triggers subscribed events", async () => {
+    const events: string[] = [];
+    const agent = new TestAgent({ name: "filtered", llm: makeMockLLM("x") });
+
+    agent.useHook({
+      name: "after-run-only",
+      events: ["afterRun"],
+      handle: (ctx) => { events.push(ctx.event); },
+    });
+
+    for await (const _ of agent.streamRun("q")) { /* consume */ }
+
+    expect(events).toEqual(["afterRun"]);
+  });
+
+  it("strict hook error interrupts execution", async () => {
+    const agent = new TestAgent({ name: "strict", llm: makeMockLLM("x") });
+
+    agent.useHook({
+      name: "boom",
+      strict: true,
+      events: ["beforeRun"],
+      handle: () => {
+        throw new Error("hook failed");
+      },
+    });
+
+    await expect(async () => {
+      for await (const _ of agent.streamRun("q")) { /* consume */ }
+    }).rejects.toThrow("hook failed");
+  });
+
+  it("removeHook() prevents further callback execution", async () => {
+    const spy = vi.fn();
+    const agent = new TestAgent({ name: "remove", llm: makeMockLLM("x") });
+
+    agent.useHook({ name: "temp", handle: spy });
+    agent.removeHook("temp");
+
+    for await (const _ of agent.streamRun("q")) { /* consume */ }
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("createConsoleLoggingHook logs formatted lines", async () => {
+    const lines: string[] = [];
+    const logger = (line: string) => lines.push(line);
+    const hook = createConsoleLoggingHook({ logger, events: ["afterRun"] });
+
+    const agent = new TestAgent({ name: "logger", llm: makeMockLLM("ok") });
+    agent.useHook(hook);
+
+    for await (const _ of agent.streamRun("ping")) { /* consume */ }
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("event=afterRun");
+    expect(lines[0]).toContain("agent=logger");
+  });
+
+  it("MetricsHook collects event counts and latencies", async () => {
+    const metrics = new MetricsHook();
+    const agent = new TestAgent({ name: "metrics", llm: makeMockLLM("ok") });
+    agent.useHook(metrics.hook);
+
+    for await (const _ of agent.streamRun("ping")) { /* consume */ }
+
+    const snapshot = metrics.getSnapshot();
+    expect(snapshot.totals.runStarted).toBe(1);
+    expect(snapshot.totals.runSucceeded).toBe(1);
+    expect(snapshot.totals.llmCalls).toBe(1);
+    expect(snapshot.eventCounts.beforeRun).toBe(1);
+    expect(snapshot.eventCounts.afterRun).toBe(1);
+    expect(snapshot.agentCounts.metrics).toBeGreaterThan(0);
+  });
+});
+
+// ===========================================================================
 // streamThinkChunked — thinking model support
 // ===========================================================================
 import { LLMClient } from "../../packages/core/src/llm";
