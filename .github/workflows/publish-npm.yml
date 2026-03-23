@@ -34,9 +34,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm build
-
       - name: Publish all public packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
