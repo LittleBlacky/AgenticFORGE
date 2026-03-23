@@ -113,4 +113,3 @@ const snapshot = metrics.getSnapshot();
 
 - [Agents Guide](./agents.md)
 - [Core Package](../packages/core.md)
-- [Detailed Hook Analysis (CN)](../../docs/38-AgentHooks-详细解析文档.md)
