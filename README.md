@@ -4,12 +4,16 @@
 
 <h1 align="center">AgenticFORGE</h1>
 
-<h3 align="center">A TypeScript Agent Framework Driven by Tool Invocation</h3>
+<h3 align="center">Build production-ready TypeScript AI agents with tools, memory, skills, and protocols.</h3>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE/actions/workflows/publish-npm.yml"><img src="https://img.shields.io/github/actions/workflow/status/LittleBlacky/AgenticFORGE/publish-npm.yml?label=publish" alt="publish workflow" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/last-commit/LittleBlacky/AgenticFORGE" alt="last commit" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg" alt="License" /></a>
-  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="stars" /></a>
+  <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/stars/LittleBlacky/AgenticFORGE?style=social" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">
@@ -20,60 +24,166 @@
 
 ## Overview
 
-AgenticFORGE is a TypeScript framework for building AI agents. It is centered around **tool invocation**, ships with classic agent workflows (ReAct, Plan-and-Solve, Reflection, FunctionCall), a composable multi-type memory system, and a built-in RAG pipeline.
+AgenticFORGE is a monorepo TypeScript framework for building tool-driven AI agents.
+It provides a complete stack from core LLM abstractions to advanced agent workflows, skill routing, memory + RAG, built-in tools, and multi-agent communication protocols.
+
+If you want one unified SDK to build from a simple chatbot to a production multi-agent system, start with `@agenticforge/kit`.
 
 ---
 
-## Features
+## Why AgenticFORGE
 
-- **Tool-driven**: Unified `Tool` / `ToolRegistry` / `ToolChain` abstractions with sync/async support, parameter validation, and chaining
-- **Classic agent workflows**: ReAct, Plan-and-Solve, Reflection, FunctionCall, and SimpleAgent - ready to use
-- **Multi-layer memory**: Working, episodic, semantic, and perceptual memory types under a single manager
-- **Pluggable storage**: KV / vector / graph / blob backends - in-memory, Qdrant, Neo4j, or custom
-- **Built-in tools**: Search, memory, notes, RAG, and terminal tools included
-- **Context management**: Token-aware context builder for precise LLM input window control
-- **Full type safety**: Complete TypeScript declarations, strict-mode compatible
-
----
-
-## Packages
-
-
-| Package                                                 | Description                                                   |
-| ------------------------------------------------------- | ------------------------------------------------------------- |
-| `[@agenticforge/core](packages/core)`                   | Core types, LLM client, message structures                    |
-| `[@agenticforge/tools](packages/tools)`                 | Tool abstraction, ToolRegistry, ToolChain, AsyncToolExecutor  |
-| `[@agenticforge/agents](packages/agents)`               | ReAct / Plan-Solve / Reflection / FunctionCall / Simple Agent |
-| `[@agenticforge/memory](packages/memory)`               | Multi-type memory manager, RAG pipeline, storage adapters     |
-| `[@agenticforge/tools-builtin](packages/tools-builtin)` | Built-in tools: search, memory, notes, RAG, terminal          |
-| `[@agenticforge/context](packages/context)`             | Token-aware context builder                                   |
-| `[@agenticforge/utils](packages/utils)`                 | LRU cache, prompt utilities, and more                         |
-| `[@agenticforge/protocols](packages/protocols)`         | MCP / A2A / ANP protocol implementations                      |
-| `[@agenticforge/kit](packages/kit)`                     | All-in-one entry point - re-exports everything                |
-
+- **Tool-first architecture**: Standardized `Tool`, `ToolRegistry`, `ToolChain`, and async execution model
+- **Multiple agent paradigms**: `Simple`, `FunctionCall`, `ReAct`, `PlanSolve`, `Reflection`, `SkillAgent`, and `WorkflowAgent`
+- **Skill system**: Define skills with `SKILL.md` or TypeScript classes and auto-route by intent
+- **Memory + RAG built-in**: Working / episodic / semantic / perceptual memory with pluggable stores
+- **Protocol layer included**: MCP, A2A, and ANP implementations for inter-agent communication
+- **Production-friendly TypeScript**: ESM/CJS builds, strict typing, modular packages, and subpath imports
 
 ---
 
-## Installation
+## Package Architecture
 
-```bash
-npm install @agenticforge/kit
-```
+| Package | Purpose |
+| --- | --- |
+| [`@agenticforge/kit`](packages/kit) | One-stop package that re-exports the core ecosystem |
+| [`@agenticforge/core`](packages/core) | Agent base types, message model, `LLMClient`, hooks & metrics |
+| [`@agenticforge/tools`](packages/tools) | Tool abstraction, schema validation, registry, chain, async execution |
+| [`@agenticforge/agents`](packages/agents) | Built-in agent implementations and workflow orchestration |
+| [`@agenticforge/skills`](packages/skills) | Markdown / TypeScript skill definitions, loading, routing, execution |
+| [`@agenticforge/memory`](packages/memory) | MemoryManager, storage adapters, embedding support, RAG pipeline |
+| [`@agenticforge/tools-builtin`](packages/tools-builtin) | Ready-to-use tools: search, memory, notes, RAG, terminal |
+| [`@agenticforge/context`](packages/context) | Token-aware context composition and budget management |
+| [`@agenticforge/protocols`](packages/protocols) | MCP / A2A / ANP protocol implementations |
+| [`@agenticforge/utils`](packages/utils) | Shared utility helpers (cache, prompt helpers, etc.) |
 
 ---
 
 ## Agent Types
 
+| Agent | Best For |
+| --- | --- |
+| `SimpleAgent` | Multi-turn conversation without tool execution |
+| `FunctionCallAgent` | Reliable tool-invocation workflows |
+| `ReActAgent` | Iterative reasoning + action loops |
+| `PlanSolveAgent` | Plan-first decomposition for complex tasks |
+| `ReflectionAgent` | Self-critique and answer refinement |
+| `SkillAgent` | Intent-based capability routing across many skills |
+| `WorkflowAgent` | DAG-style orchestration with parallelizable nodes |
 
-| Agent               | Best For                                                |
-| ------------------- | ------------------------------------------------------- |
-| `SimpleAgent`       | Single-turn or multi-turn conversation, no tools        |
-| `FunctionCallAgent` | Tool-driven task execution                              |
-| `ReActAgent`        | Reasoning-action loops for complex tasks                |
-| `PlanSolveAgent`    | Plan first, then execute step by step                   |
-| `ReflectionAgent`   | Self-critique for high-quality generation               |
-| `SkillAgent`        | Routes queries to the best-matching Skill automatically |
+---
 
+## Quick Start
+
+### 1) Install
+
+```bash
+npm install @agenticforge/kit zod
+```
+
+### 2) Minimal Tool-Driven Agent
+
+```ts
+import { LLMClient, FunctionCallAgent, Tool, toolAction } from "@agenticforge/kit";
+import { z } from "zod";
+
+const calculator = new Tool({
+  name: "calculator",
+  description: "Evaluate a simple expression: a+b, a-b, a*b, a/b",
+  parameters: [{ name: "expr", type: "string", required: true }],
+  action: toolAction(
+    z.object({ expr: z.string() }),
+    async ({ expr }) => {
+      const safe = expr.match(/^\s*[-\d.]+\s*[+\-*/]\s*[-\d.]+\s*$/);
+      if (!safe) return "Unsupported expression";
+      return String(Function(`"use strict"; return (${expr})`)());
+    }
+  ),
+});
+
+const llm = new LLMClient({
+  provider: "openai",
+  model: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = new FunctionCallAgent({
+  llm,
+  tools: [calculator],
+});
+
+const output = await agent.run("What is (123 + 456) * 2?");
+console.log(output);
+```
+
+---
+
+## Skills (Markdown + TypeScript)
+
+AgenticFORGE supports two skill authoring styles:
+
+- **Markdown skills** (`SKILL.md` / `*.skill.md`) for fast iteration
+- **TypeScript skills** (`AgentSkill`) for custom logic and deeper control
+
+```ts
+import { SkillLoader, SkillRunner } from "@agenticforge/skills";
+
+const skills = await SkillLoader.fromDirectory(".cursor/skills");
+const runner = new SkillRunner({ llm, skills });
+
+const result = await runner.run("Is it raining in Tokyo tomorrow?");
+console.log(result.output);
+```
+
+---
+
+## Memory and RAG
+
+Use `MemoryManager` to combine short-term and long-term memory, then layer retrieval with the built-in RAG pipeline.
+
+```ts
+import { MemoryManager } from "@agenticforge/memory";
+
+const memory = new MemoryManager({
+  enableWorking: true,
+  enableEpisodic: true,
+  enableSemantic: true,
+});
+
+await memory.addMemory({
+  content: "User prefers concise answers.",
+  memoryType: "semantic",
+  importance: 0.8,
+});
+
+const recalled = await memory.retrieveMemories({
+  query: "response style preference",
+  limit: 3,
+  memoryTypes: ["semantic"],
+});
+
+console.log(recalled);
+```
+
+---
+
+## Protocols (MCP / A2A / ANP)
+
+`@agenticforge/protocols` includes practical protocol implementations to expose tools, connect agents, and manage networks:
+
+- **MCP**: Standardized tool/resource access
+- **A2A**: Agent-to-agent skill invocation
+- **ANP**: Service discovery, topology, and routing
+
+---
+
+## Monorepo Apps & Docs
+
+This repository also includes:
+
+- `apps/second-brain` — an end-to-end sample app (frontend + backend) built with AgenticFORGE
+- `docs-site/` — VitePress documentation site
+- `.cursor/skills/` and `skills/` — reusable skill templates and examples
 
 ---
 
@@ -84,13 +194,24 @@ git clone https://github.com/LittleBlacky/AgenticFORGE.git
 cd AgenticFORGE
 pnpm install
 pnpm -r run build
+pnpm test
 ```
+
+---
+
+## Documentation
+
+- Docs site: [`docs-site/`](docs-site)
+- Guide entry: [`docs-site/guide/introduction`](docs-site/guide/introduction.md)
+- Package-level docs: each package contains its own `README.md`
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please open an issue or pull request to discuss your changes.
+Issues and pull requests are welcome.
+
+If you plan a larger feature or API change, please open an issue first so we can align on design and scope.
 
 ---
 
@@ -102,4 +223,5 @@ Contributions are welcome. Please open an issue or pull request to discuss your 
 
 ## Acknowledgements
 
-This project is built upon and extends [Hello-Agents](https://github.com/datawhalechina/Hello-Agents) (licensed under CC BY-NC-SA 4.0). Many thanks to the original authors and contributors for their outstanding work. The TypeScript port and extensions were completed by [LittleBlacky](https://github.com/LittleBlacky).
+This project builds upon and extends [Hello-Agents](https://github.com/datawhalechina/Hello-Agents) (licensed under CC BY-NC-SA 4.0).
+Thanks to the original authors and contributors. TypeScript porting and major extensions are by [LittleBlacky](https://github.com/LittleBlacky).
