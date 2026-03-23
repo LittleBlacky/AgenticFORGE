@@ -51,12 +51,12 @@ export default defineConfig({
                 {text: "RAG Pipeline", link: "/guide/rag"},
                 {text: "Context Builder", link: "/guide/context"},
                 {text: "Skills", link: "/guide/skills"},
+                {text: "Hooks", link: "/guide/hooks"},
               ],
             },
             {
               text: "Advanced",
               items: [
-                {text: "Build Optimization", link: "/guide/build-optimization"},
                 {text: "Protocols", link: "/guide/protocols"},
               ],
             },
@@ -91,11 +91,10 @@ export default defineConfig({
           {text: "\u6307\u5357", link: "/zh/guide/introduction"},
           {text: "\u5305\u6587\u6863", link: "/zh/packages/kit"},
           {
-            text: "v1.2.0",
+            text: "v1.4.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
-              {text: "\u66f4\u65b0\u65e5\u5fd7", link: "/zh/changelog"},
             ],
           },
         ],
@@ -118,12 +117,12 @@ export default defineConfig({
                 {text: "RAG \u6d41\u6c34\u7ebf", link: "/zh/guide/rag"},
                 {text: "\u4e0a\u4e0b\u6587\u6784\u5efa\u5668", link: "/zh/guide/context"},
                 {text: "Skills \u6280\u80fd\u7cfb\u7edf", link: "/zh/guide/skills"},
+                {text: "Hooks", link: "/zh/guide/hooks"},
               ],
             },
             {
               text: "\u8fdb\u9636",
               items: [
-                {text: "\u6253\u5305\u4f18\u5316", link: "/zh/guide/build-optimization"},
                 {text: "\u534f\u8bae", link: "/zh/guide/protocols"},
               ],
             },
@@ -159,8 +158,8 @@ export default defineConfig({
     ],
 
     footer: {
-      message: "Released under the MIT License.",
-      copyright: "Copyright \u00a9 2024 LittleBlacky",
+      message: "Released under the CC BY-NC-SA 4.0 License.",
+      copyright: "Copyright \u00a9 2026 LittleBlacky",
     },
 
     search: {
