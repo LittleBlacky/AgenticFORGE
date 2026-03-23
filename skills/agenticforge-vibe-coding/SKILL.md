@@ -22,10 +22,10 @@ When the user describes what they want to build, you:
 
 ```
 @agenticforge/kit          — all-in-one re-export, use for quick prototypes
-@agenticforge/core         — LLMClient, Agent base, Message, Config
+@agenticforge/core         — LLMClient, Agent base, Message, Config, hooks API
 @agenticforge/tools        — Tool, FunctionTool, toolAction, ToolRegistry, ToolChain
 @agenticforge/agents       — FunctionCallAgent, ReActAgent, PlanSolveAgent,
-                             ReflectionAgent, SimpleAgent, SkillAgent, WorkflowAgent
+                             ReflectionAgent, SimpleAgent, SkillAgent
 @agenticforge/skills       — AgentSkill, SkillRegistry, SkillRunner,
                              MarkdownSkill, SkillLoader
 @agenticforge/memory       — MemoryManager, WorkingMemory, EpisodicMemory,
@@ -49,7 +49,6 @@ When the user says "build me an agent", choose based on their description:
 | Plan first, then execute | `PlanSolveAgent` |
 | High quality writing / code review | `ReflectionAgent` |
 | Multiple capabilities, auto-route | `SkillAgent` |
-| DAG workflow, concurrent node execution | `WorkflowAgent` |
 
 ---
 
@@ -108,35 +107,6 @@ const skills = await SkillLoader.fromDirectory(".cursor/skills");
 
 const agent = new SkillAgent({ name: "assistant", llm, skills });
 const reply = await agent.run("user query");
-```
-
-### WorkflowAgent pattern
-```typescript
-import "dotenv/config";
-import { WorkflowAgent, LLMClient } from "@agenticforge/kit";
-import type { WorkflowDefinition } from "@agenticforge/agents";
-
-const agent = new WorkflowAgent({
-  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
-  verbose: true,
-});
-
-const definition: WorkflowDefinition = {
-  name: "bilingual-report",
-  nodes: [
-    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",                         depends: [] },
-    { id: "analyze",   type: "llm",  promptTemplate: "Analyze:\n{fetch}",                                  depends: ["fetch"] },
-    { id: "translate", type: "llm",  promptTemplate: "Translate to Chinese:\n{fetch}",                     depends: ["fetch"] },
-    { id: "report",    type: "llm",  promptTemplate: "Bilingual report:\n{analyze}\n\n{translate}",        depends: ["analyze", "translate"] },
-  ],
-};
-
-const result = await agent.runWorkflow(definition, "State of AI in 2024");
-console.log(result.output);
-console.log(result.nodeResults);
-
-agent.setWorkflow(definition);
-const output = await agent.run("State of AI in 2024");
 ```
 
 ### RAG setup pattern
@@ -211,6 +181,18 @@ await agent.run("follow-up");       // context preserved
 agent.clearHistory();               // reset
 ```
 
+### Hook lifecycle (logging + metrics)
+```typescript
+import { createConsoleLoggingHook, MetricsHook } from "@agenticforge/core";
+
+const metrics = new MetricsHook();
+agent
+  .useHook(createConsoleLoggingHook({ events: ["afterRun", "onError"] }))
+  .useHook(metrics.hook);
+
+console.log(metrics.getSnapshot());
+```
+
 ### Tool chaining
 ```typescript
 import { ToolChain } from "@agenticforge/tools";
@@ -265,8 +247,9 @@ const result = await client.run("delegate this task");
 - `ToolRegistry` is built lazily in `AgentSkill` — tools passed at construction time are not validated until first `execute()` call
 - `visible: false` on a Skill hides it from LLM routing — only callable via `runSkill(name)`
 - `PlanSolveAgent` makes two LLM calls per run (plan + execute) — costs 2x tokens vs other agents
+- Hook APIs are on `Agent` base class: `useHook()`, `useHooks()`, `removeHook()`, `clearHooks()`
+- Built-in hooks are exported from `@agenticforge/core` as `createConsoleLoggingHook` and `MetricsHook`
 - `WorkingMemory` constructor uses `workingMemoryCapacity`, NOT `maxItems` — wrong key is silently ignored
 - `add()` on any memory class always requires a full `MemoryItem` object — no shorthand `{ role, content }` API
 - `getLast()` does NOT exist on `WorkingMemory` — use `getRecent(limit)` instead
 - `MemoryManager` sub-stores are **private** — access only via `addMemory()` / `retrieveMemories()`
-- `WorkflowAgent` type:"tool" nodes require a `ToolRegistry` — omitting it throws at runtime
