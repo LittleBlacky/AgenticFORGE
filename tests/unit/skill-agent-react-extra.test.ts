@@ -86,6 +86,118 @@ describe("SkillAgent — streamRun() fallback", () => {
   });
 });
 
+describe("SkillAgent — routing and history branches", () => {
+  class CaptureSkill extends AgentSkill {
+    public lastHistoryLen = -1;
+    constructor(name: string) {
+      super({ name, description: `${name} skill`, triggerHint: name, systemPrompt: `${name} prompt` });
+    }
+    override async execute(context: any, _llm: any): Promise<any> {
+      this.lastHistoryLen = Array.isArray(context.history) ? context.history.length : -1;
+      return { output: `${this.name}-ok` };
+    }
+  }
+
+  it("routes by startsWith when router returns skill prefix", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("wea"),
+      streamThink: vi.fn(async function* () { yield "x"; }),
+      client: undefined,
+      model: "m",
+    } as any;
+    const noop = new CaptureSkill("noop");
+    const weather = new CaptureSkill("weather");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [noop, weather] });
+
+    const out = await agent.run("forecast please");
+    expect(out).toBe("weather-ok");
+  });
+
+  it("routes by includes when router output contains skill name", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("please_use_noop_skill"),
+      streamThink: vi.fn(async function* () { yield "x"; }),
+      client: undefined,
+      model: "m",
+    } as any;
+    const noop = new CaptureSkill("noop");
+    const weather = new CaptureSkill("weather");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [noop, weather] });
+
+    const out = await agent.run("do it");
+    expect(out).toBe("noop-ok");
+  });
+
+  it("stream fallback path includes prior history messages", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("unknown_skill_xyz"),
+      streamThink: vi.fn(async function* () { yield "fallback-stream"; }),
+      client: undefined,
+      model: "m",
+    } as any;
+    const noop = new CaptureSkill("noop");
+    const weather = new CaptureSkill("weather");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [noop, weather] });
+
+    await agent.run("first turn");
+    const chunks: string[] = [];
+    for await (const c of agent.streamRun("second turn")) chunks.push(c);
+
+    expect(chunks.join("")).toBe("fallback-stream");
+    const streamMsgs = llm.streamThink.mock.calls.at(-1)?.[0] as Array<{ role: string; content: string }>;
+    expect(streamMsgs.some((m) => m.content.includes("first turn"))).toBe(true);
+  });
+
+  it("stream skill path passes history into skill context", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("weather"),
+      streamThink: vi.fn(async function* () { yield "x"; }),
+      client: undefined,
+      model: "m",
+    } as any;
+    const weather = new CaptureSkill("weather");
+    const noop = new CaptureSkill("noop");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [noop, weather] });
+
+    await agent.run("warmup");
+    const out: string[] = [];
+    for await (const c of agent.streamRun("now route to weather")) out.push(c);
+
+    expect(out.join("")).toBe("weather-ok");
+    expect(weather.lastHistoryLen).toBeGreaterThan(0);
+  });
+
+  it("run fallback path includes prior history messages", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("unknown_skill_xyz"),
+      streamThink: vi.fn(async function* () { yield "x"; }),
+      client: undefined,
+      model: "m",
+    } as any;
+    const noop = new CaptureSkill("noop");
+    const weather = new CaptureSkill("weather");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [noop, weather] });
+
+    await agent.run("turn-1");
+    await agent.run("turn-2");
+
+    const thinkMsgs = llm.think.mock.calls.at(-1)?.[0] as Array<{ role: string; content: string }>;
+    expect(thinkMsgs.some((m) => m.content.includes("turn-1"))).toBe(true);
+  });
+
+  it("runSkill named path passes history to skill context", async () => {
+    const llm = makeFallbackLLM();
+    const capture = new CaptureSkill("capture");
+    const agent = new SkillAgent({ name: "sa", llm, skills: [capture] });
+
+    await agent.run("init history");
+    const result = await agent.runSkill("capture", "do capture", { tag: 1 });
+
+    expect(result.output).toBe("capture-ok");
+    expect(capture.lastHistoryLen).toBeGreaterThan(0);
+  });
+});
+
 // ===========================================================================
 // ReActAgent — exhausted max steps without Final Answer
 // ===========================================================================
