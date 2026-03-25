@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/actions/workflows/publish-npm.yml"><img src="https://img.shields.io/github/actions/workflow/status/LittleBlacky/AgenticFORGE/publish-npm.yml?label=publish" alt="publish workflow" /></a>
-  <a href="https://codecov.io/gh/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/badge/coverage-check_CI-brightgreen?logo=vitest" alt="test coverage" /></a>
+  <a href="https://codecov.io/gh/LittleBlacky/AgenticFORGE"><img src="https://codecov.io/gh/LittleBlacky/AgenticFORGE/branch/main/graph/badge.svg?token=CODECOV_TOKEN" alt="coverage" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/last-commit/LittleBlacky/AgenticFORGE" alt="last commit" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
