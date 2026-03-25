@@ -25,7 +25,8 @@ When the user describes what they want to build, you:
 @agenticforge/core         — LLMClient, Agent base, Message, Config, hooks API
 @agenticforge/tools        — Tool, FunctionTool, toolAction, ToolRegistry, ToolChain
 @agenticforge/agents       — FunctionCallAgent, ReActAgent, PlanSolveAgent,
-                             ReflectionAgent, SimpleAgent, SkillAgent
+                             ReflectionAgent, SimpleAgent, SkillAgent, WorkflowAgent
+@agenticforge/workflow     — WorkflowEngine, WorkflowDefinition, WorkflowNode types
 @agenticforge/skills       — AgentSkill, SkillRegistry, SkillRunner,
                              MarkdownSkill, SkillLoader
 @agenticforge/memory       — MemoryManager, WorkingMemory, EpisodicMemory,

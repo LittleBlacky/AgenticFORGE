@@ -151,7 +151,7 @@ For type:"tool" nodes, tools must be registered in a `ToolRegistry` (pass instan
 ```typescript
 import "dotenv/config";
 import { WorkflowAgent, LLMClient } from "@agenticforge/kit";
-import type { WorkflowDefinition } from "@agenticforge/agents";
+import type { WorkflowDefinition } from "@agenticforge/workflow";
 import { ToolRegistry } from "@agenticforge/tools";
 
 // Register Tool subclass instances for type:"tool" nodes
