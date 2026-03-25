@@ -189,6 +189,25 @@ This repository also includes:
 
 ---
 
+## AI-Assisted Development with Skills
+
+Every AgenticFORGE package ships with a companion `SKILL.md` under `skills/`, designed to be loaded into AI coding assistants (Cursor, Windsurf, etc.) as context-aware skills.
+
+| Skill | Covers |
+| --- | --- |
+| [`agenticforge-agents`](skills/agenticforge-agents/SKILL.md) | Agent selection, configuration, WorkflowAgent DAG patterns |
+| [`agenticforge-tools`](skills/agenticforge-tools/SKILL.md) | Tool authoring, ToolRegistry, ToolChain, AsyncToolExecutor |
+| [`agenticforge-memory`](skills/agenticforge-memory/SKILL.md) | WorkingMemory, EpisodicMemory, SemanticMemory, RAG pipeline |
+| [`agenticforge-skills`](skills/agenticforge-skills/SKILL.md) | SKILL.md authoring, SkillRunner, SkillLoader, routing |
+| [`agenticforge-context`](skills/agenticforge-context/SKILL.md) | ContextBuilder, token budget management |
+| [`agenticforge-protocols`](skills/agenticforge-protocols/SKILL.md) | MCP, A2A, ANP protocol setup |
+| [`agenticforge-debugging`](skills/agenticforge-debugging/SKILL.md) | Diagnosing agent loop errors, tool failures, type errors |
+| [`agenticforge-vibe-coding`](skills/agenticforge-vibe-coding/SKILL.md) | All-in-one assistant for rapid AgenticFORGE development |
+
+To load them into Cursor, add the `skills/` directory to your `.cursor/skills/` path or reference individual `SKILL.md` files in your project rules.
+
+---
+
 ## Local Development
 
 ```bash

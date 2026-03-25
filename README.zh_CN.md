@@ -189,6 +189,25 @@ console.log(recalled);
 
 ---
 
+## AI 辅助开发：配套 Skills
+
+AgenticFORGE 每个核心包都附带一份 `SKILL.md`，存放在 `skills/` 目录下，可加载到 Cursor、Windsurf 等 AI 编码助手中作为上下文感知技能。
+
+| Skill | 覆盖内容 |
+| --- | --- |
+| [`agenticforge-agents`](skills/agenticforge-agents/SKILL.md) | Agent 选型、配置、WorkflowAgent DAG 模式 |
+| [`agenticforge-tools`](skills/agenticforge-tools/SKILL.md) | Tool 编写、ToolRegistry、ToolChain、AsyncToolExecutor |
+| [`agenticforge-memory`](skills/agenticforge-memory/SKILL.md) | WorkingMemory、EpisodicMemory、SemanticMemory、RAG 管道 |
+| [`agenticforge-skills`](skills/agenticforge-skills/SKILL.md) | SKILL.md 编写、SkillRunner、SkillLoader、意图路由 |
+| [`agenticforge-context`](skills/agenticforge-context/SKILL.md) | ContextBuilder、Token 预算管理 |
+| [`agenticforge-protocols`](skills/agenticforge-protocols/SKILL.md) | MCP、A2A、ANP 协议配置 |
+| [`agenticforge-debugging`](skills/agenticforge-debugging/SKILL.md) | Agent 循环错误、工具调用失败、类型错误诊断 |
+| [`agenticforge-vibe-coding`](skills/agenticforge-vibe-coding/SKILL.md) | 一站式 AgenticFORGE 快速开发助手 |
+
+在 Cursor 中使用时，将 `skills/` 目录加入 `.cursor/skills/` 路径，或在项目规则中直接引用各 `SKILL.md` 文件。
+
+---
+
 ## 本地开发
 
 ```bash
