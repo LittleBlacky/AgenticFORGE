@@ -23,13 +23,7 @@ export default defineConfig({
   input: "src/index.ts",
   external: [
     "@agenticforge/core",
-    "@agenticforge/context",
     "@agenticforge/tools",
-    "@agenticforge/tools-builtin",
-    "@agenticforge/memory",
-    "@agenticforge/utils",
-    "@agenticforge/workflow",
-    "@agenticforge/agents",
   ],
   treeshake,
   output: [

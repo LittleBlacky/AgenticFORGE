@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "outDir": "dist/types",
+    "baseUrl": ".",
     "paths": {
       "@agenticforge/core": ["../core/src"],
       "@agenticforge/context": ["../context/src"],
@@ -11,6 +12,7 @@
       "@agenticforge/memory": ["../memory/src"],
       "@agenticforge/utils": ["../utils/src"],
       "@agenticforge/skills": ["../skills/src"],
+      "@agenticforge/workflow": ["../workflow/src"],
       "@agenticforge/agents": ["./src"],
       "@agenticforge/kit": ["../kit/src"]
     }

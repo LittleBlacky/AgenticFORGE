@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const PKGS = ['utils','core','memory','tools','tools-builtin','context','agents','kit'];
+const PKGS = ['utils','core','memory','tools','tools-builtin','context','skills','workflow','agents','kit'];
 const SCOPE = '@agenticforge/';
 
 for (const name of PKGS) {

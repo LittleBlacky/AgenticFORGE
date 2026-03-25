@@ -25,6 +25,7 @@ const PUBLISH_ORDER = [
   "context",
   "skills",
   "agents",
+  "workflow",
   "protocols",
   "kit",
 ];

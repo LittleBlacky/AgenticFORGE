@@ -10,6 +10,7 @@
       "@agenticforge/tools-builtin": ["../tools-builtin/src"],
       "@agenticforge/memory": ["../memory/src"],
       "@agenticforge/utils": ["../utils/src"],
+      "@agenticforge/workflow": ["../workflow/src"],
       "@agenticforge/agents": ["../agents/src"],
       "@agenticforge/skills": ["../skills/src"]
     }

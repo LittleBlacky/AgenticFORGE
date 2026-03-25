@@ -12,7 +12,8 @@
       "@agenticforge/tools": ["../tools/dist/types"],
       "@agenticforge/tools-builtin": ["../tools-builtin/dist/types"],
       "@agenticforge/memory": ["../memory/dist/types"],
-      "@agenticforge/skills": ["../skills/dist/types"]
+      "@agenticforge/skills": ["../skills/dist/types"],
+      "@agenticforge/workflow": ["../workflow/dist/types"]
     }
   },
   "include": ["src/**/*.ts"]

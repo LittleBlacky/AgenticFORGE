@@ -12,6 +12,7 @@
       "@agenticforge/memory": ["packages/memory/src"],
       "@agenticforge/utils": ["packages/utils/src"],
       "@agenticforge/agents": ["packages/agents/src"],
+      "@agenticforge/workflow": ["packages/workflow/src"],
       "@agenticforge/kit": ["packages/kit/src"],
       "@agenticforge/skills": ["packages/skills/src"],
       "@agenticforge/protocols": ["packages/protocols/src"]

@@ -28,6 +28,7 @@ export default defineConfig({
     "@agenticforge/tools-builtin",
     "@agenticforge/memory",
     "@agenticforge/skills",
+    "@agenticforge/workflow",
     "reflect-metadata",
     "zod",
   ],

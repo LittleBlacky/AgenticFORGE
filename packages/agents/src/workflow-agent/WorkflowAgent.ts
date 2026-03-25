@@ -1,7 +1,7 @@
 import {Agent, Message} from "@agenticforge/core";
 import {ToolRegistry} from "@agenticforge/tools";
-import {WorkflowEngine} from "./WorkflowEngine";
-import type {WorkflowDefinition, WorkflowResult} from "./types";
+import {WorkflowEngine} from "@agenticforge/workflow";
+import type {WorkflowDefinition, WorkflowResult} from "@agenticforge/workflow";
 
 export interface WorkflowAgentOptions {
   name: string;
@@ -19,7 +19,7 @@ export interface WorkflowAgentOptions {
 /**
  * WorkflowAgent — 支持四种执行模式的工作流 Agent
  *
- * 由 WorkflowEngine 驱动，支持：
+ * 由 WorkflowEngine（来自 @agenticforge/workflow）驱动，支持：
  * - **Sequential**：通过 `depends` 形成线性执行链
  * - **Parallel**：同一波次内无依赖的节点自动并发执行（受 maxConcurrency 控制）
  * - **Branch**：`type: "branch"` 节点，condition 函数返回分支名，执行对应子 DAG
