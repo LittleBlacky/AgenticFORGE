@@ -297,6 +297,20 @@ describe("expandNeighborsFromPool", () => {
     const result = expandNeighborsFromPool(selected, pool, 1, 5);
     expect(result.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("handles missing memory_id and id with empty-string fallback", () => {
+    const selected = [
+      { content: "seed", score: 1, metadata: { doc_id: "docX", start: 10 } },
+    ] as Array<Record<string, unknown>>;
+    const pool = [
+      { content: "left", score: 0.8, metadata: { doc_id: "docX", start: 0 } },
+      { content: "seed", score: 1, metadata: { doc_id: "docX", start: 10 } },
+      { content: "right", score: 0.7, metadata: { doc_id: "docX", start: 20 } },
+    ] as Array<Record<string, unknown>>;
+
+    const out = expandNeighborsFromPool(selected, pool, 1, 2);
+    expect(out.length).toBeGreaterThanOrEqual(1);
+  });
 });
 
 // ===========================================================================

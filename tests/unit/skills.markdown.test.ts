@@ -45,6 +45,23 @@ This skill has no frontmatter.`;
 // parseFrontmatter
 // ===========================================================================
 describe("parseFrontmatter", () => {
+  it("falls back to unknown-skill and Unnamed skill when no frontmatter and no H1", () => {
+    const { frontmatter } = parseFrontmatter("plain text without heading");
+    expect(frontmatter.name).toBe("unknown-skill");
+    expect(frontmatter.description).toBe("Unnamed skill");
+  });
+
+  it("ignores invalid frontmatter lines that are not key:value", () => {
+    const md = `---
+name: valid-name
+this-is-invalid-line
+---
+
+body`;
+    const { frontmatter } = parseFrontmatter(md);
+    expect(frontmatter.name).toBe("valid-name");
+  });
+
   it("parses name, description, triggerHint, visible from frontmatter", () => {
     const { frontmatter, body } = parseFrontmatter(SAMPLE_MD);
     expect(frontmatter.name).toBe("weather");
@@ -73,6 +90,16 @@ description: A skill
 # Auto Name`;
     const { frontmatter } = parseFrontmatter(md);
     expect(frontmatter.name).toBe("auto-name");
+  });
+
+  it("uses name as description when description is missing", () => {
+    const md = `---
+name: only-name
+---
+
+body`;
+    const { frontmatter } = parseFrontmatter(md);
+    expect(frontmatter.description).toBe("only-name");
   });
 
   it("handles quoted string values", () => {

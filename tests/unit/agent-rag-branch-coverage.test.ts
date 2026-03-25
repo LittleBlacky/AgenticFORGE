@@ -38,6 +38,9 @@ describe("SimpleAgent history + non-Error tool failure branches", () => {
                   yield { choices: [{ delta: { content: "T" } }] };
                 })();
               }
+              if (params.tool_choice === "none") {
+                return { choices: [{ message: { content: "fallback" } }] };
+              }
               nonStreamCalls++;
               if (nonStreamCalls <= 2) {
                 return {

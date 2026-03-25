@@ -81,12 +81,117 @@ describe("ReActAgent — run()", () => {
     expect(typeof result).toBe("string");
   });
 
-  it("getSteps() returns executed steps", async () => {
-    const llm = makeLLM("Final Answer: done");
-    const agent = new ReActAgent({ name: "ra", llm });
-    await agent.run("q");
-    expect(Array.isArray(agent.getSteps())).toBe(true);
-    expect(agent.getSteps().length).toBeGreaterThan(0);
+  it("streamRun uses raw thought as final when no action/final and stream yields empty", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("Thought: still thinking"),
+      streamThink: vi.fn(async function* () {
+        // no chunks
+      }),
+      client: undefined,
+      model: "m",
+    } as any;
+
+    const agent = new ReActAgent({ name: "ra", llm, maxSteps: 1 });
+    const chunks: string[] = [];
+    for await (const c of agent.streamRun("fallback-input")) chunks.push(c);
+
+    expect(chunks).toEqual([]);
+    const history = agent.getHistory();
+    expect(history[history.length - 1]?.content).toBe("Thought: still thinking");
+  });
+
+  it("streamRun records streamed synthesis output into history", async () => {
+    const llm = {
+      think: vi.fn().mockResolvedValue("Final Answer: hidden"),
+      streamThink: vi.fn(async function* () {
+        yield "A";
+        yield "B";
+      }),
+      client: undefined,
+      model: "m",
+    } as any;
+
+    const agent = new ReActAgent({ name: "ra", llm, maxSteps: 2 });
+    const out: string[] = [];
+    for await (const c of agent.streamRun("q")) out.push(c);
+
+    expect(out.join("")).toBe("AB");
+    const history = agent.getHistory();
+    expect(history[history.length - 1]?.content).toBe("AB");
+  });
+
+  it("streamRun handles action without Action Input using empty input", async () => {
+    const registry = new ToolRegistry();
+    registry.registerTool(new EchoTool());
+
+    const llm = {
+      think: vi
+        .fn()
+        .mockResolvedValueOnce("Action: echo")
+        .mockResolvedValueOnce("Final Answer: ok"),
+      streamThink: vi.fn(async function* () {
+        yield "S";
+      }),
+      client: undefined,
+      model: "m",
+    } as any;
+
+    const agent = new ReActAgent({ name: "ra", llm, toolRegistry: registry, maxSteps: 3 });
+    const chunks: string[] = [];
+    for await (const c of agent.streamRun("q")) chunks.push(c);
+
+    expect(chunks.join("")).toBe("S");
+    const steps = agent.getSteps();
+    expect(steps[0]?.actionInput).toBe("");
+  });
+
+  it("streamRun captures tool exception as observation error text", async () => {
+    const badTool = new class extends Tool {
+      constructor() { super("bad", "throws"); }
+      getParameters(): ToolParameter[] { return []; }
+      async run(): Promise<string> { throw new Error("tool fail"); }
+    }();
+    const registry = new ToolRegistry();
+    registry.registerTool(badTool);
+
+    const llm = {
+      think: vi
+        .fn()
+        .mockResolvedValueOnce("Action: bad\nAction Input: x")
+        .mockResolvedValueOnce("Final Answer: recovered"),
+      streamThink: vi.fn(async function* () {
+        yield "T";
+      }),
+      client: undefined,
+      model: "m",
+    } as any;
+
+    const agent = new ReActAgent({ name: "ra", llm, toolRegistry: registry, maxSteps: 3 });
+    const chunks: string[] = [];
+    for await (const c of agent.streamRun("q")) chunks.push(c);
+
+    expect(chunks.join("")).toBe("T");
+    const steps = agent.getSteps();
+    expect(String(steps[0]?.observation)).toContain("Error: tool fail");
+  });
+
+  it("streamRun uses inputText fallback when maxSteps is zero", async () => {
+    const llm = {
+      think: vi.fn(),
+      streamThink: vi.fn(async function* () {
+        // no synthesis chunks
+      }),
+      client: undefined,
+      model: "m",
+    } as any;
+
+    const agent = new ReActAgent({ name: "ra", llm, maxSteps: 0 });
+    const chunks: string[] = [];
+    for await (const c of agent.streamRun("input-fallback")) chunks.push(c);
+
+    expect(chunks).toEqual([]);
+    const history = agent.getHistory();
+    expect(history[history.length - 1]?.content).toBe("input-fallback");
   });
 
   it("emits beforeRun/afterRun hooks", async () => {

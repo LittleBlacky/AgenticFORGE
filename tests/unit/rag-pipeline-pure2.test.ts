@@ -116,6 +116,29 @@ describe("computeGraphSignalsFromPool()", () => {
     const signals = computeGraphSignalsFromPool(hits);
     expect(signals["x"]).toBeDefined();
   });
+
+  it("breaks proximity scan when distance exceeds window", () => {
+    const hits = [
+      { id: "p1", score: 0.9, metadata: { doc_id: "docP", start: 0 } },
+      { id: "p2", score: 0.8, metadata: { doc_id: "docP", start: 10000 } },
+      { id: "p3", score: 0.7, metadata: { doc_id: "docP", start: 20000 } },
+    ];
+
+    const signals = computeGraphSignalsFromPool(hits, 1, 1, 50);
+    expect(Object.keys(signals).length).toBe(3);
+    expect(signals["p1"]).toBeGreaterThan(0);
+  });
+
+  it("uses default start=0 when metadata.start is missing", () => {
+    const hits = [
+      { id: "m1", score: 0.9, metadata: { doc_id: "docM" } },
+      { id: "m2", score: 0.8, metadata: { doc_id: "docM", start: 1 } },
+    ];
+
+    const signals = computeGraphSignalsFromPool(hits, 1, 1, 5);
+    expect(typeof signals["m1"]).toBe("number");
+    expect(typeof signals["m2"]).toBe("number");
+  });
 });
 
 // loadDocuments({ paths, ... })

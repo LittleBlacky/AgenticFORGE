@@ -21,6 +21,34 @@ function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
 // ===========================================================================
 // MemoryManager — consolidateMemories
 // ===========================================================================
+describe("MemoryManager — retrieveMemories branches", () => {
+  it("skips disabled memoryTypes entries in query list", async () => {
+    const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
+    await mgr.addMemory({ content: "only-working", memoryType: "working", importance: 0.6, userId: "u1" });
+
+    const out = await mgr.retrieveMemories({
+      query: "only",
+      memoryTypes: ["working", "semantic"],
+      limit: 5,
+    });
+
+    expect(out.length).toBeGreaterThanOrEqual(1);
+    expect(out.every((m) => m.memoryType === "working")).toBe(true);
+  });
+
+  it("applies minImportance and sorts descending", async () => {
+    const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
+    await mgr.addMemory({ content: "low", memoryType: "working", importance: 0.2, userId: "u1" });
+    await mgr.addMemory({ content: "high", memoryType: "working", importance: 0.9, userId: "u1" });
+
+    const out = await mgr.retrieveMemories({ query: "", limit: 5, minImportance: 0.3 });
+    expect(out.every((m) => m.importance >= 0.3)).toBe(true);
+    if (out.length >= 2) {
+      expect(out[0].importance).toBeGreaterThanOrEqual(out[1].importance);
+    }
+  });
+});
+
 describe("MemoryManager — consolidateMemories", () => {
   it("moves high-importance working items to episodic", async () => {
     const mgr = new MemoryManager({
