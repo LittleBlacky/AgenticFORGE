@@ -209,3 +209,5 @@ const definition: WorkflowDefinition = {
 | `registry` | `ToolRegistry` | — | `tool` 节点必须提供 |
 | `verbose` | `boolean` | `false` | 打印每个波次的执行日志 |
 | `maxConcurrency` | `number` | 不限制 | 单波次最大并发节点数 |
+
+> 如需不经过 Agent 层直接使用 `WorkflowEngine`，请参阅 [@agenticforge/workflow](/zh/packages/workflow)。

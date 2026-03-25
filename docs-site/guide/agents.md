@@ -251,6 +251,8 @@ const output = await agent.run("my query"); // history auto-tracked
 | `verbose` | `boolean` | `false` | Log execution waves |
 | `maxConcurrency` | `number` | unlimited | Max concurrent nodes per wave |
 
+> For using `WorkflowEngine` directly without an agent wrapper, see [@agenticforge/workflow](/packages/workflow).
+
 ## Using built-in tools with agents
 
 ```ts
