@@ -9,6 +9,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@agenticforge/kit"><img src="https://img.shields.io/npm/v/@agenticforge/kit?label=%40agenticforge%2Fkit" alt="npm version" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/actions/workflows/publish-npm.yml"><img src="https://img.shields.io/github/actions/workflow/status/LittleBlacky/AgenticFORGE/publish-npm.yml?label=publish" alt="publish workflow" /></a>
+  <a href="https://codecov.io/gh/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/badge/coverage-check_CI-brightgreen?logo=vitest" alt="test coverage" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE"><img src="https://img.shields.io/github/last-commit/LittleBlacky/AgenticFORGE" alt="last commit" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
   <a href="https://github.com/LittleBlacky/AgenticFORGE/blob/main/package.json"><img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
@@ -50,6 +51,7 @@ AgenticFORGE 是一个用于构建工具驱动 AI Agent 的 TypeScript Monorepo 
 | [`@agenticforge/core`](packages/core) | Agent 基础类型、消息模型、`LLMClient`、Hooks 与 Metrics |
 | [`@agenticforge/tools`](packages/tools) | Tool 抽象、参数校验、注册中心、工具链、异步执行 |
 | [`@agenticforge/agents`](packages/agents) | 内置 Agent 实现与工作流编排 |
+| [`@agenticforge/workflow`](packages/workflow) | 独立 DAG 工作流引擎（`WorkflowEngine` + 类型定义） |
 | [`@agenticforge/skills`](packages/skills) | Markdown/TypeScript Skill 定义、加载、路由与执行 |
 | [`@agenticforge/memory`](packages/memory) | MemoryManager、存储适配器、Embedding、RAG 管道 |
 | [`@agenticforge/tools-builtin`](packages/tools-builtin) | 开箱即用工具：搜索、记忆、笔记、RAG、终端 |
