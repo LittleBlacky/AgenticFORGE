@@ -84,7 +84,7 @@ Supported node types: `tool` · `llm` · `fn` · `passthrough`
 
 ```ts
 import { WorkflowAgent, LLMClient } from "@agenticforge/agents";
-import type { WorkflowDefinition } from "@agenticforge/agents";
+import type { WorkflowDefinition } from "@agenticforge/workflow"; // types now in @agenticforge/workflow
 
 const agent = new WorkflowAgent({
   name: "report-workflow",

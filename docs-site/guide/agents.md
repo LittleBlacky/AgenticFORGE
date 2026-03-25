@@ -138,7 +138,7 @@ const result = await agent.run("Explain RAG in one paragraph.");
 
 ```ts
 import {WorkflowAgent, LLMClient} from "@agenticforge/kit";
-import type {WorkflowDefinition} from "@agenticforge/agents";
+import type {WorkflowDefinition} from "@agenticforge/workflow"; // types now in @agenticforge/workflow
 
 const agent = new WorkflowAgent({
   name: "pipeline",

@@ -24,7 +24,7 @@ export default defineConfig({
           {text: "Guide", link: "/guide/introduction"},
           {text: "Packages", link: "/packages/kit"},
           {
-            text: "v1.4.0",
+            text: "v1.5.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
@@ -68,6 +68,7 @@ export default defineConfig({
                 {text: "@agenticforge/kit", link: "/packages/kit"},
                 {text: "@agenticforge/core", link: "/packages/core"},
                 {text: "@agenticforge/agents", link: "/packages/agents"},
+                {text: "@agenticforge/workflow", link: "/packages/workflow"},
                 {text: "@agenticforge/skills", link: "/packages/skills"},
                 {text: "@agenticforge/memory", link: "/packages/memory"},
                 {text: "@agenticforge/tools", link: "/packages/tools"},
@@ -91,7 +92,7 @@ export default defineConfig({
           {text: "\u6307\u5357", link: "/zh/guide/introduction"},
           {text: "\u5305\u6587\u6863", link: "/zh/packages/kit"},
           {
-            text: "v1.4.0",
+            text: "v1.5.0",
             items: [
               {text: "npm", link: "https://www.npmjs.com/package/@agenticforge/kit"},
               {text: "GitHub", link: "https://github.com/LittleBlacky/AgenticFORGE"},
@@ -134,6 +135,7 @@ export default defineConfig({
                 {text: "@agenticforge/kit", link: "/zh/packages/kit"},
                 {text: "@agenticforge/core", link: "/zh/packages/core"},
                 {text: "@agenticforge/agents", link: "/zh/packages/agents"},
+                {text: "@agenticforge/workflow", link: "/zh/packages/workflow"},
                 {text: "@agenticforge/skills", link: "/zh/packages/skills"},
                 {text: "@agenticforge/memory", link: "/zh/packages/memory"},
                 {text: "@agenticforge/tools", link: "/zh/packages/tools"},

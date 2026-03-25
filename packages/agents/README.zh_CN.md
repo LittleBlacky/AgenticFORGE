@@ -81,7 +81,7 @@ console.log(result);
 
 ```ts
 import { WorkflowAgent, LLMClient } from "@agenticforge/agents";
-import type { WorkflowDefinition } from "@agenticforge/agents";
+import type { WorkflowDefinition } from "@agenticforge/workflow"; // 类型定义现已独立至 @agenticforge/workflow
 
 const agent = new WorkflowAgent({
   name: "report-workflow",
