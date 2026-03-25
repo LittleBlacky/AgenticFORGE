@@ -6,13 +6,13 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { Tool, ToolRegistry, ToolChain } from "@agenticforge/tools";
-import { WorkflowEngine } from "../../packages/agents/src/workflow-agent/WorkflowEngine";
+import { WorkflowEngine } from "@agenticforge/workflow";
 import { MemoryManager } from "../../packages/memory/src/manager";
 import { ContextBuilder } from "../../packages/context/src/ContextBuilder";
 import { AgentSkill } from "@agenticforge/skills";
 import { SkillRunner } from "@agenticforge/skills";
 import type { ToolParameter } from "@agenticforge/tools";
-import type { WorkflowDefinition } from "../../packages/agents/src/workflow-agent/types";
+import type { WorkflowDefinition } from "@agenticforge/workflow";
 
 class UpperTool extends Tool {
   constructor() { super("upper", "Uppercase tool"); }

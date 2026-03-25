@@ -3,9 +3,9 @@
  * 瑕嗙洊锛歵opoSort, sequential, parallel, branch, loop, fn, passthrough, error handling
  */
 import { describe, it, expect, vi } from "vitest";
-import { WorkflowEngine } from "../../packages/agents/src/workflow-agent/WorkflowEngine";
+import { WorkflowEngine } from "@agenticforge/workflow";
 import { WorkflowAgent } from "../../packages/agents/src/workflow-agent/WorkflowAgent";
-import type { WorkflowDefinition } from "../../packages/agents/src/workflow-agent/types";
+import type { WorkflowDefinition } from "@agenticforge/workflow";
 
 function makeMockLLM(response = "llm-output") {
   return {

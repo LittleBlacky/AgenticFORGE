@@ -35,6 +35,7 @@ export default defineConfig({
       "@agenticforge/context": resolve("packages/context/src/index.ts"),
       "@agenticforge/memory": resolve("packages/memory/src/index.ts"),
       "@agenticforge/agents": resolve("packages/agents/src/index.ts"),
+      "@agenticforge/workflow": resolve("packages/workflow/src/index.ts"),
       "@agenticforge/skills": resolve("packages/skills/src/index.ts"),
       "@agenticforge/utils": resolve("packages/utils/src/index.ts"),
       "@agenticforge/kit": resolve("packages/kit/src/index.ts"),
