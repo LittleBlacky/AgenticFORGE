@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "outDir": "dist/types",
+    "baseUrl": ".",
     "paths": {
       "@agenticforge/core": ["../core/src"],
       "@agenticforge/tools": ["../tools/src"]
