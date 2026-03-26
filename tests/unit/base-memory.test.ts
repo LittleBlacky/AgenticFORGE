@@ -10,33 +10,43 @@ import type { MemoryItem } from "../../packages/memory/src/types/base";
 class TestMemory extends BaseMemory {
   private items: MemoryItem[] = [];
 
-  constructor(config = {}) { super(config); }
+  constructor(config = {}) {
+    super(config);
+  }
 
   async add(item: MemoryItem): Promise<string> {
     this.items.push(item);
     return item.id;
   }
-  async retrieve(): Promise<MemoryItem[]> { return this.items; }
+  async retrieve(): Promise<MemoryItem[]> {
+    return this.items;
+  }
   async update(id: string, content?: string): Promise<boolean> {
-    const i = this.items.findIndex(m => m.id === id);
+    const i = this.items.findIndex((m) => m.id === id);
     if (i < 0) return false;
     if (content) this.items[i]!.content = content;
     return true;
   }
   async remove(id: string): Promise<boolean> {
-    const i = this.items.findIndex(m => m.id === id);
+    const i = this.items.findIndex((m) => m.id === id);
     if (i < 0) return false;
     this.items.splice(i, 1);
     return true;
   }
   async hasMemory(id: string): Promise<boolean> {
-    return this.items.some(m => m.id === id);
+    return this.items.some((m) => m.id === id);
   }
-  async clear(): Promise<void> { this.items = []; }
-  async getStats(): Promise<Record<string, unknown>> { return { count: this.items.length }; }
+  async clear(): Promise<void> {
+    this.items = [];
+  }
+  async getStats(): Promise<Record<string, unknown>> {
+    return { count: this.items.length };
+  }
 
   // Expose protected methods for testing
-  testGenerateId() { return this.generateId(); }
+  testGenerateId() {
+    return this.generateId();
+  }
   testCalculateImportance(content: string, base?: number) {
     return this.calculateImportance(content, base);
   }

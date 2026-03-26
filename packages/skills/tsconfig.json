@@ -21,7 +21,8 @@
     "baseUrl": ".",
     "paths": {
       "@agenticforge/core": ["../core/src"],
-      "@agenticforge/tools": ["../tools/src"]
+      "@agenticforge/tools": ["../tools/src"],
+      "@agenticforge/utils": ["../utils/src"]
     }
   },
   "include": ["src/**/*.ts"]

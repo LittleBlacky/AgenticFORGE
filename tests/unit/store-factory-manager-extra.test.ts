@@ -49,22 +49,31 @@ describe("FunctionCallAgent — no-registry / arg parsing edge cases", () => {
     let call = 0;
     return {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: {
         chat: {
           completions: {
             create: vi.fn().mockImplementation(async () => {
               call++;
-              if (call === 1 && toolCallArgs !== null) return {
-                choices: [{ message: {
-                  content: "",
-                  tool_calls: [{ id: "c1", function: { name: "tool", arguments: toolCallArgs } }]
-                } }]
-              };
+              if (call === 1 && toolCallArgs !== null)
+                return {
+                  choices: [
+                    {
+                      message: {
+                        content: "",
+                        tool_calls: [
+                          { id: "c1", function: { name: "tool", arguments: toolCallArgs } },
+                        ],
+                      },
+                    },
+                  ],
+                };
               return { choices: [{ message: { content: finalResponse, tool_calls: [] } }] };
-            })
-          }
-        }
+            }),
+          },
+        },
       },
       model: "gpt-4o",
     } as any;
@@ -81,11 +90,19 @@ describe("FunctionCallAgent — no-registry / arg parsing edge cases", () => {
 
   it("handles invalid JSON arguments gracefully", async () => {
     const registry = new ToolRegistry();
-    registry.registerTool(new class extends Tool {
-      constructor() { super("tool", "t"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run() { return "ok"; }
-    }());
+    registry.registerTool(
+      new (class extends Tool {
+        constructor() {
+          super("tool", "t");
+        }
+        getParameters(): ToolParameter[] {
+          return [];
+        }
+        async run() {
+          return "ok";
+        }
+      })(),
+    );
     const llm = makeLLM("not valid json {{{}");
     const agent = new FunctionCallAgent({ name: "fca", llm, toolRegistry: registry });
     // Should not throw — invalid JSON parsed to {}
@@ -95,11 +112,19 @@ describe("FunctionCallAgent — no-registry / arg parsing edge cases", () => {
 
   it("handles non-object JSON arguments (array)", async () => {
     const registry = new ToolRegistry();
-    registry.registerTool(new class extends Tool {
-      constructor() { super("tool", "t"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run() { return "ok"; }
-    }());
+    registry.registerTool(
+      new (class extends Tool {
+        constructor() {
+          super("tool", "t");
+        }
+        getParameters(): ToolParameter[] {
+          return [];
+        }
+        async run() {
+          return "ok";
+        }
+      })(),
+    );
     const llm = makeLLM(JSON.stringify([1, 2, 3]));
     const agent = new FunctionCallAgent({ name: "fca", llm, toolRegistry: registry });
     const result = await agent.run("test");
@@ -160,15 +185,33 @@ describe("MemoryManager — retrieveMemories with filters", () => {
   it("filters by memoryType", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working", "episodic"], userId: "u1" });
     await mgr.addMemory({ content: "working item", memoryType: "working", userId: "u1" });
-    const results = await mgr.retrieveMemories({ query: "working", limit: 5, memoryTypes: ["working"] });
+    const results = await mgr.retrieveMemories({
+      query: "working",
+      limit: 5,
+      memoryTypes: ["working"],
+    });
     expect(Array.isArray(results)).toBe(true);
   });
 
   it("filters by minImportance", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
-    await mgr.addMemory({ content: "high importance", memoryType: "working", importance: 0.9, userId: "u1" });
-    await mgr.addMemory({ content: "low importance", memoryType: "working", importance: 0.1, userId: "u1" });
-    const results = await mgr.retrieveMemories({ query: "importance", limit: 10, minImportance: 0.5 });
-    expect(results.every(m => m.importance >= 0.5)).toBe(true);
+    await mgr.addMemory({
+      content: "high importance",
+      memoryType: "working",
+      importance: 0.9,
+      userId: "u1",
+    });
+    await mgr.addMemory({
+      content: "low importance",
+      memoryType: "working",
+      importance: 0.1,
+      userId: "u1",
+    });
+    const results = await mgr.retrieveMemories({
+      query: "importance",
+      limit: 10,
+      minImportance: 0.5,
+    });
+    expect(results.every((m) => m.importance >= 0.5)).toBe(true);
   });
 });

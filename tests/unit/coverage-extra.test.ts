@@ -29,14 +29,18 @@ function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
 }
 
 class NumberTool extends Tool {
-  constructor() { super("calc", "Calculate"); }
+  constructor() {
+    super("calc", "Calculate");
+  }
   getParameters(): ToolParameter[] {
     return [
       { name: "value", type: "number", description: "num", required: true, default: null },
       { name: "flag", type: "boolean", description: "flag", required: false, default: null },
     ];
   }
-  async run(p: Record<string, unknown>) { return `${p.value}`; }
+  async run(p: Record<string, unknown>) {
+    return `${p.value}`;
+  }
 }
 
 // ===========================================================================
@@ -46,7 +50,9 @@ describe("ReActAgent — streamRun()", () => {
   it("yields streamed chunks after Final Answer", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("Final Answer: 42"),
-      streamThink: vi.fn(async function* () { yield "42"; }),
+      streamThink: vi.fn(async function* () {
+        yield "42";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -58,11 +64,19 @@ describe("ReActAgent — streamRun()", () => {
 
   it("yields chunks with tool loop then stream synthesis", async () => {
     const registry = new ToolRegistry();
-    registry.registerTool(new class extends Tool {
-      constructor() { super("echo", "echo"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run() { return "echo-result"; }
-    }());
+    registry.registerTool(
+      new (class extends Tool {
+        constructor() {
+          super("echo", "echo");
+        }
+        getParameters(): ToolParameter[] {
+          return [];
+        }
+        async run() {
+          return "echo-result";
+        }
+      })(),
+    );
     let call = 0;
     const llm = {
       think: vi.fn().mockImplementation(async () => {
@@ -70,7 +84,9 @@ describe("ReActAgent — streamRun()", () => {
         if (call === 1) return "Thought: use echo\nAction: echo\nAction Input: hi";
         return "Final Answer: done";
       }),
-      streamThink: vi.fn(async function* () { yield "done"; }),
+      streamThink: vi.fn(async function* () {
+        yield "done";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -83,7 +99,9 @@ describe("ReActAgent — streamRun()", () => {
   it("streams even when maxSteps exhausted without Final Answer", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("Thought: still thinking"),
-      streamThink: vi.fn(async function* () { yield "fallback-stream"; }),
+      streamThink: vi.fn(async function* () {
+        yield "fallback-stream";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -212,8 +230,10 @@ describe("AdapterRegistry — unhealthy adapter", () => {
 describe("FunctionCallAgent — parameter type conversion", () => {
   it("run() with string->number conversion passes to tool", async () => {
     let receivedValue: unknown;
-    const tool = new class extends Tool {
-      constructor() { super("calc", "calc"); }
+    const tool = new (class extends Tool {
+      constructor() {
+        super("calc", "calc");
+      }
       getParameters(): ToolParameter[] {
         return [{ name: "value", type: "number", description: "n", required: true, default: null }];
       }
@@ -221,18 +241,35 @@ describe("FunctionCallAgent — parameter type conversion", () => {
         receivedValue = p.value;
         return String(p.value);
       }
-    }();
+    })();
     const registry = new ToolRegistry();
     registry.registerTool(tool);
     let call = 0;
     const createMock = vi.fn().mockImplementation(async (params: any) => {
       call++;
-      if (call === 1) return { choices: [{ message: { content: "", tool_calls: [{ id: "c1", function: { name: "calc", arguments: JSON.stringify({ value: "42" }) } }] } }] };
+      if (call === 1)
+        return {
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [
+                  {
+                    id: "c1",
+                    function: { name: "calc", arguments: JSON.stringify({ value: "42" }) },
+                  },
+                ],
+              },
+            },
+          ],
+        };
       return { choices: [{ message: { content: "result: 42", tool_calls: [] } }] };
     });
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: { chat: { completions: { create: createMock } } },
       model: "gpt-4o",
     } as any;
@@ -243,20 +280,40 @@ describe("FunctionCallAgent — parameter type conversion", () => {
 
   it("run() tool executeToolCall error returns error message", async () => {
     const registry = new ToolRegistry();
-    registry.registerTool(new class extends Tool {
-      constructor() { super("bad", "bad"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("tool broken"); }
-    }());
+    registry.registerTool(
+      new (class extends Tool {
+        constructor() {
+          super("bad", "bad");
+        }
+        getParameters(): ToolParameter[] {
+          return [];
+        }
+        async run(): Promise<string> {
+          throw new Error("tool broken");
+        }
+      })(),
+    );
     let call = 0;
     const createMock = vi.fn().mockImplementation(async () => {
       call++;
-      if (call === 1) return { choices: [{ message: { content: "", tool_calls: [{ id: "c1", function: { name: "bad", arguments: "{}" } }] } }] };
+      if (call === 1)
+        return {
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [{ id: "c1", function: { name: "bad", arguments: "{}" } }],
+              },
+            },
+          ],
+        };
       return { choices: [{ message: { content: "recovered", tool_calls: [] } }] };
     });
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: { chat: { completions: { create: createMock } } },
       model: "gpt-4o",
     } as any;

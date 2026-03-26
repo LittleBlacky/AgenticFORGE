@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { AdapterFactory } from "../../packages/memory/src/storage/factory";
-import { createDefaultVectorStore, registerRagVectorStoreFactory } from "../../packages/memory/src/rag/storeFactory";
+import {
+  createDefaultVectorStore,
+  registerRagVectorStoreFactory,
+} from "../../packages/memory/src/rag/storeFactory";
 import { InMemoryVectorStore } from "../../packages/memory/src/storage/inMemory";
 import { QdrantVectorStore } from "../../packages/memory/src/storage/qdrant";
 
@@ -27,7 +30,10 @@ describe("rag/storeFactory", () => {
   });
 
   it("returns QdrantVectorStore when backend=qdrant", () => {
-    const store = createDefaultVectorStore({ backend: "qdrant", qdrantUrl: "http://localhost:6333" });
+    const store = createDefaultVectorStore({
+      backend: "qdrant",
+      qdrantUrl: "http://localhost:6333",
+    });
     expect(store).toBeInstanceOf(QdrantVectorStore);
   });
 

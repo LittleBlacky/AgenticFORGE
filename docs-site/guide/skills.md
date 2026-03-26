@@ -4,79 +4,55 @@ The Skills system lets you decompose agent capabilities into named, self-contain
 
 ## Why Skills?
 
-Traditional agents put everything in a single system prompt. As capabilities grow, that prompt gets longer, harder to maintain, and less effective. Skills solve this by:
+Traditional agents put everything in a single system prompt. As capabilities grow, that prompt gets longer, harder to maintain, and routing logic ends up scattered in `if/else` chains. Skills solve this by:
 
 - Giving each capability its own focused system prompt and tool set
 - Letting non-engineers define new skills by editing a Markdown file
-- Routing queries automatically — no `if/else` dispatch code needed
+- Two-level routing (rule routing + LLM routing) — no dispatch code needed
 
-## Two ways to define a Skill
+## Defining Skills
 
-| Method | Best For |
-|--------|----------|
-| **Markdown file** (`SKILL.md`) | Rapid iteration, non-engineer maintainable, Cursor/Claude-style skill dirs |
-| **TypeScript class** | Complex logic, custom tool orchestration, programmatic control |
+### Markdown Skills (recommended)
 
-## Markdown Skills
-
-Create a `SKILL.md` file anywhere in your project:
+Create a `SKILL.md` file. The frontmatter defines routing metadata; the body becomes the system prompt:
 
 ```markdown
 ---
-name: weather
-description: Get real-time weather for any city
-triggerHint: When the user asks about temperature, rain, wind, or forecasts
+name: code-reviewer
+description: Review TypeScript and JavaScript code for bugs, type safety issues, and performance problems.
+triggerHint: When the user asks to review, check, or improve code quality
 ---
 
-# Weather Assistant
+# Code Reviewer
 
-You are a concise weather assistant. Answer only weather-related questions.
+You are a senior TypeScript engineer doing a thorough code review.
 
-## Rules
-- Always include the city name and date in your answer.
-- If data is unavailable, say so clearly.
-- Do NOT answer non-weather questions.
+## Review checklist
+- Type safety: no implicit `any`, proper return types
+- Error handling: no unhandled promise rejections
+- Performance: unnecessary loops, memory leaks
+
+## Output format
+1. **Summary** — one-sentence verdict
+2. **Issues** — severity + fix suggestion
+3. **Improved code**
 ```
-
-Load and run:
 
 ```ts
 import { SkillLoader, SkillRunner } from "@agenticforge/skills";
 import { LLMClient } from "@agenticforge/core";
 
 const llm = new LLMClient({ provider: "openai", model: "gpt-4o" });
+const skills = await SkillLoader.fromDirectory("./skills");
+const runner = new SkillRunner({ llm, skills });
 
-// Recursively scan a directory for SKILL.md files
-const registry = await SkillLoader.registryFromDirectory(".cursor/skills");
-
-const runner = new SkillRunner({ llm, skills: registry.all() });
-const result = await runner.run("Is it raining in Tokyo today?");
+const result = await runner.run(
+  "Review this: async function fetchUser(id) { return fetch('/api/' + id).then(r => r.json()); }"
+);
 console.log(result.output);
 ```
 
-## TypeScript Skills
-
-### Instantiate directly
-
-```ts
-import { AgentSkill, SkillRunner } from "@agenticforge/skills";
-import { LLMClient } from "@agenticforge/core";
-
-const weatherSkill = new AgentSkill({
-  name: "weather",
-  description: "Get real-time weather for any city",
-  triggerHint: "When the user asks about temperature, rain, or forecasts",
-  systemPrompt: "You are a concise weather assistant. Answer only weather-related questions.",
-  tools: [weatherApiTool],
-});
-
-const runner = new SkillRunner({ llm, skills: [weatherSkill] });
-const result = await runner.run("What is the weather in Paris?");
-```
-
-### Extend the base class
-
-Override `execute()` for fully custom logic:
+### TypeScript Skills
 
 ```ts
 import { AgentSkill } from "@agenticforge/skills";
@@ -87,74 +63,79 @@ class StockSkill extends AgentSkill {
   constructor() {
     super({
       name: "stock-query",
-      description: "Look up real-time stock prices and financial data",
-      triggerHint: "When the user asks about stock prices, market cap, or earnings",
+      description: "Look up real-time stock prices and market data for any ticker.",
+      triggerHint: "When the user asks about stock prices, market cap, ticker, or trading data",
     });
   }
 
   override async execute(ctx: SkillContext, llm: LLMClient): Promise<SkillResult> {
-    const price = await fetchStockPrice(ctx.query);
-    return { output: `Current price: ${price}` };
+    const price = await fetchStockPrice(extractTicker(ctx.query));
+    const output = await llm.think([
+      { role: "system", content: "Format the stock data as a brief, friendly response." },
+      { role: "user",   content: `Data: ${JSON.stringify(price)}\nQuestion: ${ctx.query}` },
+    ]);
+    return { output };
   }
 }
 ```
 
-## Auto-routing
+## Two-Level Routing
 
-When multiple skills are registered, `SkillRunner` uses the LLM to classify the user's intent and dispatch to the best match:
+`SkillRunner` and `SkillAgent` use a two-level strategy that balances speed and accuracy:
+
+| Level | How it works | LLM calls |
+|-------|-------------|----------|
+| **Rule routing** (first) | Matches `triggerHint` keywords against the query | 0 |
+| **LLM routing** (fallback) | Sends all skill descriptions to the LLM for intent classification | 1 |
 
 ```ts
-import { SkillLoader, SkillRunner } from "@agenticforge/skills";
-
-const mdSkills = await SkillLoader.fromDirectory(".cursor/skills");
-const codeSkills = [new StockSkill(), new EmailSkill()];
-
 const runner = new SkillRunner({
   llm,
-  skills: [...mdSkills, ...codeSkills],
+  skills: [...mdSkills, new StockSkill(), new CalendarSkill()],
+  fallbackPrompt: "You are a helpful general assistant.",
 });
 
-await runner.run("What is Apple's stock price?");       // => StockSkill
-await runner.run("Is it raining in Tokyo?");             // => weather SKILL.md
-await runner.run("Draft a meeting invite for tomorrow"); // => EmailSkill
+await runner.run("Weather in Berlin tomorrow?");        // => weather skill (rule match)
+await runner.run("Review my TypeScript function.");     // => code-reviewer skill
+await runner.run("Tesla stock price?");                 // => StockSkill
+await runner.run("Schedule a meeting for Friday 3pm."); // => CalendarSkill
 
 // Bypass routing — call a skill directly
-await runner.runSkill("stock-query", "AAPL price?");
+await runner.runSkill("stock-query", "AAPL vs MSFT performance this week");
+```
+
+## Advanced: SkillDispatcher
+
+```ts
+import { SkillDispatcher, SkillRegistry } from "@agenticforge/skills";
+
+const registry = new SkillRegistry();
+registry.register(weatherSkill);
+registry.register(stockSkill);
+
+const dispatcher = new SkillDispatcher(registry, llm);
+const skill = await dispatcher.dispatch("Is it raining in Tokyo?");
+if (skill) {
+  const result = await skill.execute({ query }, llm);
+}
 ```
 
 ## Using with SkillAgent
 
-`SkillAgent` (from `@agenticforge/agents`) extends the `Agent` base class so you get conversation history and the standard `run()` / `streamRun()` lifecycle:
-
 ```ts
 import { SkillAgent } from "@agenticforge/agents";
 import { SkillLoader } from "@agenticforge/skills";
-import { LLMClient } from "@agenticforge/core";
 
-const llm = new LLMClient({ provider: "openai", model: "gpt-4o" });
-const skills = await SkillLoader.fromDirectory(".cursor/skills");
+const skills = await SkillLoader.fromDirectory("./skills");
+const agent = new SkillAgent({ name: "assistant", llm, skills });
 
-const agent = new SkillAgent({
-  name: "assistant",
-  llm,
-  skills: [...skills, new StockSkill()],
-});
+// Conversation history is automatically maintained
+await agent.run("What's the weather in London?");
+await agent.run("And Tokyo?");           // knows context
+await agent.run("Which city is warmer?"); // routes to weather skill again
 
-// Auto-routes and tracks conversation history
-const reply = await agent.run("Is it raining in Tokyo?");
-
-// Call a specific skill directly
-const result = await agent.runSkill("stock-query", "Apple stock price?");
-console.log(result.output);
+agent.clearHistory();
 ```
-
-## Skill file naming
-
-`SkillLoader` recognizes:
-- `SKILL.md` — recommended, works with any subdirectory layout
-- `*.skill.md` — for flat layouts
-
-Other `.md` files (`README.md`, `examples.md`) are ignored.
 
 ## SkillRunner vs SkillAgent
 
@@ -162,5 +143,13 @@ Other `.md` files (`README.md`, `examples.md`) are ignored.
 |---|---|---|
 | Package | `@agenticforge/skills` | `@agenticforge/agents` |
 | Conversation history | Manual (`options.history`) | Automatic |
-| Agent base class | No | Yes (extends `Agent`) |
+| Extends Agent base class | No | Yes |
 | Best for | Scripts, API services | Full agent workflows |
+
+## Skill file naming
+
+`SkillLoader` recognizes:
+- `SKILL.md` — recommended
+- `*.skill.md`
+
+Other `.md` files (`README.md`, `examples.md`) are ignored.

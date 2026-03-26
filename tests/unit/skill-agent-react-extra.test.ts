@@ -28,7 +28,9 @@ function makeRoutingLLM(skillName: string, finalAnswer = "skill answer") {
       call++;
       return call === 1 ? skillName : finalAnswer;
     }),
-    streamThink: vi.fn(async function* () { yield finalAnswer; }),
+    streamThink: vi.fn(async function* () {
+      yield finalAnswer;
+    }),
     client: undefined,
     model: "m",
   } as any;
@@ -37,7 +39,9 @@ function makeRoutingLLM(skillName: string, finalAnswer = "skill answer") {
 function makeFallbackLLM(answer = "fallback answer") {
   return {
     think: vi.fn().mockResolvedValue(answer),
-    streamThink: vi.fn(async function* () { yield answer; }),
+    streamThink: vi.fn(async function* () {
+      yield answer;
+    }),
     client: undefined,
     model: "m",
   } as any;
@@ -90,7 +94,12 @@ describe("SkillAgent — routing and history branches", () => {
   class CaptureSkill extends AgentSkill {
     public lastHistoryLen = -1;
     constructor(name: string) {
-      super({ name, description: `${name} skill`, triggerHint: name, systemPrompt: `${name} prompt` });
+      super({
+        name,
+        description: `${name} skill`,
+        triggerHint: name,
+        systemPrompt: `${name} prompt`,
+      });
     }
     override async execute(context: any, _llm: any): Promise<any> {
       this.lastHistoryLen = Array.isArray(context.history) ? context.history.length : -1;
@@ -101,7 +110,9 @@ describe("SkillAgent — routing and history branches", () => {
   it("routes by startsWith when router returns skill prefix", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("wea"),
-      streamThink: vi.fn(async function* () { yield "x"; }),
+      streamThink: vi.fn(async function* () {
+        yield "x";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -116,7 +127,9 @@ describe("SkillAgent — routing and history branches", () => {
   it("routes by includes when router output contains skill name", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("please_use_noop_skill"),
-      streamThink: vi.fn(async function* () { yield "x"; }),
+      streamThink: vi.fn(async function* () {
+        yield "x";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -131,7 +144,9 @@ describe("SkillAgent — routing and history branches", () => {
   it("stream fallback path includes prior history messages", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("unknown_skill_xyz"),
-      streamThink: vi.fn(async function* () { yield "fallback-stream"; }),
+      streamThink: vi.fn(async function* () {
+        yield "fallback-stream";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -144,14 +159,19 @@ describe("SkillAgent — routing and history branches", () => {
     for await (const c of agent.streamRun("second turn")) chunks.push(c);
 
     expect(chunks.join("")).toBe("fallback-stream");
-    const streamMsgs = llm.streamThink.mock.calls.at(-1)?.[0] as Array<{ role: string; content: string }>;
+    const streamMsgs = llm.streamThink.mock.calls.at(-1)?.[0] as Array<{
+      role: string;
+      content: string;
+    }>;
     expect(streamMsgs.some((m) => m.content.includes("first turn"))).toBe(true);
   });
 
   it("stream skill path passes history into skill context", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("weather"),
-      streamThink: vi.fn(async function* () { yield "x"; }),
+      streamThink: vi.fn(async function* () {
+        yield "x";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -170,7 +190,9 @@ describe("SkillAgent — routing and history branches", () => {
   it("run fallback path includes prior history messages", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("unknown_skill_xyz"),
-      streamThink: vi.fn(async function* () { yield "x"; }),
+      streamThink: vi.fn(async function* () {
+        yield "x";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -203,11 +225,15 @@ describe("SkillAgent — routing and history branches", () => {
 // ===========================================================================
 describe("ReActAgent — exhausted steps", () => {
   class SearchTool extends Tool {
-    constructor() { super("search", "Search for info. Input: search query"); }
+    constructor() {
+      super("search", "Search for info. Input: search query");
+    }
     getParameters(): ToolParameter[] {
       return [{ name: "input", type: "string", description: "q", required: true, default: null }];
     }
-    async run(p: Record<string, unknown>) { return `result for ${p.input}`; }
+    async run(p: Record<string, unknown>) {
+      return `result for ${p.input}`;
+    }
   }
 
   it("returns last observation when maxIterations exceeded", async () => {
@@ -215,10 +241,12 @@ describe("ReActAgent — exhausted steps", () => {
     registry.registerTool(new SearchTool());
     // Always returns Thought+Action, never Final Answer
     const llm = {
-      think: vi.fn().mockResolvedValue(
-        "Thought: I need to search\nAction: search\nAction Input: query"
-      ),
-      streamThink: vi.fn(async function* () { yield "final"; }),
+      think: vi
+        .fn()
+        .mockResolvedValue("Thought: I need to search\nAction: search\nAction Input: query"),
+      streamThink: vi.fn(async function* () {
+        yield "final";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -239,10 +267,13 @@ describe("ReActAgent — exhausted steps", () => {
     const registry = new ToolRegistry();
     registry.registerTool(new SearchTool());
     const llm = {
-      think: vi.fn().mockResolvedValueOnce(
-        "Thought: search\nAction: search\nAction Input: q"
-      ).mockResolvedValueOnce("Final Answer: done"),
-      streamThink: vi.fn(async function* () { yield "done"; }),
+      think: vi
+        .fn()
+        .mockResolvedValueOnce("Thought: search\nAction: search\nAction Input: q")
+        .mockResolvedValueOnce("Final Answer: done"),
+      streamThink: vi.fn(async function* () {
+        yield "done";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -253,7 +284,8 @@ describe("ReActAgent — exhausted steps", () => {
       maxIterations: 5,
       verbose: true,
     });
-    for await (const _ of agent.streamRun("q")) {}
+    for await (const _ of agent.streamRun("q")) {
+    }
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
@@ -262,15 +294,19 @@ describe("ReActAgent — exhausted steps", () => {
     const registry = new ToolRegistry();
     registry.registerTool(new SearchTool());
     const llm = {
-      think: vi.fn()
+      think: vi
+        .fn()
         .mockResolvedValueOnce("Thought: search\nAction: search\nAction Input: topic")
         .mockResolvedValueOnce("Final Answer: result"),
-      streamThink: vi.fn(async function* () { yield "result"; }),
+      streamThink: vi.fn(async function* () {
+        yield "result";
+      }),
       client: undefined,
       model: "m",
     } as any;
     const agent = new ReActAgent({ name: "ra", llm, toolRegistry: registry });
-    for await (const _ of agent.streamRun("q")) {}
+    for await (const _ of agent.streamRun("q")) {
+    }
     const steps = agent.getSteps();
     expect(Array.isArray(steps)).toBe(true);
   });

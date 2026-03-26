@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@agenticforge/skills)](https://www.npmjs.com/package/@agenticforge/skills)
 
-Composable, routable Agent Skills — define capabilities in Markdown files or TypeScript classes, and let the agent automatically route to the right one.
+Composable, routable agent capabilities — define each capability as a focused Skill in Markdown or TypeScript, and let the framework automatically route user queries to the right one.
 
 ## Installation
 
@@ -17,6 +17,7 @@ npm install @agenticforge/skills
 | `AgentSkill` | Extensible Skill base class with built-in tool-call loop |
 | `SkillRegistry` | Skill registration and routing description generator |
 | `SkillRunner` | Framework-independent skill orchestrator |
+| `SkillDispatcher` | Two-level routing engine (rule routing + LLM routing) |
 | `MarkdownSkill` | Skill loaded from a `.md` file |
 | `SkillLoader` | Directory scanner — loads all `SKILL.md` files |
 | `parseFrontmatter` | Low-level frontmatter parser (no external deps) |

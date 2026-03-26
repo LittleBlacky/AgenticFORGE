@@ -63,7 +63,7 @@ describe("ContextBuilder — build() basic", () => {
       { content: "irrelevant", relevanceScore: 0.1 },
     ];
     const ctx = await builder.build({ userQuery: USER_QUERY, additionalPackets: packets });
-    expect(ctx.includedPackets.every(p => (p.relevanceScore ?? 1) >= 0.5)).toBe(true);
+    expect(ctx.includedPackets.every((p) => (p.relevanceScore ?? 1) >= 0.5)).toBe(true);
   });
 
   it("totalTokens is a non-negative number", async () => {
@@ -84,7 +84,9 @@ describe("ContextBuilder — build() basic", () => {
 // ===========================================================================
 describe("ContextBuilder — structuredTemplate", () => {
   it("structuredSystem is populated when enableStructuredTemplate=true", async () => {
-    const builder = new ContextBuilder({ config: { enableStructuredTemplate: true, enableCompression: false } });
+    const builder = new ContextBuilder({
+      config: { enableStructuredTemplate: true, enableCompression: false },
+    });
     const ctx = await builder.build({
       userQuery: USER_QUERY,
       systemInstructions: "Be helpful.",
@@ -144,7 +146,9 @@ describe("ContextBuilder — MMR selection", () => {
   });
 
   it("MMR falls back to TF-IDF when embedder throws", async () => {
-    const embedder = async () => { throw new Error("embed fail"); };
+    const embedder = async () => {
+      throw new Error("embed fail");
+    };
     const builder = new ContextBuilder({ config: { enableMmr: true, embedder } });
     const ctx = await builder.build({
       userQuery: USER_QUERY,

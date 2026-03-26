@@ -4,3 +4,5 @@ export * from "./SkillRegistry";
 export * from "./SkillRunner";
 export * from "./MarkdownSkill";
 export * from "./SkillLoader";
+export * from "./SkillTool";
+export * from "./SkillDispatcher";

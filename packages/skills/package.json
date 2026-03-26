@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/skills",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Agent Skills system for AgenticFORGE - composable, routable agent capability units",
   "type": "module",
   "sideEffects": false,
@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@agenticforge/core": "workspace:^",
-    "@agenticforge/tools": "workspace:^"
+    "@agenticforge/tools": "workspace:^",
+    "@agenticforge/utils": "workspace:^"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.8",

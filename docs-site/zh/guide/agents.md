@@ -6,163 +6,215 @@ AgenticFORGE 内置七种 Agent 工作流实现，每种封装不同的推理循
 
 ## 如何选择
 
-| Agent | 推理模式 | 适用场景 |
-|-------|---------|----------|
-| `SimpleAgent` | 单次 LLM 调用 | 对话、摘要 |
-| `FunctionCallAgent` | 工具调用循环 | 任务自动化、API 编排 |
-| `ReActAgent` | 思考 → 行动 → 观察 | 复杂多步推理 |
-| `PlanSolveAgent` | 规划全部步骤 → 逐步执行 | 长链路任务、研究 |
-| `ReflectionAgent` | 生成 → 批评 → 改进 | 高质量内容生成 |
-| `SkillAgent` | LLM 意图路由 | 多能力切换助手 |
-| `WorkflowAgent` | DAG 节点执行，四种执行模式 | 企业自动化、数据流水线 |
+| Agent | 适用场景 |
+|-------|----------|
+| `SimpleAgent` | 无工具的对话 —— 摘要、问答、写作 |
+| `FunctionCallAgent` | 需要可靠调用 API 或工具 |
+| `ReActAgent` | 复杂多步推理，边思考边行动 |
+| `PlanSolveAgent` | 长任务，先制定计划再逐步执行 |
+| `ReflectionAgent` | 高质量输出，需要自我批评和迭代 |
+| `SkillAgent` | 多种独立能力，自动路由到对应专家 Skill |
+| `WorkflowAgent` | 固定流程自动化，步骤可并发执行 |
 
-## FunctionCallAgent
-
-```ts
-import {FunctionCallAgent, LLMClient, Tool, toolAction} from "@agenticforge/kit";
-import {z} from "zod";
-
-const searchTool = new Tool({
-  name: "search",
-  description: "搜索网络信息",
-  parameters: [{name: "query", type: "string", required: true}],
-  action: toolAction(z.object({query: z.string()}), async ({query}) => {
-    return `${query} 的搜索结果...`;
-  }),
-});
-
-const agent = new FunctionCallAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  tools: [searchTool],
-  systemPrompt: "你是一个专业的研究助手。",
-  maxIterations: 10,
-});
-
-const result = await agent.run("AI Agent 领域最新进展有哪些？");
-console.log(result);
-```
-
-## ReActAgent
-
-实现 [ReAct](https://arxiv.org/abs/2210.03629) 模式：推理 + 行动，Agent 在每次行动前显式思考。
-
-```ts
-import {ReActAgent, LLMClient} from "@agenticforge/kit";
-
-const agent = new ReActAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  tools: [/* 你的工具 */],
-  maxIterations: 15,
-});
-
-const result = await agent.run("调研前三名向量数据库并对比性能。");
-```
-
-## PlanSolveAgent
-
-先制定完整计划，再逐步执行。适合需要前期规划的任务。
-
-```ts
-import {PlanSolveAgent, LLMClient} from "@agenticforge/kit";
-
-const agent = new PlanSolveAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  tools: [/* 你的工具 */],
-});
-
-const result = await agent.run("撰写一份 2024 年 AI 监管现状的详细报告。");
-```
-
-## ReflectionAgent
-
-生成内容后自我批评并改进，适合高质量写作、代码审查等场景。
-
-```ts
-import {ReflectionAgent, LLMClient} from "@agenticforge/kit";
-
-const agent = new ReflectionAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  reflectionRounds: 2,
-});
-
-const result = await agent.run("写一篇简洁的 Transformer 技术博客。");
-```
+---
 
 ## SimpleAgent
 
 ```ts
-import {SimpleAgent, LLMClient} from "@agenticforge/kit";
+import { SimpleAgent, LLMClient } from "@agenticforge/kit";
 
 const agent = new SimpleAgent({
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  systemPrompt: "你是一位简洁的技术写作助手。",
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  systemPrompt: "你是一个友好的电商客服，回答简洁。",
 });
 
-const result = await agent.run("用一段话解释 RAG。");
+const r1 = await agent.run("我上周的订单还没到。");
+const r2 = await agent.run("订单号是 #98234。"); // 携带上一轮历史
+const r3 = await agent.run("能退款吗？");
+agent.clearHistory();
 ```
+
+---
+
+## FunctionCallAgent
+
+通过 OpenAI function calling 协议让 LLM 调用工具，循环直至得出最终回答。
+
+```ts
+import { FunctionCallAgent, LLMClient } from "@agenticforge/kit";
+import { Tool, type ToolParameter } from "@agenticforge/tools";
+
+class FlightStatusTool extends Tool {
+  constructor() { super("check_flight", "查询航班实时状态，输入航班号。"); }
+  getParameters(): ToolParameter[] {
+    return [{ name: "flight_number", type: "string", description: "航班号，如 CA123", required: true, default: null }];
+  }
+  async run(params: Record<string, unknown>): Promise<string> {
+    return `航班 ${params.flight_number}：准点，14:30 起飞，B12 登机口`;
+  }
+}
+
+const agent = new FunctionCallAgent({
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  tools: [new FlightStatusTool()],
+  systemPrompt: "你是专业的旅行助理。",
+  maxIterations: 10,
+});
+
+const result = await agent.run("CA456 航班准点吗？");
+// => "您的 CA456 航班准点！14:30 在 B12 登机口起飞。"
+```
+
+---
+
+## ReActAgent
+
+思考 → 行动 → 观察 → 循环。适合解法路径不明确的复杂任务。
+
+```ts
+import { ReActAgent, LLMClient } from "@agenticforge/kit";
+
+const agent = new ReActAgent({
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  tools: [new WebSearchTool(), new CalculatorTool()],
+  maxIterations: 15,
+});
+
+const result = await agent.run("2023 年越南 GDP 增速是多少？与东盟平均水平相比如何？");
+```
+
+---
+
+## PlanSolveAgent
+
+先生成完整步骤计划，再逐步执行。适合长链路研究任务。
+
+```ts
+const agent = new PlanSolveAgent({
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  tools: [new WebSearchTool()],
+});
+
+const result = await agent.run("调研 2024 年欧盟 AI 法规，写一份 600 字中文摘要。");
+```
+
+> 每次 `run()` 发出 **2 次 LLM 调用**（规划 + 执行）。简单任务请勿使用。
+
+---
+
+## ReflectionAgent
+
+生成回答 → 批评 → 改进。适合输出质量比速度更重要的写作任务。
+
+```ts
+const agent = new ReflectionAgent({
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
+  reflectionRounds: 2,
+  systemPrompt: "你是专业的产品文案撰写者。",
+});
+
+const result = await agent.run("为降噪 AI 耳机写 3 句产品介绍。");
+```
+
+> `reflectionRounds: 2` 消耗 **3 倍 token**，请谨慎使用。
+
+---
+
+## SkillAgent
+
+两级路由：**关键词规则路由**（零 LLM 开销）优先，**LLM 意图路由**兜底。
+
+```ts
+import { SkillAgent } from "@agenticforge/kit";
+import { SkillLoader } from "@agenticforge/skills";
+
+const mdSkills = await SkillLoader.fromDirectory("./skills");
+
+const agent = new SkillAgent({
+  name: "ecommerce-support",
+  llm,
+  skills: [...mdSkills, new OrderLookupSkill()],
+  fallbackPrompt: "你是专业的电商客服。",
+});
+
+await agent.run("我的订单什么时候到？");       // => 物流 Skill
+await agent.run("我被重复扣款了。");           // => 账单 Skill
+await agent.run("退货政策是什么？");           // => 退货政策 Skill
+await agent.runSkill("order-lookup", "追踪 #99887"); // 直接调用
+```
+
+---
+
+## withSkills — 为任意 Agent 叠加 Skill 层
+
+```ts
+import { ReActAgent, withSkills } from "@agenticforge/agents";
+
+const ResearchWithSkills = withSkills(ReActAgent);
+
+const agent = new ResearchWithSkills({
+  name: "smart-researcher",
+  llm,
+  tools: [new WebSearchTool(), new CalculatorTool()],
+  maxIterations: 12,
+});
+
+await agent.loadSkillsFromDir("./domain-skills");
+
+await agent.run("数据保留政策是什么？");              // => FAQ Skill 命中
+await agent.run("对比台积电和三星 2024 Q3 营收。"); // => ReAct 循环
+```
+
+---
 
 ## WorkflowAgent
 
-`WorkflowAgent` 支持四种执行模式，通过声明式 DAG 节点定义，由 `WorkflowEngine` 自动调度：
+按 DAG 拓扑顺序执行，无依赖的节点自动并发。
 
 | 模式 | 实现方式 |
 |------|----------|
-| **Sequential**（顺序） | 通过 `depends` 形成线性链 A → B → C |
-| **Parallel**（并发） | 同一波次内无依赖关系的节点自动并发执行 |
-| **Branch**（条件分支） | `type: "branch"` 节点，`condition` 返回分支名，执行对应子 DAG |
-| **Loop**（循环） | `type: "loop"` 节点，反复执行 `body` 子 DAG（do-while 语义） |
+| **顺序** | `depends` 形成线性链 |
+| **并发** | 同波次无依赖节点自动并发 |
+| **条件分支** | `type: "branch"` + `condition(ctx)` |
+| **循环** | `type: "loop"` + `condition(ctx, iter)` |
 
-### 节点类型
-
-| 类型 | 说明 |
-|------|------|
-| `tool` | 调用已注册工具，`inputTemplate` 支持 `{变量}` 插值 |
-| `llm` | 直接调用 LLM，`promptTemplate` 支持 `{变量}` 插值 |
-| `fn` | 自定义异步函数，可访问完整 context |
-| `passthrough` | 透传某个 context 变量 |
-| `branch` | 条件分支，`condition(ctx)` 返回分支名 |
-| `loop` | 循环执行，`body` 子 DAG 反复运行直到条件不满足 |
-
-### 顺序 + 并发
+### 并发 fan-out / fan-in
 
 ```ts
-import {WorkflowAgent, LLMClient} from "@agenticforge/kit";
-import type {WorkflowDefinition} from "@agenticforge/workflow"; // 类型定义现已独立至 @agenticforge/workflow
+import { WorkflowAgent, LLMClient } from "@agenticforge/kit";
+import type { WorkflowDefinition } from "@agenticforge/workflow";
 
 const agent = new WorkflowAgent({
   name: "report",
-  llm: new LLMClient({provider: "openai", model: "gpt-4o"}),
-  registry, // ToolRegistry，type: "tool" 节点必须提供
+  llm: new LLMClient({ provider: "openai", model: "gpt-4o" }),
   verbose: true,
 });
 
-const definition: WorkflowDefinition = {
+const workflow: WorkflowDefinition = {
   name: "bilingual-report",
   nodes: [
-    {id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",           depends: []},
-    // analyze 和 translate 并发执行（同依赖 fetch，互不依赖）
-    {id: "analyze",   type: "llm",  promptTemplate: "分析：\n{fetch}",                      depends: ["fetch"]},
-    {id: "translate", type: "llm",  promptTemplate: "翻译成英文：\n{fetch}",                depends: ["fetch"]},
-    // report 等待两者完成后执行
-    {id: "report",    type: "llm",  promptTemplate: "双语报告：\n{analyze}\n\n{translate}",  depends: ["analyze", "translate"]},
+    { id: "fetch",     type: "tool", toolName: "search", inputTemplate: "{input}",              depends: [] },
+    { id: "analyze",   type: "llm",  promptTemplate: "分析：\n{fetch}",                        depends: ["fetch"] },
+    { id: "translate", type: "llm",  promptTemplate: "翻译成英文：\n{fetch}",                  depends: ["fetch"] },
+    { id: "report",    type: "llm",  promptTemplate: "双语报告：\n{analyze}\n\n{translate}",   depends: ["analyze", "translate"] },
   ],
 };
 
-const result = await agent.runWorkflow(definition, "2024年AI行业趋势");
+const result = await agent.runWorkflow(workflow, "2024年AI行业趋势");
 console.log(result.output);
-console.log(result.nodeResults); // 每个节点的状态和耗时
+console.log(result.nodeResults);
 ```
 
-### 条件分支（Branch）
+### 条件分支
 
 ```ts
-const definition: WorkflowDefinition = {
+const workflow: WorkflowDefinition = {
   name: "smart-answer",
   nodes: [
     {
       id: "classify",
       type: "llm",
-      promptTemplate: "判断问题复杂度，只输出 simple 或 complex：{input}",
+      promptTemplate: "判断复杂度，只输出 simple 或 complex：{input}",
       depends: [],
     },
     {
@@ -170,8 +222,8 @@ const definition: WorkflowDefinition = {
       type: "branch",
       condition: (ctx) => ctx["classify"].includes("complex") ? "complex" : "simple",
       branches: {
-        simple:  [{id: "quick",  type: "llm", promptTemplate: "简洁回答：{input}", depends: []}],
-        complex: [{id: "detail", type: "llm", promptTemplate: "详细分析：{input}", depends: []}],
+        simple:  [{ id: "quick",  type: "llm", promptTemplate: "简洁回答：{input}",  depends: [] }],
+        complex: [{ id: "detail", type: "llm", promptTemplate: "详细分析：{input}", depends: [] }],
       },
       depends: ["classify"],
     },
@@ -179,26 +231,24 @@ const definition: WorkflowDefinition = {
 };
 ```
 
-### 循环（Loop）
+### 循环
 
 ```ts
-const definition: WorkflowDefinition = {
+const workflow: WorkflowDefinition = {
   name: "iterative-refine",
   nodes: [
     {
       id: "refine",
       type: "loop",
       maxIterations: 3,
-      // do-while：每轮结束后判断，返回 true 继续，false 停止
-      condition: (ctx, iter) => !ctx["refine"].includes("满意"),
+      condition: (ctx) => !ctx["improve"]?.includes("满意"),
       body: [
-        {id: "critique", type: "llm", promptTemplate: "批评上一版本：{refine}",   depends: []},
-        {id: "improve",  type: "llm", promptTemplate: "根据批评改进：{critique}", depends: ["critique"]},
+        { id: "critique", type: "llm", promptTemplate: "批评：{refine}",       depends: [] },
+        { id: "improve",  type: "llm", promptTemplate: "根据批评改进：{critique}", depends: ["critique"] },
       ],
     },
   ],
 };
-// body 内通过 {refine} 引用上一次迭代输出，首次为空字符串
 ```
 
 ### 配置项
@@ -210,4 +260,4 @@ const definition: WorkflowDefinition = {
 | `verbose` | `boolean` | `false` | 打印每个波次的执行日志 |
 | `maxConcurrency` | `number` | 不限制 | 单波次最大并发节点数 |
 
-> 如需不经过 Agent 层直接使用 `WorkflowEngine`，请参阅 [@agenticforge/workflow](/zh/packages/workflow)。
+> 如需不经过 Agent 层直接使用 `WorkflowEngine`，参阅 [@agenticforge/workflow](/zh/packages/workflow)。

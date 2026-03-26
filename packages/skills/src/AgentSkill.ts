@@ -1,5 +1,6 @@
 import { Tool, type FunctionTool, ToolRegistry } from "@agenticforge/tools";
 import type { LLMClient } from "@agenticforge/core";
+import { ToolCallExecutor } from "@agenticforge/core";
 import type { IAgentSkill, SkillContext, SkillDefinition, SkillResult } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -88,111 +89,42 @@ export class AgentSkill implements IAgentSkill {
 
   /**
    * Default implementation: builds messages from context + systemPrompt,
-   * appends tool schemas if tools are configured, calls the LLM,
-   * and runs a tool-call loop (up to 3 iterations).
+   * delegates to ToolCallExecutor for the function-calling loop.
    *
    * Override this method for fully custom Skill logic.
    */
   async execute(context: SkillContext, llm: LLMClient): Promise<SkillResult> {
     const sysPrompt = this.systemPrompt ?? `你是专门负责"${this.description}"的助理。`;
 
-    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-      { role: "system", content: sysPrompt },
+    const messages = [
+      { role: "system" as const, content: sysPrompt },
       ...(context.history ?? []),
-      { role: "user", content: context.query },
+      { role: "user" as const, content: context.query },
     ];
 
-    // No tools — plain LLM call
-    if (this.tools.length === 0) {
-      const output = await llm.think(messages);
-      return { output };
-    }
+    const executor = new ToolCallExecutor({ llm, maxIterations: 3 });
+    const schemas = this.tools.length > 0 ? this.toolRegistry.getOpenAISchemas() : [];
 
-    // With tools — function-calling loop
-    const toolsUsed: string[] = [];
-    const rawMessages: Array<Record<string, unknown>> = messages.map((m) => ({ ...m }));
-    const schemas = this.toolRegistry.getOpenAISchemas();
+    try {
+      const result = await executor.run({
+        messages,
+        tools: schemas as Record<string, unknown>[],
+        executor: (name, args) => this.toolRegistry.execute(name, args),
+      });
 
-    // Access the underlying OpenAI client via duck-typing
-    const client = (llm as unknown as Record<string, unknown>).client as {
-      chat: {
-        completions: {
-          create: (p: Record<string, unknown>) => Promise<{
-            choices?: Array<{
-              message?: {
-                content?: string;
-                tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
-              };
-            }>;
-          }>;
-        };
+      return {
+        output: result.output,
+        ...(result.toolsUsed.length > 0 ? { toolsUsed: result.toolsUsed } : {}),
       };
-    };
-    const model = (llm as unknown as Record<string, unknown>).model as string;
-
-    if (!client || !model) {
-      // Fallback: plain LLM call without tools
-      const output = await llm.think(messages);
-      return { output };
-    }
-
-    let finalOutput = "";
-
-    for (let i = 0; i < 3; i++) {
-      const resp = await client.chat.completions.create({
-        model,
-        messages: rawMessages,
-        tools: schemas,
-        tool_choice: "auto",
-        stream: false,
-      });
-
-      const msg = resp.choices?.[0]?.message;
-      const content = msg?.content ?? "";
-      const toolCalls = msg?.tool_calls ?? [];
-
-      if (toolCalls.length === 0) {
-        finalOutput = content;
-        break;
+    } catch (e) {
+      // 当工具调用需要 OpenAI client 但 LLM 未暴露时，fallback 到纯 llm.think()
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("未暴露底层 OpenAI 客户端") || msg.includes("does not expose")) {
+        const output = await llm.think(messages);
+        return { output };
       }
-
-      rawMessages.push({ role: "assistant", content, tool_calls: toolCalls });
-
-      for (const call of toolCalls) {
-        toolsUsed.push(call.function.name);
-        let args: Record<string, unknown> = {};
-        try {
-          args = JSON.parse(call.function.arguments) as Record<string, unknown>;
-        } catch {
-          /* ignore */
-        }
-        let result = "";
-        try {
-          result = await this.toolRegistry.execute(call.function.name, args);
-        } catch (e) {
-          result = `Error: ${e instanceof Error ? e.message : String(e)}`;
-        }
-        rawMessages.push({
-          role: "tool",
-          tool_call_id: call.id,
-          name: call.function.name,
-          content: result,
-        });
-      }
+      throw e;
     }
-
-    if (!finalOutput) {
-      const fallback = await client.chat.completions.create({
-        model,
-        messages: rawMessages,
-        tools: schemas,
-        tool_choice: "none",
-        stream: false,
-      });
-      finalOutput = fallback.choices?.[0]?.message?.content ?? "";
-    }
-
-    return { output: finalOutput, toolsUsed };
   }
 
   // -------------------------------------------------------------------------

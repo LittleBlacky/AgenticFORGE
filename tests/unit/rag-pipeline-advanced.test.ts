@@ -11,7 +11,10 @@ import {
 } from "../../packages/memory/src/rag/pipeline";
 import { InMemoryVectorStore } from "../../packages/memory/src/storage/inMemory";
 import { HashTextEmbedder } from "../../packages/memory/src/embedding/embedders";
-import { registerRagVectorStoreFactory, createDefaultVectorStore } from "../../packages/memory/src/rag/storeFactory";
+import {
+  registerRagVectorStoreFactory,
+  createDefaultVectorStore,
+} from "../../packages/memory/src/rag/storeFactory";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
@@ -43,13 +46,24 @@ describe("indexChunks", () => {
 
   it("throws when store is not provided", async () => {
     await expect(
-      indexChunks({ store: undefined as any, chunks: [makeChunk("c1", "x")], embedder, dimension: 64 }),
+      indexChunks({
+        store: undefined as any,
+        chunks: [makeChunk("c1", "x")],
+        embedder,
+        dimension: 64,
+      }),
     ).rejects.toThrow();
   });
 
   it("stores metadata in payload", async () => {
     const store = new InMemoryVectorStore();
-    await indexChunks({ store, chunks: [makeChunk("m1", "content")], embedder, dimension: 64, ragNamespace: "ns1" });
+    await indexChunks({
+      store,
+      chunks: [makeChunk("m1", "content")],
+      embedder,
+      dimension: 64,
+      ragNamespace: "ns1",
+    });
     const results = await store.queryVector({ vector: new Array(64).fill(0.1), limit: 1 });
     expect((results[0]!.payload as any).rag_namespace).toBe("ns1");
   });
@@ -167,9 +181,18 @@ describe("searchVectors", () => {
 describe("loadAndChunkTexts", () => {
   it("loads and chunks a text file into RagChunks", async () => {
     const tmp = path.join(os.tmpdir(), `rag-test-${Date.now()}.txt`);
-    await fs.writeFile(tmp, "Hello world.\n\nThis is the second paragraph.\n\nAnd a third one.", "utf8");
+    await fs.writeFile(
+      tmp,
+      "Hello world.\n\nThis is the second paragraph.\n\nAnd a third one.",
+      "utf8",
+    );
     try {
-      const chunks = loadAndChunkTexts({ paths: [tmp], chunkSize: 50, chunkOverlap: 5, namespace: "test" });
+      const chunks = loadAndChunkTexts({
+        paths: [tmp],
+        chunkSize: 50,
+        chunkOverlap: 5,
+        namespace: "test",
+      });
       expect(chunks.length).toBeGreaterThan(0);
       expect(typeof chunks[0]!.content).toBe("string");
       expect(typeof chunks[0]!.id).toBe("string");

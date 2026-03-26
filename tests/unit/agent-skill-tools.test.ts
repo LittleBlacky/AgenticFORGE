@@ -8,19 +8,25 @@ import type { ToolParameter } from "@agenticforge/tools";
 import type { SkillContext } from "../../packages/skills/src/types";
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes the input text back"); }
+  constructor() {
+    super("echo", "Echoes the input text back");
+  }
   getParameters(): ToolParameter[] {
-    return [{ name: "text", type: "string", description: "text to echo", required: true, default: null }];
+    return [
+      { name: "text", type: "string", description: "text to echo", required: true, default: null },
+    ];
   }
   async run(p: Record<string, unknown>): Promise<string> {
     return String(p.text ?? "");
   }
 }
 
-function makeToolLLM(responses: Array<{
-  content?: string;
-  tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
-}>) {
+function makeToolLLM(
+  responses: Array<{
+    content?: string;
+    tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+  }>,
+) {
   let call = 0;
   const createMock = vi.fn().mockImplementation(async () => {
     const r = responses[call] ?? responses[responses.length - 1];
@@ -50,7 +56,12 @@ function makeNoClientLLM() {
 // ===========================================================================
 describe("AgentSkill — no tools", () => {
   it("execute() uses llm.think when no tools", async () => {
-    const llm = { think: vi.fn().mockResolvedValue("ok"), streamThink: vi.fn(), client: undefined, model: "m" } as any;
+    const llm = {
+      think: vi.fn().mockResolvedValue("ok"),
+      streamThink: vi.fn(),
+      client: undefined,
+      model: "m",
+    } as any;
     const skill = new AgentSkill({ name: "s", description: "d" });
     const result = await skill.execute({ query: "q" }, llm);
     expect(result.output).toBe("ok");
@@ -74,7 +85,9 @@ describe("AgentSkill — tool-calling loop", () => {
     const llm = makeToolLLM([
       {
         content: "",
-        tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "hello" }) } }],
+        tool_calls: [
+          { id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "hello" }) } },
+        ],
       },
       { content: "echoed: hello", tool_calls: [] },
     ]);
@@ -88,7 +101,9 @@ describe("AgentSkill — tool-calling loop", () => {
     const llm = makeToolLLM([
       {
         content: "",
-        tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "x" }) } }],
+        tool_calls: [
+          { id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "x" }) } },
+        ],
       },
       { content: "done", tool_calls: [] },
     ]);
@@ -98,11 +113,17 @@ describe("AgentSkill — tool-calling loop", () => {
   });
 
   it("execute() handles tool error gracefully", async () => {
-    const badTool = new class extends Tool {
-      constructor() { super("bad", "throws"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("tool failed"); }
-    }();
+    const badTool = new (class extends Tool {
+      constructor() {
+        super("bad", "throws");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        throw new Error("tool failed");
+      }
+    })();
     const llm = makeToolLLM([
       { content: "", tool_calls: [{ id: "c1", function: { name: "bad", arguments: "{}" } }] },
       { content: "recovered", tool_calls: [] },
@@ -114,7 +135,10 @@ describe("AgentSkill — tool-calling loop", () => {
 
   it("execute() handles malformed tool arguments JSON", async () => {
     const llm = makeToolLLM([
-      { content: "", tool_calls: [{ id: "c1", function: { name: "echo", arguments: "not-json" } }] },
+      {
+        content: "",
+        tool_calls: [{ id: "c1", function: { name: "echo", arguments: "not-json" } }],
+      },
       { content: "after-bad-args", tool_calls: [] },
     ]);
     const skill = new AgentSkill({ name: "s", description: "d", tools: [new EchoTool()] });
@@ -125,9 +149,24 @@ describe("AgentSkill — tool-calling loop", () => {
   it("execute() falls back to extra create when loop exhausts without final content", async () => {
     // All 3 loop iterations return tool_calls, triggering the fallback create
     const llm = makeToolLLM([
-      { content: "", tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "a" }) } }] },
-      { content: "", tool_calls: [{ id: "c2", function: { name: "echo", arguments: JSON.stringify({ text: "b" }) } }] },
-      { content: "", tool_calls: [{ id: "c3", function: { name: "echo", arguments: JSON.stringify({ text: "c" }) } }] },
+      {
+        content: "",
+        tool_calls: [
+          { id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "a" }) } },
+        ],
+      },
+      {
+        content: "",
+        tool_calls: [
+          { id: "c2", function: { name: "echo", arguments: JSON.stringify({ text: "b" }) } },
+        ],
+      },
+      {
+        content: "",
+        tool_calls: [
+          { id: "c3", function: { name: "echo", arguments: JSON.stringify({ text: "c" }) } },
+        ],
+      },
       { content: "fallback-final", tool_calls: [] }, // 4th call = fallback
     ]);
     const skill = new AgentSkill({ name: "s", description: "d", tools: [new EchoTool()] });
@@ -149,7 +188,10 @@ describe("AgentSkill — tool-calling loop", () => {
     const skill = new AgentSkill({ name: "s", description: "d", tools: [new EchoTool()] });
     const ctx: SkillContext = {
       query: "follow-up",
-      history: [{ role: "user", content: "prev" }, { role: "assistant", content: "prev-reply" }],
+      history: [
+        { role: "user", content: "prev" },
+        { role: "assistant", content: "prev-reply" },
+      ],
     };
     await skill.execute(ctx, llm);
     const msgs = llm.createMock.mock.calls[0][0].messages;

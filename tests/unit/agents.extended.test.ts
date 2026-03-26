@@ -16,18 +16,24 @@ import type { WorkflowDefinition } from "@agenticforge/workflow";
 function makeMockLLM(response = "agent-response") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: { chat: { completions: { create: vi.fn() } } },
     model: "mock-model",
   } as any;
 }
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes input"); }
+  constructor() {
+    super("echo", "Echoes input");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 // ===========================================================================
@@ -57,7 +63,9 @@ describe("ReActAgent", () => {
         if (call === 1) return "Thought: need echo\nAction: echo\nAction Input: hello";
         return "Final Answer: echoed";
       }),
-      streamThink: vi.fn(async function* () { yield "echoed"; }),
+      streamThink: vi.fn(async function* () {
+        yield "echoed";
+      }),
     } as any;
     const registry = new ToolRegistry();
     registry.registerTool(new EchoTool());
@@ -77,12 +85,17 @@ describe("ReActAgent", () => {
     const llm = makeMockLLM("Final Answer: ok");
     const agent = new ReActAgent({ name: "react", llm });
     await agent.run("q");
-    expect(agent.getHistory().some(m => m.role === "user")).toBe(true);
-    expect(agent.getHistory().some(m => m.role === "assistant")).toBe(true);
+    expect(agent.getHistory().some((m) => m.role === "user")).toBe(true);
+    expect(agent.getHistory().some((m) => m.role === "assistant")).toBe(true);
   });
 
   it("run() exhausts maxSteps and returns fallback", async () => {
-    const llm = { ...makeMockLLM("Thought: thinking\nAction: echo\nAction Input: x"), streamThink: vi.fn(async function* () { yield "x"; }) } as any;
+    const llm = {
+      ...makeMockLLM("Thought: thinking\nAction: echo\nAction Input: x"),
+      streamThink: vi.fn(async function* () {
+        yield "x";
+      }),
+    } as any;
     const registry = new ToolRegistry();
     registry.registerTool(new EchoTool());
     const agent = new ReActAgent({ name: "react", llm, toolRegistry: registry, maxSteps: 2 });
@@ -91,7 +104,12 @@ describe("ReActAgent", () => {
   });
 
   it("streamRun() yields tokens", async () => {
-    const llm = { ...makeMockLLM("Final Answer: streamed"), streamThink: vi.fn(async function* () { yield "streamed"; }) } as any;
+    const llm = {
+      ...makeMockLLM("Final Answer: streamed"),
+      streamThink: vi.fn(async function* () {
+        yield "streamed";
+      }),
+    } as any;
     const agent = new ReActAgent({ name: "react", llm });
     const chunks: string[] = [];
     for await (const c of agent.streamRun("q")) chunks.push(c);
@@ -114,7 +132,9 @@ describe("PlanSolveAgent", () => {
         if (call === 2) return "step result";
         return "final answer";
       }),
-      streamThink: vi.fn(async function* () { yield "final answer"; }),
+      streamThink: vi.fn(async function* () {
+        yield "final answer";
+      }),
     } as any;
     const agent = new PlanSolveAgent({ name: "ps", llm });
     const result = await agent.run("Research AI");
@@ -126,8 +146,13 @@ describe("PlanSolveAgent", () => {
     let call = 0;
     const llm = {
       ...makeMockLLM(),
-      think: vi.fn().mockImplementation(async () => { call++; return call === 1 ? planJson : "result"; }),
-      streamThink: vi.fn(async function* () { yield "result"; }),
+      think: vi.fn().mockImplementation(async () => {
+        call++;
+        return call === 1 ? planJson : "result";
+      }),
+      streamThink: vi.fn(async function* () {
+        yield "result";
+      }),
     } as any;
     const agent = new PlanSolveAgent({ name: "ps", llm });
     await agent.run("goal");
@@ -139,8 +164,13 @@ describe("PlanSolveAgent", () => {
     let call = 0;
     const llm = {
       ...makeMockLLM(),
-      think: vi.fn().mockImplementation(async () => { call++; return call === 1 ? "not json" : "final"; }),
-      streamThink: vi.fn(async function* () { yield "final"; }),
+      think: vi.fn().mockImplementation(async () => {
+        call++;
+        return call === 1 ? "not json" : "final";
+      }),
+      streamThink: vi.fn(async function* () {
+        yield "final";
+      }),
     } as any;
     const agent = new PlanSolveAgent({ name: "ps", llm });
     const result = await agent.run("goal");
@@ -152,8 +182,13 @@ describe("PlanSolveAgent", () => {
     let call = 0;
     const llm = {
       ...makeMockLLM(),
-      think: vi.fn().mockImplementation(async () => { call++; return call === 1 ? planJson : "step result"; }),
-      streamThink: vi.fn(async function* () { yield "streamed answer"; }),
+      think: vi.fn().mockImplementation(async () => {
+        call++;
+        return call === 1 ? planJson : "step result";
+      }),
+      streamThink: vi.fn(async function* () {
+        yield "streamed answer";
+      }),
     } as any;
     const agent = new PlanSolveAgent({ name: "ps", llm });
     const chunks: string[] = [];

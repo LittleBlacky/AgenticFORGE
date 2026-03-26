@@ -1,16 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  mergeSnippetsGrouped,
-} from "../../packages/memory/src/rag/pipeline";
+import { mergeSnippetsGrouped } from "../../packages/memory/src/rag/pipeline";
 import { OpenAITextEmbedder } from "../../packages/memory/src/embedding/embedders";
 import { createDefaultTextEmbedder } from "../../packages/memory/src/embedding/factory";
-import { FunctionCallAgent } from "../../packages/agents/src/function-call-agent/FunctionCallAgent";
+import { ToolCallExecutor } from "../../packages/core/src/tool-call-executor";
 
 // ===========================================================================
-// FunctionCallAgent.extractMessageContent (private static)
+// ToolCallExecutor.extractContent (previously FunctionCallAgent.extractMessageContent)
 // ===========================================================================
-describe("FunctionCallAgent.extractMessageContent", () => {
-  const fn = (FunctionCallAgent as any).extractMessageContent as (v: unknown) => string;
+describe("ToolCallExecutor — extractContent (via run with no tools)", () => {
+  // extractContent 是 private static，通过 as any 访问测试
+  const fn = (ToolCallExecutor as any).extractContent as (v: unknown) => string;
 
   it("returns empty string for null/undefined", () => {
     expect(fn(null)).toBe("");
@@ -124,7 +123,10 @@ describe("OpenAITextEmbedder.encode", () => {
     };
 
     const vecs = await emb.encode(["a", "b"]);
-    expect(vecs).toEqual([[1, 2], [3, 4]]);
+    expect(vecs).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
   });
 });
 

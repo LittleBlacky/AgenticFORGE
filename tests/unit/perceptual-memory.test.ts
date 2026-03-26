@@ -23,9 +23,7 @@ describe("PerceptualMemory", () => {
   let memory: PerceptualMemory;
 
   beforeEach(() => {
-    memory = new PerceptualMemory(
-      { perceptualMemoryModalities: ["text", "image", "audio"] },
-    );
+    memory = new PerceptualMemory({ perceptualMemoryModalities: ["text", "image", "audio"] });
   });
 
   // -------------------------------------------------------------------------
@@ -80,7 +78,7 @@ describe("PerceptualMemory", () => {
     await memory.add(makeItem({ id: "t1", metadata: { modality: "text" } }));
     await memory.add(makeItem({ id: "i1", metadata: { modality: "image", raw_data: "img" } }));
     const results = await memory.retrieve("test", 5, { targetModality: "image" });
-    expect(results.every(r => r.metadata.modality === "image")).toBe(true);
+    expect(results.every((r) => r.metadata.modality === "image")).toBe(true);
   });
 
   // -------------------------------------------------------------------------
@@ -159,7 +157,7 @@ describe("PerceptualMemory", () => {
     await memory.add(makeItem({ id: "t2", metadata: { modality: "text" } }));
     await memory.add(makeItem({ id: "i1", metadata: { modality: "image", raw_data: "img" } }));
     const textItems = await memory.getByModality("text", 10);
-    expect(textItems.every(m => m.metadata.modality === "text")).toBe(true);
+    expect(textItems.every((m) => m.metadata.modality === "text")).toBe(true);
     expect(textItems).toHaveLength(2);
   });
 

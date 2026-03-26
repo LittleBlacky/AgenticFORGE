@@ -29,7 +29,9 @@ function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
 // ===========================================================================
 describe("SemanticMemory — basic (no adapters)", () => {
   let mem: SemanticMemory;
-  beforeEach(() => { mem = new SemanticMemory(); });
+  beforeEach(() => {
+    mem = new SemanticMemory();
+  });
 
   it("add() stores item and returns id", async () => {
     const item = makeItem();
@@ -61,7 +63,7 @@ describe("SemanticMemory — basic (no adapters)", () => {
     await mem.add(makeItem({ userId: "u1" }));
     await mem.add(makeItem({ userId: "u2" }));
     const results = await mem.retrieve("TypeScript", 5, { userId: "u1" });
-    expect(results.every(m => m.userId === "u1")).toBe(true);
+    expect(results.every((m) => m.userId === "u1")).toBe(true);
   });
 
   it("update() changes content", async () => {

@@ -15,13 +15,24 @@ import { Tool, ToolRegistry } from "@agenticforge/tools";
 import type { ToolParameter } from "@agenticforge/tools";
 
 function makeLLM(response = "result") {
-  return { think: vi.fn().mockResolvedValue(response), streamThink: vi.fn(), client: {}, model: "m" } as any;
+  return {
+    think: vi.fn().mockResolvedValue(response),
+    streamThink: vi.fn(),
+    client: {},
+    model: "m",
+  } as any;
 }
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes"); }
-  getParameters(): ToolParameter[] { return [{ name: "input", type: "string", description: "t", required: true, default: null }]; }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  constructor() {
+    super("echo", "Echoes");
+  }
+  getParameters(): ToolParameter[] {
+    return [{ name: "input", type: "string", description: "t", required: true, default: null }];
+  }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 // ===========================================================================
@@ -29,10 +40,13 @@ class EchoTool extends Tool {
 // ===========================================================================
 describe("createPlan", () => {
   it("creates plan with pending steps", () => {
-    const plan = createPlan("goal", [{ id: 1, description: "step1" }, { id: 2, description: "step2" }]);
+    const plan = createPlan("goal", [
+      { id: 1, description: "step1" },
+      { id: 2, description: "step2" },
+    ]);
     expect(plan.goal).toBe("goal");
     expect(plan.steps).toHaveLength(2);
-    expect(plan.steps.every(s => s.status === "pending")).toBe(true);
+    expect(plan.steps.every((s) => s.status === "pending")).toBe(true);
   });
   it("creates plan with empty steps", () => {
     const plan = createPlan("goal", []);
@@ -77,20 +91,29 @@ describe("markStepFailed", () => {
 
 describe("getPendingSteps", () => {
   it("returns only pending steps", () => {
-    const plan = createPlan("g", [{ id: 1, description: "a" }, { id: 2, description: "b" }]);
+    const plan = createPlan("g", [
+      { id: 1, description: "a" },
+      { id: 2, description: "b" },
+    ]);
     markStepDone(plan, 1, "done");
     expect(getPendingSteps(plan)).toHaveLength(1);
     expect(getPendingSteps(plan)[0]!.id).toBe(2);
   });
   it("returns all steps when none completed", () => {
-    const plan = createPlan("g", [{ id: 1, description: "a" }, { id: 2, description: "b" }]);
+    const plan = createPlan("g", [
+      { id: 1, description: "a" },
+      { id: 2, description: "b" },
+    ]);
     expect(getPendingSteps(plan)).toHaveLength(2);
   });
 });
 
 describe("getCompletedResults", () => {
   it("returns results of done steps", () => {
-    const plan = createPlan("g", [{ id: 1, description: "a" }, { id: 2, description: "b" }]);
+    const plan = createPlan("g", [
+      { id: 1, description: "a" },
+      { id: 2, description: "b" },
+    ]);
     markStepDone(plan, 1, "result-a");
     markStepFailed(plan, 2, "fail");
     expect(getCompletedResults(plan)).toEqual(["result-a"]);
@@ -129,17 +152,28 @@ describe("StepExecutor", () => {
     const llm = makeLLM("fallback");
     const registry = new ToolRegistry();
     const executor = new StepExecutor({ llm, toolRegistry: registry });
-    const step = { id: 1, description: "use missing-tool", tool: "missing-tool", status: "pending" as const };
+    const step = {
+      id: 1,
+      description: "use missing-tool",
+      tool: "missing-tool",
+      status: "pending" as const,
+    };
     const result = await executor.execute(step);
     expect(result).toBe("fallback");
   });
 
   it("execute() catches tool error and returns error message", async () => {
-    const badTool = new class extends Tool {
-      constructor() { super("bad", "throws"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("tool failed"); }
-    }();
+    const badTool = new (class extends Tool {
+      constructor() {
+        super("bad", "throws");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        throw new Error("tool failed");
+      }
+    })();
     const registry = new ToolRegistry();
     registry.registerTool(badTool);
     const executor = new StepExecutor({ llm: makeLLM(), toolRegistry: registry });

@@ -30,7 +30,9 @@ describe("core Agent remaining branches", () => {
   it("useHooks registers multiple hooks in one call", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
       client: {},
       model: "m",
     } as any;
@@ -39,8 +41,20 @@ describe("core Agent remaining branches", () => {
     const events: string[] = [];
 
     agent.useHooks([
-      { name: "h1", events: ["beforeRun"], handle: (ctx: any) => { events.push(ctx.event + "-1"); } },
-      { name: "h2", events: ["beforeRun"], handle: (ctx: any) => { events.push(ctx.event + "-2"); } },
+      {
+        name: "h1",
+        events: ["beforeRun"],
+        handle: (ctx: any) => {
+          events.push(ctx.event + "-1");
+        },
+      },
+      {
+        name: "h2",
+        events: ["beforeRun"],
+        handle: (ctx: any) => {
+          events.push(ctx.event + "-2");
+        },
+      },
     ] as any);
 
     for await (const _ of agent.streamRun("hello")) {
@@ -57,7 +71,9 @@ describe("core Agent remaining branches", () => {
         .fn()
         .mockResolvedValueOnce('{"wrong":"shape"}')
         .mockResolvedValueOnce('{"answer":"ok","score":7}'),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
       client: {},
       model: "m",
     } as any;
@@ -79,7 +95,10 @@ describe("ReActAgent streamRun non-Error tool exception branch", () => {
     });
 
     const llm = {
-      think: vi.fn().mockResolvedValueOnce("Action: boom\nAction Input: x").mockResolvedValueOnce("Final Answer: done"),
+      think: vi
+        .fn()
+        .mockResolvedValueOnce("Action: boom\nAction Input: x")
+        .mockResolvedValueOnce("Final Answer: done"),
       streamThink: vi.fn(async function* () {
         yield "FINAL";
       }),
@@ -102,10 +121,12 @@ describe("SemanticMemory remaining branches", () => {
     const kvStore = {
       put: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
-      list: vi.fn().mockResolvedValue([
-        makeItem({ id: "k1", userId: "u1", metadata: { combined_score: 0.9 } }),
-        makeItem({ id: "k2", userId: "u2", metadata: { combined_score: 0.7 } }),
-      ]),
+      list: vi
+        .fn()
+        .mockResolvedValue([
+          makeItem({ id: "k1", userId: "u1", metadata: { combined_score: 0.9 } }),
+          makeItem({ id: "k2", userId: "u2", metadata: { combined_score: 0.7 } }),
+        ]),
     } as any;
     const vectorStore = {
       upsertVector: vi.fn().mockResolvedValue(undefined),

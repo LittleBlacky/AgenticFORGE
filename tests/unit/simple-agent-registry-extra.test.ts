@@ -17,17 +17,27 @@ import type { ToolParameter } from "@agenticforge/tools";
 
 function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
   return {
-    id: randomUUID(), content: "test", memoryType: "episodic",
-    userId: "u1", timestamp: new Date(), importance: 0.5, metadata: {}, ...overrides,
+    id: randomUUID(),
+    content: "test",
+    memoryType: "episodic",
+    userId: "u1",
+    timestamp: new Date(),
+    importance: 0.5,
+    metadata: {},
+    ...overrides,
   };
 }
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "echoes"); }
+  constructor() {
+    super("echo", "echoes");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "text", type: "string", description: "t", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.text ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.text ?? "");
+  }
 }
 
 // ===========================================================================
@@ -37,8 +47,12 @@ describe("SimpleAgent — streamRun() with tools", () => {
   it("streams directly when no tools", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "chunk1"; yield "chunk2"; }),
-      client: undefined, model: "m",
+      streamThink: vi.fn(async function* () {
+        yield "chunk1";
+        yield "chunk2";
+      }),
+      client: undefined,
+      model: "m",
     } as any;
     const agent = new SimpleAgent({ llm });
     const chunks: string[] = [];
@@ -52,17 +66,29 @@ describe("SimpleAgent — streamRun() with tools", () => {
     let call = 0;
     const mockCreate = vi.fn().mockImplementation(async () => {
       call++;
-      if (call === 1) return {
-        choices: [{ message: {
-          content: "",
-          tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ text: "hello" }) } }]
-        } }]
-      };
+      if (call === 1)
+        return {
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [
+                  {
+                    id: "c1",
+                    function: { name: "echo", arguments: JSON.stringify({ text: "hello" }) },
+                  },
+                ],
+              },
+            },
+          ],
+        };
       return { choices: [{ message: { content: "", tool_calls: [] } }] };
     });
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "final"; }),
+      streamThink: vi.fn(async function* () {
+        yield "final";
+      }),
       client: { chat: { completions: { create: mockCreate } } },
       model: "gpt-4o",
     } as any;
@@ -75,12 +101,21 @@ describe("SimpleAgent — streamRun() with tools", () => {
   it("run() emits beforeRun/afterRun hooks", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
-      client: undefined, model: "m",
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
+      client: undefined,
+      model: "m",
     } as any;
     const agent = new SimpleAgent({ llm });
     const events: string[] = [];
-    agent.useHook({ name: "h", events: ["beforeRun", "afterRun"], handle: (ctx) => { events.push(ctx.event); } });
+    agent.useHook({
+      name: "h",
+      events: ["beforeRun", "afterRun"],
+      handle: (ctx) => {
+        events.push(ctx.event);
+      },
+    });
     await agent.run("q");
     expect(events).toContain("beforeRun");
     expect(events).toContain("afterRun");
@@ -143,7 +178,9 @@ describe("EpisodicMemory — extra paths", () => {
     // sorted by importance when query is empty
     expect(results.length).toBeGreaterThan(0);
     if (results.length >= 2) {
-      expect(results[0]!.importance).toBeGreaterThanOrEqual(results[results.length - 1]!.importance);
+      expect(results[0]!.importance).toBeGreaterThanOrEqual(
+        results[results.length - 1]!.importance,
+      );
     }
   });
 
@@ -152,7 +189,7 @@ describe("EpisodicMemory — extra paths", () => {
     await mem.add(makeItem({ userId: "u1", content: "u1 content" }));
     await mem.add(makeItem({ userId: "u2", content: "u2 content" }));
     const results = await mem.retrieve("content", 5, { userId: "u1" });
-    expect(results.every(m => m.userId === "u1")).toBe(true);
+    expect(results.every((m) => m.userId === "u1")).toBe(true);
   });
 
   it("hasMemory() works correctly", async () => {

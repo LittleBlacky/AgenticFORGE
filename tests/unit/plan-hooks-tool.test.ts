@@ -20,7 +20,12 @@ import { ToolRegistry } from "@agenticforge/tools";
 function makeValidPlanJSON(steps: { id: number; description: string }[]): string {
   return JSON.stringify({
     goal: "test goal",
-    steps: steps.map(s => ({ id: s.id, description: s.description, toolName: "", parameters: {} })),
+    steps: steps.map((s) => ({
+      id: s.id,
+      description: s.description,
+      toolName: "",
+      parameters: {},
+    })),
   });
 }
 
@@ -31,7 +36,9 @@ function makeLLM(planResponse: string, finalResponse = "final answer") {
       call++;
       return call === 1 ? planResponse : finalResponse;
     }),
-    streamThink: vi.fn(async function* () { yield finalResponse; }),
+    streamThink: vi.fn(async function* () {
+      yield finalResponse;
+    }),
     client: undefined,
     model: "m",
   } as any;
@@ -63,13 +70,21 @@ describe("PlanSolveAgent — run()", () => {
   it("handles step execution failure gracefully", async () => {
     const plan = makeValidPlanJSON([{ id: 1, description: "broken step" }]);
     const registry = new ToolRegistry();
-    const brokenTool = new class extends Tool {
-      constructor() { super("broken", "breaks"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("step failed"); }
-    }();
+    const brokenTool = new (class extends Tool {
+      constructor() {
+        super("broken", "breaks");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        throw new Error("step failed");
+      }
+    })();
     registry.registerTool(brokenTool);
-    const llm = makeLLM(`{"goal":"g","steps":[{"id":1,"description":"broken step","toolName":"broken","parameters":{}}]}`);
+    const llm = makeLLM(
+      `{"goal":"g","steps":[{"id":1,"description":"broken step","toolName":"broken","parameters":{}}]}`,
+    );
     const agent = new PlanSolveAgent({ name: "psa", llm, toolRegistry: registry });
     // Should not throw — failure is caught and context updated
     const result = await agent.run("q");
@@ -87,10 +102,21 @@ describe("PlanSolveAgent — run()", () => {
   });
 
   it("emits onError hook and rethrows when LLM throws", async () => {
-    const llm = { think: vi.fn().mockRejectedValue(new Error("llm down")), streamThink: vi.fn(), client: undefined, model: "m" } as any;
+    const llm = {
+      think: vi.fn().mockRejectedValue(new Error("llm down")),
+      streamThink: vi.fn(),
+      client: undefined,
+      model: "m",
+    } as any;
     const agent = new PlanSolveAgent({ name: "psa", llm });
     const errors: string[] = [];
-    agent.useHook({ name: "e", events: ["onError"], handle: (ctx) => { errors.push((ctx.error as Error).message); } });
+    agent.useHook({
+      name: "e",
+      events: ["onError"],
+      handle: (ctx) => {
+        errors.push((ctx.error as Error).message);
+      },
+    });
     await expect(agent.run("q")).rejects.toThrow("llm down");
     expect(errors).toContain("llm down");
   });
@@ -119,7 +145,9 @@ describe("PlanSolveAgent — streamRun()", () => {
 // ============================================================
 describe("MetricsHook — capture all events", () => {
   let metrics: MetricsHook;
-  beforeEach(() => { metrics = new MetricsHook(); });
+  beforeEach(() => {
+    metrics = new MetricsHook();
+  });
 
   async function fire(event: string, extra: Record<string, unknown> = {}) {
     await metrics.hook.handle({
@@ -160,7 +188,7 @@ describe("MetricsHook — capture all events", () => {
 
   it("tracks avgRunLatencyMs", async () => {
     await fire("beforeRun");
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     await fire("afterRun");
     const snap = metrics.getSnapshot();
     expect(snap.avgRunLatencyMs).toBeGreaterThanOrEqual(0);
@@ -168,7 +196,7 @@ describe("MetricsHook — capture all events", () => {
 
   it("tracks avgLlmLatencyMs", async () => {
     await fire("beforeLLMCall");
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     await fire("afterLLMCall");
     const snap = metrics.getSnapshot();
     expect(snap.avgLlmLatencyMs).toBeGreaterThanOrEqual(0);
@@ -176,7 +204,7 @@ describe("MetricsHook — capture all events", () => {
 
   it("tracks avgToolLatencyMs", async () => {
     await fire("beforeToolCall", { toolName: "t" });
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     await fire("afterToolCall", { toolName: "t" });
     const snap = metrics.getSnapshot();
     expect(snap.avgToolLatencyMs).toBeGreaterThanOrEqual(0);
@@ -214,14 +242,24 @@ describe("createConsoleLoggingHook", () => {
   it("includes toolName when present", async () => {
     const lines: string[] = [];
     const hook = createConsoleLoggingHook({ logger: (line) => lines.push(line) });
-    await hook.handle({ event: "afterToolCall", agentName: "a", traceId: "t", toolName: "myTool" } as any);
+    await hook.handle({
+      event: "afterToolCall",
+      agentName: "a",
+      traceId: "t",
+      toolName: "myTool",
+    } as any);
     expect(lines[0]).toContain("myTool");
   });
 
   it("includes error message when present", async () => {
     const lines: string[] = [];
     const hook = createConsoleLoggingHook({ logger: (line) => lines.push(line) });
-    await hook.handle({ event: "onError", agentName: "a", traceId: "t", error: new Error("boom") } as any);
+    await hook.handle({
+      event: "onError",
+      agentName: "a",
+      traceId: "t",
+      error: new Error("boom"),
+    } as any);
     expect(lines[0]).toContain("boom");
   });
 
@@ -240,18 +278,30 @@ describe("createConsoleLoggingHook", () => {
 describe("Tool — expandable flag", () => {
   it("expandable defaults to false", () => {
     class T extends Tool {
-      constructor() { super("t", "d"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { return "ok"; }
+      constructor() {
+        super("t", "d");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        return "ok";
+      }
     }
     expect(new T().expandable).toBe(false);
   });
 
   it("expandable can be set to true", () => {
     class T extends Tool {
-      constructor() { super("t", "d", true); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { return "ok"; }
+      constructor() {
+        super("t", "d", true);
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        return "ok";
+      }
     }
     expect(new T().expandable).toBe(true);
   });
@@ -260,12 +310,20 @@ describe("Tool — expandable flag", () => {
 describe("Tool — toolAction decorator", () => {
   it("registers action metadata on class prototype", () => {
     class MyTool extends Tool {
-      constructor() { super("my", "desc"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { return "ok"; }
+      constructor() {
+        super("my", "desc");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        return "ok";
+      }
 
       @toolAction("my_action", "Does something")
-      async myAction(): Promise<string> { return "action"; }
+      async myAction(): Promise<string> {
+        return "action";
+      }
     }
     const t = new MyTool();
     // decorator should register on prototype metadata

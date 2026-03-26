@@ -14,18 +14,24 @@ import type { WorkflowDefinition } from "@agenticforge/workflow";
 function makeMockLLM(response = "agent-response") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: { chat: { completions: { create: vi.fn() } } },
     model: "mock-model",
   } as any;
 }
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes input"); }
+  constructor() {
+    super("echo", "Echoes input");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 // ===========================================================================
@@ -42,7 +48,9 @@ describe("ReflectionAgent", () => {
         if (call === 2) return "critique: needs improvement";
         return "revised answer";
       }),
-      streamThink: vi.fn(async function* () { yield "revised answer"; }),
+      streamThink: vi.fn(async function* () {
+        yield "revised answer";
+      }),
     } as any;
     const agent = new ReflectionAgent({ name: "reflect", llm, maxRounds: 1 });
     const result = await agent.run("Write something");
@@ -54,13 +62,18 @@ describe("ReflectionAgent", () => {
     const llm = {
       ...makeMockLLM(),
       think: vi.fn().mockImplementation(async () => {
-        call++; if (call === 1) return "draft"; if (call === 2) return "critique"; return "revised";
+        call++;
+        if (call === 1) return "draft";
+        if (call === 2) return "critique";
+        return "revised";
       }),
-      streamThink: vi.fn(async function* () { yield "revised"; }),
+      streamThink: vi.fn(async function* () {
+        yield "revised";
+      }),
     } as any;
     const agent = new ReflectionAgent({ name: "reflect", llm, maxRounds: 1 });
     await agent.run("q");
-    expect(agent.getHistory().some(m => m.role === "assistant")).toBe(true);
+    expect(agent.getHistory().some((m) => m.role === "assistant")).toBe(true);
   });
 
   it("memory records all rounds", async () => {
@@ -68,9 +81,14 @@ describe("ReflectionAgent", () => {
     const llm = {
       ...makeMockLLM(),
       think: vi.fn().mockImplementation(async () => {
-        call++; if (call === 1) return "draft"; if (call === 2) return "critique"; return "revised";
+        call++;
+        if (call === 1) return "draft";
+        if (call === 2) return "critique";
+        return "revised";
       }),
-      streamThink: vi.fn(async function* () { yield "revised"; }),
+      streamThink: vi.fn(async function* () {
+        yield "revised";
+      }),
     } as any;
     const agent = new ReflectionAgent({ name: "reflect", llm, maxRounds: 1 });
     await agent.run("q");
@@ -81,8 +99,13 @@ describe("ReflectionAgent", () => {
     let call = 0;
     const llm = {
       ...makeMockLLM(),
-      think: vi.fn().mockImplementation(async () => { call++; return call === 1 ? "draft" : "critique"; }),
-      streamThink: vi.fn(async function* () { yield "streamed revision"; }),
+      think: vi.fn().mockImplementation(async () => {
+        call++;
+        return call === 1 ? "draft" : "critique";
+      }),
+      streamThink: vi.fn(async function* () {
+        yield "streamed revision";
+      }),
     } as any;
     const agent = new ReflectionAgent({ name: "reflect", llm, maxRounds: 1 });
     const chunks: string[] = [];
@@ -92,7 +115,13 @@ describe("ReflectionAgent", () => {
 
   it("uses default maxRounds of 2 (5 LLM calls total)", async () => {
     const thinkMock = vi.fn().mockResolvedValue("response");
-    const llm = { ...makeMockLLM(), think: thinkMock, streamThink: vi.fn(async function* () { yield "r"; }) } as any;
+    const llm = {
+      ...makeMockLLM(),
+      think: thinkMock,
+      streamThink: vi.fn(async function* () {
+        yield "r";
+      }),
+    } as any;
     const agent = new ReflectionAgent({ name: "reflect", llm });
     await agent.run("q");
     expect(thinkMock).toHaveBeenCalledTimes(5);
@@ -140,14 +169,22 @@ describe("SkillAgent", () => {
   });
 
   it("run() routes via LLM when multiple skills present", async () => {
-    const thinkMock = vi.fn()
-      .mockResolvedValueOnce("weather")
-      .mockResolvedValueOnce("rainy");
-    const llm = { ...makeMockLLM(), think: thinkMock, streamThink: vi.fn(async function* () { yield "r"; }) } as any;
-    const agent = new SkillAgent({ name: "sa", llm, skills: [
-      new AgentSkill({ name: "weather", description: "weather skill" }),
-      new AgentSkill({ name: "stock",   description: "stock skill" }),
-    ]});
+    const thinkMock = vi.fn().mockResolvedValueOnce("weather").mockResolvedValueOnce("rainy");
+    const llm = {
+      ...makeMockLLM(),
+      think: thinkMock,
+      streamThink: vi.fn(async function* () {
+        yield "r";
+      }),
+    } as any;
+    const agent = new SkillAgent({
+      name: "sa",
+      llm,
+      skills: [
+        new AgentSkill({ name: "weather", description: "weather skill" }),
+        new AgentSkill({ name: "stock", description: "stock skill" }),
+      ],
+    });
     const result = await agent.run("Is it raining?");
     expect(result).toBe("rainy");
   });
@@ -193,8 +230,8 @@ describe("WorkflowAgent", () => {
   it("runWorkflow() adds messages to history", async () => {
     const agent = new WorkflowAgent({ name: "wa", llm: makeMockLLM() });
     await agent.runWorkflow(fnWorkflow, "hello");
-    expect(agent.getHistory().some(m => m.role === "user" && m.content === "hello")).toBe(true);
-    expect(agent.getHistory().some(m => m.role === "assistant")).toBe(true);
+    expect(agent.getHistory().some((m) => m.role === "user" && m.content === "hello")).toBe(true);
+    expect(agent.getHistory().some((m) => m.role === "assistant")).toBe(true);
   });
 
   it("runWorkflow() with llm node calls llm.think", async () => {

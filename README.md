@@ -35,7 +35,7 @@ If you want one unified SDK to build from a simple chatbot to a production multi
 
 - **Tool-first architecture**: Standardized `Tool`, `ToolRegistry`, `ToolChain`, and async execution model
 - **Multiple agent paradigms**: `Simple`, `FunctionCall`, `ReAct`, `PlanSolve`, `Reflection`, `SkillAgent`, and `WorkflowAgent`
-- **Skill system**: Define skills with `SKILL.md` or TypeScript classes and auto-route by intent
+- **Skill system**: Define skills with `SKILL.md` or TypeScript classes; `SkillDispatcher` auto-routes by keyword (zero LLM cost) then LLM intent; `withSkills` mixin adds skill routing to any Agent type
 - **Memory + RAG built-in**: Working / episodic / semantic / perceptual memory with pluggable stores
 - **Protocol layer included**: MCP, A2A, and ANP implementations for inter-agent communication
 - **Production-friendly TypeScript**: ESM/CJS builds, strict typing, modular packages, and subpath imports

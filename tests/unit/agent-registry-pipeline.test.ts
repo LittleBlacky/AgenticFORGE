@@ -65,7 +65,9 @@ describe("AdapterRegistry — getters", () => {
 // ===========================================================================
 describe("FunctionCallAgent — parameter type coercion", () => {
   class MultiTypeTool extends Tool {
-    constructor() { super("multi", "multi type tool"); }
+    constructor() {
+      super("multi", "multi type tool");
+    }
     getParameters(): ToolParameter[] {
       return [
         { name: "flag", type: "boolean", description: "bool", required: false, default: null },
@@ -82,22 +84,34 @@ describe("FunctionCallAgent — parameter type coercion", () => {
     let call = 0;
     return {
       think: vi.fn(),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: {
         chat: {
           completions: {
             create: vi.fn().mockImplementation(async () => {
               call++;
-              if (call === 1) return {
-                choices: [{ message: { content: "", tool_calls: [{
-                  id: "c1",
-                  function: { name: "multi", arguments: toolCallArgs }
-                }] } }]
-              };
+              if (call === 1)
+                return {
+                  choices: [
+                    {
+                      message: {
+                        content: "",
+                        tool_calls: [
+                          {
+                            id: "c1",
+                            function: { name: "multi", arguments: toolCallArgs },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                };
               return { choices: [{ message: { content: finalResponse, tool_calls: [] } }] };
-            })
-          }
-        }
+            }),
+          },
+        },
       },
       model: "gpt-4o",
     } as any;

@@ -100,8 +100,9 @@ describe("indexChunks()", () => {
   });
 
   it("throws when store is missing", async () => {
-    await expect(indexChunks({ store: undefined as any, chunks: [makeChunk()] }))
-      .rejects.toThrow("VectorStoreAdapter");
+    await expect(indexChunks({ store: undefined as any, chunks: [makeChunk()] })).rejects.toThrow(
+      "VectorStoreAdapter",
+    );
   });
 
   it("indexes chunks into vector store", async () => {
@@ -139,8 +140,9 @@ describe("searchVectors()", () => {
   });
 
   it("throws when store is missing", async () => {
-    await expect(searchVectors({ store: undefined as any, query: "test" }))
-      .rejects.toThrow("VectorStoreAdapter");
+    await expect(searchVectors({ store: undefined as any, query: "test" })).rejects.toThrow(
+      "VectorStoreAdapter",
+    );
   });
 
   it("returns hits from indexed chunks", async () => {

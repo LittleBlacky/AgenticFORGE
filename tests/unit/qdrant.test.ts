@@ -1,19 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const qdrantInstances = vi.hoisted(() => [] as any[]);
-const QdrantClientMock = vi.hoisted(() =>
-  class {
-    upsert = vi.fn().mockResolvedValue(undefined);
-    search = vi.fn().mockResolvedValue([]);
-    delete = vi.fn().mockResolvedValue(undefined);
-    getCollections = vi.fn().mockResolvedValue({ collections: [] });
-    createCollection = vi.fn().mockResolvedValue(undefined);
-    deleteCollection = vi.fn().mockResolvedValue(undefined);
+const QdrantClientMock = vi.hoisted(
+  () =>
+    class {
+      upsert = vi.fn().mockResolvedValue(undefined);
+      search = vi.fn().mockResolvedValue([]);
+      delete = vi.fn().mockResolvedValue(undefined);
+      getCollections = vi.fn().mockResolvedValue({ collections: [] });
+      createCollection = vi.fn().mockResolvedValue(undefined);
+      deleteCollection = vi.fn().mockResolvedValue(undefined);
 
-    constructor() {
-      qdrantInstances.push(this);
-    }
-  }
+      constructor() {
+        qdrantInstances.push(this);
+      }
+    },
 );
 
 vi.mock("@qdrant/js-client-rest", () => ({
@@ -42,13 +43,24 @@ describe("buildQdrantFilter", () => {
 
   it("builds geo filters", () => {
     const geoRadius = buildQdrantFilter([
-      { key: "loc", geo_radius: { center: { lat: 1, lon: 2 }, radius: 100 }, operator: "geo_radius" },
+      {
+        key: "loc",
+        geo_radius: { center: { lat: 1, lon: 2 }, radius: 100 },
+        operator: "geo_radius",
+      },
     ]);
     expect(geoRadius?.must?.[0]?.geo_radius).toBeDefined();
 
-    const geoBox = buildQdrantFilter([
-      { key: "loc", geo_bounding_box: { top_left: { lat: 2, lon: 1 }, bottom_right: { lat: 1, lon: 2 } }, operator: "geo_box" },
-    ], "should");
+    const geoBox = buildQdrantFilter(
+      [
+        {
+          key: "loc",
+          geo_bounding_box: { top_left: { lat: 2, lon: 1 }, bottom_right: { lat: 1, lon: 2 } },
+          operator: "geo_box",
+        },
+      ],
+      "should",
+    );
     expect(geoBox?.should?.[0]?.geo_bounding_box).toBeDefined();
   });
 });
@@ -74,7 +86,11 @@ describe("QdrantVectorStore", () => {
     client.getCollections.mockResolvedValueOnce({ collections: [{ name: "c2" }] });
     client.search.mockResolvedValueOnce([{ id: 123, score: 0.9, payload: { x: 1 } }]);
 
-    const hits = await store.queryVector({ vector: [0.1, 0.2], limit: 3, filter: { user_id: "u1" } });
+    const hits = await store.queryVector({
+      vector: [0.1, 0.2],
+      limit: 3,
+      filter: { user_id: "u1" },
+    });
     expect(hits).toEqual([{ id: "123", score: 0.9, payload: { x: 1 } }]);
   });
 

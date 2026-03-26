@@ -16,7 +16,9 @@ import { AdapterRegistry } from "../../packages/memory/src/storage/registry";
 // ===========================================================================
 describe("InMemoryKVStore", () => {
   let store: InMemoryKVStore<string>;
-  beforeEach(() => { store = new InMemoryKVStore<string>(); });
+  beforeEach(() => {
+    store = new InMemoryKVStore<string>();
+  });
 
   it("put / get roundtrip", async () => {
     await store.put("k1", "value1");
@@ -26,22 +28,29 @@ describe("InMemoryKVStore", () => {
     expect(await store.get("missing")).toBeNull();
   });
   it("delete removes item", async () => {
-    await store.put("k1", "v"); await store.delete("k1");
+    await store.put("k1", "v");
+    await store.delete("k1");
     expect(await store.get("k1")).toBeNull();
   });
   it("list returns all values", async () => {
-    await store.put("a", "1"); await store.put("b", "2");
+    await store.put("a", "1");
+    await store.put("b", "2");
     expect(await store.list()).toHaveLength(2);
   });
   it("list respects limit", async () => {
-    await store.put("a", "1"); await store.put("b", "2"); await store.put("c", "3");
+    await store.put("a", "1");
+    await store.put("b", "2");
+    await store.put("c", "3");
     expect(await store.list({ limit: 2 })).toHaveLength(2);
   });
   it("clear removes all items", async () => {
-    await store.put("k", "v"); await store.clear();
+    await store.put("k", "v");
+    await store.clear();
     expect(await store.list()).toHaveLength(0);
   });
-  it("health() returns true", async () => { expect(await store.health()).toBe(true); });
+  it("health() returns true", async () => {
+    expect(await store.health()).toBe(true);
+  });
 });
 
 // ===========================================================================
@@ -49,7 +58,9 @@ describe("InMemoryKVStore", () => {
 // ===========================================================================
 describe("InMemoryVectorStore", () => {
   let store: InMemoryVectorStore;
-  beforeEach(() => { store = new InMemoryVectorStore(); });
+  beforeEach(() => {
+    store = new InMemoryVectorStore();
+  });
 
   it("upsertVector / queryVector roundtrip", async () => {
     await store.upsertVector({ id: "v1", vector: [1, 0, 0], payload: { text: "hello" } });
@@ -65,7 +76,8 @@ describe("InMemoryVectorStore", () => {
     expect(r[0]!.score).toBeGreaterThanOrEqual(r[1]!.score);
   });
   it("queryVector respects limit", async () => {
-    for (let i = 0; i < 5; i++) await store.upsertVector({ id: `v${i}`, vector: [i, 0], payload: {} });
+    for (let i = 0; i < 5; i++)
+      await store.upsertVector({ id: `v${i}`, vector: [i, 0], payload: {} });
     expect(await store.queryVector({ vector: [1, 0], limit: 2 })).toHaveLength(2);
   });
   it("deleteVector removes entry", async () => {
@@ -89,7 +101,9 @@ describe("InMemoryVectorStore", () => {
     const r = await store.queryVector({ vector: [0, 0], limit: 5 });
     expect(r[0]!.score).toBe(0);
   });
-  it("health() returns true", async () => { expect(await store.health()).toBe(true); });
+  it("health() returns true", async () => {
+    expect(await store.health()).toBe(true);
+  });
 });
 
 // ===========================================================================
@@ -97,39 +111,55 @@ describe("InMemoryVectorStore", () => {
 // ===========================================================================
 describe("InMemoryGraphStore", () => {
   let store: InMemoryGraphStore;
-  beforeEach(() => { store = new InMemoryGraphStore(); });
+  beforeEach(() => {
+    store = new InMemoryGraphStore();
+  });
 
   it("upsertEntities / queryGraph roundtrip", async () => {
-    await store.upsertEntities([{ entityId: "e1", name: "AgenticFORGE", type: "software", frequency: 1, metadata: {} }]);
+    await store.upsertEntities([
+      { entityId: "e1", name: "AgenticFORGE", type: "software", frequency: 1, metadata: {} },
+    ]);
     const r = await store.queryGraph({ queryText: "AgenticFORGE", limit: 5 });
     expect(r[0]!.entityId).toBe("e1");
   });
   it("upsertEntities increments frequency on duplicate", async () => {
     const e = { entityId: "e1", name: "test", type: "t", frequency: 1, metadata: {} };
-    await store.upsertEntities([e]); await store.upsertEntities([e]);
+    await store.upsertEntities([e]);
+    await store.upsertEntities([e]);
     const r = await store.queryGraph({ queryText: "test", limit: 1 });
     expect(r[0]!.entityId).toBe("e1");
   });
   it("queryGraph returns empty for unmatched text", async () => {
-    await store.upsertEntities([{ entityId: "e1", name: "foo", type: "t", frequency: 1, metadata: {} }]);
+    await store.upsertEntities([
+      { entityId: "e1", name: "foo", type: "t", frequency: 1, metadata: {} },
+    ]);
     expect(await store.queryGraph({ queryText: "xyz", limit: 5 })).toHaveLength(0);
   });
   it("upsertRelations adds and deduplicates relations", async () => {
     const rel = { fromEntity: "a", toEntity: "b", relationType: "r", frequency: 1, strength: 0.5 };
-    await store.upsertRelations([rel]); await store.upsertRelations([rel]);
+    await store.upsertRelations([rel]);
+    await store.upsertRelations([rel]);
   });
   it("deleteByMemoryId removes entity and its relations", async () => {
-    await store.upsertEntities([{ entityId: "e1", name: "target", type: "t", frequency: 1, metadata: {} }]);
-    await store.upsertRelations([{ fromEntity: "e1", toEntity: "e2", relationType: "r", frequency: 1, strength: 0.5 }]);
+    await store.upsertEntities([
+      { entityId: "e1", name: "target", type: "t", frequency: 1, metadata: {} },
+    ]);
+    await store.upsertRelations([
+      { fromEntity: "e1", toEntity: "e2", relationType: "r", frequency: 1, strength: 0.5 },
+    ]);
     await store.deleteByMemoryId("e1");
     expect(await store.queryGraph({ queryText: "target", limit: 5 })).toHaveLength(0);
   });
   it("clear removes all entities", async () => {
-    await store.upsertEntities([{ entityId: "e1", name: "foo", type: "t", frequency: 1, metadata: {} }]);
+    await store.upsertEntities([
+      { entityId: "e1", name: "foo", type: "t", frequency: 1, metadata: {} },
+    ]);
     await store.clear();
     expect(await store.queryGraph({ queryText: "foo", limit: 5 })).toHaveLength(0);
   });
-  it("health() returns true", async () => { expect(await store.health()).toBe(true); });
+  it("health() returns true", async () => {
+    expect(await store.health()).toBe(true);
+  });
 });
 
 // ===========================================================================
@@ -137,7 +167,9 @@ describe("InMemoryGraphStore", () => {
 // ===========================================================================
 describe("InMemoryBlobStore", () => {
   let store: InMemoryBlobStore;
-  beforeEach(() => { store = new InMemoryBlobStore(); });
+  beforeEach(() => {
+    store = new InMemoryBlobStore();
+  });
 
   it("putBlob / getBlob roundtrip (string)", async () => {
     await store.putBlob("b1", "hello", { type: "text" });
@@ -161,7 +193,9 @@ describe("InMemoryBlobStore", () => {
     await store.clear();
     expect(await store.getBlob("b1")).toBeNull();
   });
-  it("health() returns true", async () => { expect(await store.health()).toBe(true); });
+  it("health() returns true", async () => {
+    expect(await store.health()).toBe(true);
+  });
 });
 
 // ===========================================================================
@@ -186,7 +220,7 @@ describe("AdapterRegistry", () => {
   it("checkHealth() returns all-true when no adapters", async () => {
     const reg = new AdapterRegistry();
     const status = await reg.checkHealth();
-    expect(Object.values(status).every(v => v)).toBe(true);
+    expect(Object.values(status).every((v) => v)).toBe(true);
   });
   it("checkHealth() calls adapter health() method", async () => {
     const reg = new AdapterRegistry();

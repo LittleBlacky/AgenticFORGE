@@ -25,7 +25,9 @@ function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
 // ===========================================================================
 describe("EpisodicMemory — forget strategies", () => {
   let mem: EpisodicMemory;
-  beforeEach(() => { mem = new EpisodicMemory(); });
+  beforeEach(() => {
+    mem = new EpisodicMemory();
+  });
 
   it("forget() importance_based removes low-importance items", async () => {
     await mem.add(makeItem({ importance: 0.05 }));
@@ -46,7 +48,7 @@ describe("EpisodicMemory — forget strategies", () => {
     for (let i = 0; i < 5; i++) await mem.add(makeItem({ importance: i * 0.1 }));
     await mem.forget("capacity_based", 0.1, 30);
     const stats = await mem.getStats();
-    expect((stats.count as number)).toBeLessThanOrEqual(100);
+    expect(stats.count as number).toBeLessThanOrEqual(100);
   });
 
   it("forget() returns 0 when nothing removed", async () => {
@@ -62,7 +64,7 @@ describe("EpisodicMemory — consolidate", () => {
     await mem.add(makeItem({ importance: 0.9 }));
     await mem.add(makeItem({ importance: 0.3 }));
     const consolidated = await mem.consolidate("semantic", 0.7);
-    expect(consolidated.every(m => m.importance >= 0.7)).toBe(true);
+    expect(consolidated.every((m) => m.importance >= 0.7)).toBe(true);
   });
 
   it("consolidate() returns empty when nothing meets threshold", async () => {
@@ -87,7 +89,7 @@ describe("EpisodicMemory — retrieve edge cases", () => {
     await mem.add(makeItem({ userId: "u1", content: "user1 content" }));
     await mem.add(makeItem({ userId: "u2", content: "user2 content" }));
     const results = await mem.retrieve("content", 5, { userId: "u1" });
-    expect(results.every(m => m.userId === "u1")).toBe(true);
+    expect(results.every((m) => m.userId === "u1")).toBe(true);
   });
 
   it("retrieve() filters by memoryType", async () => {
@@ -108,7 +110,7 @@ describe("WorkingMemory — capacity eviction", () => {
     await mem.add(makeItem({ memoryType: "working", importance: 0.1, content: "low" }));
     await mem.add(makeItem({ memoryType: "working", importance: 0.5, content: "mid" }));
     const stats = await mem.getStats();
-    expect((stats.count as number)).toBeLessThanOrEqual(2);
+    expect(stats.count as number).toBeLessThanOrEqual(2);
   });
 
   it("evicts when over token limit", async () => {
@@ -117,7 +119,7 @@ describe("WorkingMemory — capacity eviction", () => {
     await mem.add(makeItem({ memoryType: "working", content: "word two extra" }));
     const stats = await mem.getStats();
     // at least something evicted or retained
-    expect((stats.count as number)).toBeLessThanOrEqual(2);
+    expect(stats.count as number).toBeLessThanOrEqual(2);
   });
 });
 
@@ -126,7 +128,7 @@ describe("WorkingMemory — TTL expiry", () => {
     const mem = new WorkingMemory({ workingMemoryTtlMinutes: 0.00001 }); // ~0ms TTL
     await mem.add(makeItem({ memoryType: "working", content: "should expire" }));
     // Wait a bit then retrieve — expired items should be gone
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     const results = await mem.retrieve("should expire", 10);
     // Either empty (expired) or still there (TTL resolution)
     expect(Array.isArray(results)).toBe(true);

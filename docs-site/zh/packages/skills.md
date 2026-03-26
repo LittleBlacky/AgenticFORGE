@@ -17,8 +17,9 @@ npm install @agenticforge/skills
 | `AgentSkill` | 可继承的 Skill 基类，内置工具调用循环 |
 | `SkillRegistry` | Skill 注册中心与路由描述生成器 |
 | `SkillRunner` | 框架无关的 Skill 调度器 |
+| `SkillDispatcher` | 两级路由引擎（规则路由 + LLM 路由）|
 | `MarkdownSkill` | 从 `.md` 文件加载的 Skill |
 | `SkillLoader` | 目录扫描器，加载所有 `SKILL.md` 文件 |
-| `parseFrontmatter` | 底层 frontmatter 解析器（无外部依赖） |
+| `parseFrontmatter` | 底层 frontmatter 解析器（无外部依赖）|
 
 详细用法与示例请参见 [Skills 指南](/zh/guide/skills)。

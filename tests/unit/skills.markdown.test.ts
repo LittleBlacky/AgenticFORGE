@@ -12,7 +12,9 @@ import * as fs from "node:fs/promises";
 function makeMockLLM(response = "llm-output") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: undefined,
     model: "mock",
   } as any;
@@ -154,10 +156,16 @@ describe("MarkdownSkill", () => {
   it("execute() includes conversation history", async () => {
     const llm = makeMockLLM("ok");
     const skill = MarkdownSkill.fromSource(SAMPLE_MD);
-    const result = await skill.execute({
-      query: "follow-up",
-      history: [{ role: "user", content: "prev" }, { role: "assistant", content: "prev-reply" }],
-    }, llm);
+    const result = await skill.execute(
+      {
+        query: "follow-up",
+        history: [
+          { role: "user", content: "prev" },
+          { role: "assistant", content: "prev-reply" },
+        ],
+      },
+      llm,
+    );
     expect(result.output).toBe("ok");
     const msgs = llm.think.mock.calls[0][0];
     expect(msgs.some((m: any) => m.content === "prev")).toBe(true);
@@ -199,14 +207,22 @@ describe("SkillLoader", () => {
     await fs.mkdir(path.join(dir, "weather"), { recursive: true });
     await fs.mkdir(path.join(dir, "stock"), { recursive: true });
     await fs.writeFile(path.join(dir, "weather", "SKILL.md"), SAMPLE_MD, "utf8");
-    await fs.writeFile(path.join(dir, "stock", "SKILL.md"),
-      `---\nname: stock\ndescription: Stock prices\n---\nStock assistant.`, "utf8");
+    await fs.writeFile(
+      path.join(dir, "stock", "SKILL.md"),
+      `---\nname: stock\ndescription: Stock prices\n---\nStock assistant.`,
+      "utf8",
+    );
     await fs.writeFile(path.join(dir, "notes.md"), "# Not a skill", "utf8");
-    await fs.writeFile(path.join(dir, "flat.skill.md"),
-      `---\nname: flat\ndescription: Flat skill\n---\nFlat.`, "utf8");
+    await fs.writeFile(
+      path.join(dir, "flat.skill.md"),
+      `---\nname: flat\ndescription: Flat skill\n---\nFlat.`,
+      "utf8",
+    );
     return {
       dir,
-      cleanup: async () => { await fs.rm(dir, { recursive: true, force: true }); },
+      cleanup: async () => {
+        await fs.rm(dir, { recursive: true, force: true });
+      },
     };
   }
 
@@ -214,20 +230,24 @@ describe("SkillLoader", () => {
     const { dir, cleanup } = await makeTmpSkillDir();
     try {
       const skills = await SkillLoader.fromDirectory(dir);
-      const names = skills.map(s => s.name);
+      const names = skills.map((s) => s.name);
       expect(names).toContain("weather");
       expect(names).toContain("stock");
       expect(names).toContain("flat");
       expect(names).not.toContain("not-a-skill");
-    } finally { await cleanup(); }
+    } finally {
+      await cleanup();
+    }
   });
 
   it("fromDirectory() ignores non-skill .md files", async () => {
     const { dir, cleanup } = await makeTmpSkillDir();
     try {
       const skills = await SkillLoader.fromDirectory(dir);
-      expect(skills.every(s => s.name !== "not-a-skill")).toBe(true);
-    } finally { await cleanup(); }
+      expect(skills.every((s) => s.name !== "not-a-skill")).toBe(true);
+    } finally {
+      await cleanup();
+    }
   });
 
   it("fromDirectory() returns empty array for non-existent dir", async () => {
@@ -239,10 +259,12 @@ describe("SkillLoader", () => {
     const { dir, cleanup } = await makeTmpSkillDir();
     try {
       const skills = await SkillLoader.fromDirectory(dir, { recursive: false });
-      const names = skills.map(s => s.name);
+      const names = skills.map((s) => s.name);
       expect(names).toContain("flat");
       expect(names).not.toContain("weather"); // in subdir
-    } finally { await cleanup(); }
+    } finally {
+      await cleanup();
+    }
   });
 
   it("fromFiles() loads from explicit paths", async () => {
@@ -252,7 +274,9 @@ describe("SkillLoader", () => {
       const skills = await SkillLoader.fromFiles([tmp]);
       expect(skills).toHaveLength(1);
       expect(skills[0]!.name).toBe("weather");
-    } finally { await fs.unlink(tmp).catch(() => {}); }
+    } finally {
+      await fs.unlink(tmp).catch(() => {});
+    }
   });
 
   it("fromFiles() skips invalid paths with warning", async () => {
@@ -293,6 +317,8 @@ describe("SkillLoader", () => {
       const registry = await SkillLoader.registryFromDirectory(dir);
       expect(registry).toBeInstanceOf(SkillRegistry);
       expect(registry.has("weather")).toBe(true);
-    } finally { await cleanup(); }
+    } finally {
+      await cleanup();
+    }
   });
 });

@@ -52,7 +52,12 @@ describe("Document", () => {
 // ===========================================================================
 describe("DocumentChunk", () => {
   it("constructs with required fields", () => {
-    const chunk = new DocumentChunk({ content: "chunk text", metadata: {}, docId: "doc1", chunkIndex: 0 });
+    const chunk = new DocumentChunk({
+      content: "chunk text",
+      metadata: {},
+      docId: "doc1",
+      chunkIndex: 0,
+    });
     expect(chunk.content).toBe("chunk text");
     expect(chunk.docId).toBe("doc1");
     expect(chunk.chunkIndex).toBe(0);

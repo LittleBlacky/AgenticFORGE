@@ -29,14 +29,10 @@ import { InMemoryVectorStore } from "@agenticforge/memory";
 // isMarkitdownSupportedFormat
 // ===========================================================================
 describe("isMarkitdownSupportedFormat", () => {
-  it("returns true for .pdf", () =>
-    expect(isMarkitdownSupportedFormat("doc.pdf")).toBe(true));
-  it("returns true for .md", () =>
-    expect(isMarkitdownSupportedFormat("notes.md")).toBe(true));
-  it("returns true for .ts", () =>
-    expect(isMarkitdownSupportedFormat("app.ts")).toBe(true));
-  it("returns false for .exe", () =>
-    expect(isMarkitdownSupportedFormat("app.exe")).toBe(false));
+  it("returns true for .pdf", () => expect(isMarkitdownSupportedFormat("doc.pdf")).toBe(true));
+  it("returns true for .md", () => expect(isMarkitdownSupportedFormat("notes.md")).toBe(true));
+  it("returns true for .ts", () => expect(isMarkitdownSupportedFormat("app.ts")).toBe(true));
+  it("returns false for .exe", () => expect(isMarkitdownSupportedFormat("app.exe")).toBe(false));
   it("returns false for no extension", () =>
     expect(isMarkitdownSupportedFormat("noext")).toBe(false));
 });
@@ -45,14 +41,11 @@ describe("isMarkitdownSupportedFormat", () => {
 // isCjk
 // ===========================================================================
 describe("isCjk", () => {
-  it("returns true for Chinese character", () =>
-    expect(isCjk("中")).toBe(true));
-  it("returns true for CJK unified ideograph", () =>
-    expect(isCjk("\u4e2d")).toBe(true));
+  it("returns true for Chinese character", () => expect(isCjk("中")).toBe(true));
+  it("returns true for CJK unified ideograph", () => expect(isCjk("\u4e2d")).toBe(true));
   it("returns false for ASCII", () => expect(isCjk("a")).toBe(false));
   it("returns false for digit", () => expect(isCjk("1")).toBe(false));
-  it("returns false for hiragana (not in CJK block)", () =>
-    expect(isCjk("\u3042")).toBe(false));
+  it("returns false for hiragana (not in CJK block)", () => expect(isCjk("\u3042")).toBe(false));
 });
 
 // ===========================================================================
@@ -60,14 +53,10 @@ describe("isCjk", () => {
 // ===========================================================================
 describe("detectLang", () => {
   it("returns zh for Chinese text", () => {
-    expect(detectLang("这是一段中文文本，用于测试语言检测功能是否正确。")).toBe(
-      "zh",
-    );
+    expect(detectLang("这是一段中文文本，用于测试语言检测功能是否正确。")).toBe("zh");
   });
   it("returns en for English text", () => {
-    expect(
-      detectLang("This is an English sentence used for language detection."),
-    ).toBe("en");
+    expect(detectLang("This is an English sentence used for language detection.")).toBe("en");
   });
   it("returns unknown for empty string", () => {
     expect(detectLang("")).toBe("unknown");
@@ -109,18 +98,14 @@ describe("splitParagraphsWithHeadings", () => {
   });
 
   it("each paragraph has content property", () => {
-    const paragraphs = splitParagraphsWithHeadings(
-      "Hello world.\n\nSecond paragraph.",
-    );
+    const paragraphs = splitParagraphsWithHeadings("Hello world.\n\nSecond paragraph.");
     for (const p of paragraphs) {
       expect(typeof p.content).toBe("string");
     }
   });
 
   it("tracks heading_path for paragraphs under headings", () => {
-    const paragraphs = splitParagraphsWithHeadings(
-      "# Section\n\nContent here.",
-    );
+    const paragraphs = splitParagraphsWithHeadings("# Section\n\nContent here.");
     const withHeading = paragraphs.find((p) => p.heading_path !== null);
     expect(withHeading).toBeDefined();
     expect(withHeading!.heading_path).toContain("Section");
@@ -132,17 +117,13 @@ describe("splitParagraphsWithHeadings", () => {
 // ===========================================================================
 describe("chunkParagraphs", () => {
   it("returns at least one chunk for non-empty input", () => {
-    const paragraphs = splitParagraphsWithHeadings(
-      "Hello world.\n\nSecond paragraph.",
-    );
+    const paragraphs = splitParagraphsWithHeadings("Hello world.\n\nSecond paragraph.");
     const chunks = chunkParagraphs(paragraphs, 200, 20);
     expect(chunks.length).toBeGreaterThan(0);
   });
 
   it("each chunk has content property", () => {
-    const paragraphs = splitParagraphsWithHeadings(
-      "Some text here.\n\nMore text.",
-    );
+    const paragraphs = splitParagraphsWithHeadings("Some text here.\n\nMore text.");
     const chunks = chunkParagraphs(paragraphs, 200, 0);
     for (const c of chunks) {
       expect(typeof c.content).toBe("string");
@@ -165,9 +146,7 @@ describe("preprocessMarkdownForEmbedding", () => {
   });
 
   it("strips heading markers", () => {
-    const result = preprocessMarkdownForEmbedding(
-      "## Section Title\n\nContent",
-    );
+    const result = preprocessMarkdownForEmbedding("## Section Title\n\nContent");
     expect(result).not.toContain("##");
     expect(result).toContain("Section Title");
   });
@@ -229,9 +208,7 @@ describe("mergeSnippets", () => {
   });
 
   it("respects maxChars limit", () => {
-    const items = [
-      { content: "a".repeat(2000), score: 0.9, id: "1", metadata: {} },
-    ];
+    const items = [{ content: "a".repeat(2000), score: 0.9, id: "1", metadata: {} }];
     const result = mergeSnippets(items, 100);
     expect(result.length).toBeLessThanOrEqual(200); // some buffer for citations
   });
@@ -249,9 +226,7 @@ describe("rank", () => {
     ];
     const result = rank(hits, {});
     // first result should have highest score
-    expect((result[0] as any).score).toBeGreaterThanOrEqual(
-      (result[1] as any).score,
-    );
+    expect((result[0] as any).score).toBeGreaterThanOrEqual((result[1] as any).score);
   });
 
   it("returns empty array for empty input", () => {
@@ -283,9 +258,7 @@ describe("expandNeighborsFromPool", () => {
   });
 
   it("appends neighbors from pool", () => {
-    const selected = [
-      { id: "a", content: "x", score: 1, metadata: { source_path: "doc.md" } },
-    ];
+    const selected = [{ id: "a", content: "x", score: 1, metadata: { source_path: "doc.md" } }];
     const pool = [
       {
         id: "b",
@@ -357,8 +330,7 @@ describe("compressRankedItems", () => {
 // ===========================================================================
 describe("createRagPipeline (InMemoryVectorStore)", () => {
   it("search returns empty array when nothing indexed", async () => {
-    const { createRagPipeline } =
-      await import("../../packages/memory/src/rag/pipeline");
+    const { createRagPipeline } = await import("../../packages/memory/src/rag/pipeline");
     const store = new InMemoryVectorStore();
     const rag = createRagPipeline({ store, ragNamespace: "empty" });
     const results = await rag.search("anything", 3);
@@ -366,8 +338,7 @@ describe("createRagPipeline (InMemoryVectorStore)", () => {
   });
 
   it("getStats() returns an object", async () => {
-    const { createRagPipeline } =
-      await import("../../packages/memory/src/rag/pipeline");
+    const { createRagPipeline } = await import("../../packages/memory/src/rag/pipeline");
     const store = new InMemoryVectorStore();
     const rag = createRagPipeline({ store, ragNamespace: "stats" });
     const stats = await rag.getStats();
@@ -375,8 +346,7 @@ describe("createRagPipeline (InMemoryVectorStore)", () => {
   });
 
   it("pipeline exposes store and namespace", async () => {
-    const { createRagPipeline } =
-      await import("../../packages/memory/src/rag/pipeline");
+    const { createRagPipeline } = await import("../../packages/memory/src/rag/pipeline");
     const store = new InMemoryVectorStore();
     const rag = createRagPipeline({ store, ragNamespace: "myns" });
     expect(rag.namespace).toBe("myns");

@@ -12,7 +12,9 @@ import type { MemoryItem } from "../../packages/memory/src/types/base";
 function makeLLM(response = "ok") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: undefined,
     model: "m",
   } as any;
@@ -113,8 +115,17 @@ describe("SkillRunner — runSkill()", () => {
 describe("MemoryManager — consolidateMemories", () => {
   it("moves high-importance working memories to episodic", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working", "episodic"], userId: "u1" });
-    await mgr.addMemory({ content: "important", memoryType: "working", importance: 0.9, userId: "u1" });
-    const moved = await mgr.consolidateMemories({ fromType: "working", toType: "episodic", importanceThreshold: 0.8 });
+    await mgr.addMemory({
+      content: "important",
+      memoryType: "working",
+      importance: 0.9,
+      userId: "u1",
+    });
+    const moved = await mgr.consolidateMemories({
+      fromType: "working",
+      toType: "episodic",
+      importanceThreshold: 0.8,
+    });
     expect(moved).toBe(1);
   });
 
@@ -132,8 +143,17 @@ describe("MemoryManager — consolidateMemories", () => {
 
   it("returns 0 when no items meet threshold", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working", "episodic"], userId: "u1" });
-    await mgr.addMemory({ content: "low importance", memoryType: "working", importance: 0.3, userId: "u1" });
-    const moved = await mgr.consolidateMemories({ fromType: "working", toType: "episodic", importanceThreshold: 0.8 });
+    await mgr.addMemory({
+      content: "low importance",
+      memoryType: "working",
+      importance: 0.3,
+      userId: "u1",
+    });
+    const moved = await mgr.consolidateMemories({
+      fromType: "working",
+      toType: "episodic",
+      importanceThreshold: 0.8,
+    });
     expect(moved).toBe(0);
   });
 });

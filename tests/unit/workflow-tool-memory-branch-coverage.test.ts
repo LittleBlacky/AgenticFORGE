@@ -104,7 +104,16 @@ describe("WorkflowEngine remaining branch lines", () => {
     const engine = new WorkflowEngine({ llm: makeLLM(), verbose: true });
     const def = {
       name: "warn",
-      nodes: [{ id: "bad", type: "fn", depends: [], executor: async () => { throw new Error("boom"); } }],
+      nodes: [
+        {
+          id: "bad",
+          type: "fn",
+          depends: [],
+          executor: async () => {
+            throw new Error("boom");
+          },
+        },
+      ],
     } as any;
 
     const r = await engine.execute(def, "x");
@@ -133,7 +142,7 @@ describe("WorkflowEngine remaining branch lines", () => {
 
     const r = await engine.execute(def, "x");
     expect(r.output).toBe("L");
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("执行分支 \"left\""));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('执行分支 "left"'));
     logSpy.mockRestore();
   });
 });
@@ -178,7 +187,10 @@ describe("MemoryManager / PerceptualMemory extra branches", () => {
     } as any;
 
     const mem = new PerceptualMemory({}, { vectorStore, blobStore, kvStore });
-    const item = makePerceptualItem({ content: "before", metadata: { modality: "text", raw_data: "raw1" } });
+    const item = makePerceptualItem({
+      content: "before",
+      metadata: { modality: "text", raw_data: "raw1" },
+    });
     await mem.add(item);
 
     const ok = await mem.update(item.id, "after", 0.8, { raw_data: "raw2" });

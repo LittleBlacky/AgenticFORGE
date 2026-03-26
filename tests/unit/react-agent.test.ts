@@ -7,17 +7,23 @@ import { Tool, ToolRegistry } from "@agenticforge/tools";
 import type { ToolParameter } from "@agenticforge/tools";
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes input"); }
+  constructor() {
+    super("echo", "Echoes input");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 function makeLLM(...responses: string[]) {
   let i = 0;
   return {
-    think: vi.fn().mockImplementation(async () => responses[Math.min(i++, responses.length - 1)] ?? ""),
+    think: vi
+      .fn()
+      .mockImplementation(async () => responses[Math.min(i++, responses.length - 1)] ?? ""),
     streamThink: vi.fn(),
     client: undefined,
     model: "m",
@@ -45,11 +51,17 @@ describe("ReActAgent — run()", () => {
   });
 
   it("handles tool error gracefully with Observation", async () => {
-    const badTool = new class extends Tool {
-      constructor() { super("bad", "throws"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("tool error"); }
-    }();
+    const badTool = new (class extends Tool {
+      constructor() {
+        super("bad", "throws");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        throw new Error("tool error");
+      }
+    })();
     const registry = new ToolRegistry();
     registry.registerTool(badTool);
     const llm = makeLLM(
@@ -71,10 +83,7 @@ describe("ReActAgent — run()", () => {
   it("handles Action without toolRegistry by pushing step and continuing", async () => {
     // Without toolRegistry, Action lines push a non-final step and loop continues
     // until maxSteps exhausted, then falls back
-    const llm = makeLLM(
-      "Action: echo\nAction Input: hi",
-      "Final Answer: done",
-    );
+    const llm = makeLLM("Action: echo\nAction Input: hi", "Final Answer: done");
     const agent = new ReActAgent({ name: "ra", llm, maxSteps: 3 });
     const result = await agent.run("q");
     // Either "done" (if Final Answer hit) or a fallback string
@@ -146,11 +155,17 @@ describe("ReActAgent — run()", () => {
   });
 
   it("streamRun captures tool exception as observation error text", async () => {
-    const badTool = new class extends Tool {
-      constructor() { super("bad", "throws"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run(): Promise<string> { throw new Error("tool fail"); }
-    }();
+    const badTool = new (class extends Tool {
+      constructor() {
+        super("bad", "throws");
+      }
+      getParameters(): ToolParameter[] {
+        return [];
+      }
+      async run(): Promise<string> {
+        throw new Error("tool fail");
+      }
+    })();
     const registry = new ToolRegistry();
     registry.registerTool(badTool);
 
@@ -198,17 +213,34 @@ describe("ReActAgent — run()", () => {
     const llm = makeLLM("Final Answer: ok");
     const agent = new ReActAgent({ name: "ra", llm });
     const events: string[] = [];
-    agent.useHook({ name: "h", events: ["beforeRun", "afterRun"], handle: (ctx) => { events.push(ctx.event); } });
+    agent.useHook({
+      name: "h",
+      events: ["beforeRun", "afterRun"],
+      handle: (ctx) => {
+        events.push(ctx.event);
+      },
+    });
     await agent.run("q");
     expect(events).toContain("beforeRun");
     expect(events).toContain("afterRun");
   });
 
   it("emits onError hook and rethrows", async () => {
-    const llm = { think: vi.fn().mockRejectedValue(new Error("boom")), streamThink: vi.fn(), client: undefined, model: "m" } as any;
+    const llm = {
+      think: vi.fn().mockRejectedValue(new Error("boom")),
+      streamThink: vi.fn(),
+      client: undefined,
+      model: "m",
+    } as any;
     const agent = new ReActAgent({ name: "ra", llm });
     const errors: string[] = [];
-    agent.useHook({ name: "e", events: ["onError"], handle: (ctx) => { errors.push((ctx.error as Error).message); } });
+    agent.useHook({
+      name: "e",
+      events: ["onError"],
+      handle: (ctx) => {
+        errors.push((ctx.error as Error).message);
+      },
+    });
     await expect(agent.run("q")).rejects.toThrow("boom");
     expect(errors).toContain("boom");
   });

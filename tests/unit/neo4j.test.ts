@@ -90,9 +90,7 @@ describe("Neo4jGraphStore", () => {
 
   it("queryGraph maps frequency number", async () => {
     mockSession.run.mockResolvedValueOnce({
-      records: [
-        { get: (k: string) => (k === "entityId" ? "e1" : 3) },
-      ],
+      records: [{ get: (k: string) => (k === "entityId" ? "e1" : 3) }],
     });
     const store = new Neo4jGraphStore();
     const out = await store.queryGraph({ queryText: "Entity", limit: 5 });

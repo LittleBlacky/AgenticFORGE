@@ -24,7 +24,9 @@ class EchoSkill extends AgentSkill {
 function makeSimpleLLM(response = "ok") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: undefined,
     model: "m",
   } as any;
@@ -39,18 +41,25 @@ describe("FunctionCallAgent — array message content", () => {
     let call = 0;
     const mockCreate = vi.fn().mockImplementation(async () => {
       call++;
-      if (call === 1) return {
-        choices: [{ message: {
-          // Array content format (vision/multimodal)
-          content: [{ type: "text", text: "the answer" }],
-          tool_calls: []
-        } }]
-      };
+      if (call === 1)
+        return {
+          choices: [
+            {
+              message: {
+                // Array content format (vision/multimodal)
+                content: [{ type: "text", text: "the answer" }],
+                tool_calls: [],
+              },
+            },
+          ],
+        };
       return { choices: [{ message: { content: "final", tool_calls: [] } }] };
     });
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
       client: { chat: { completions: { create: mockCreate } } },
       model: "gpt-4o",
     } as any;
@@ -63,14 +72,17 @@ describe("FunctionCallAgent — array message content", () => {
     let call = 0;
     const mockCreate = vi.fn().mockImplementation(async () => {
       call++;
-      if (call === 1) return {
-        choices: [{ message: { content: null, tool_calls: [] } }]
-      };
+      if (call === 1)
+        return {
+          choices: [{ message: { content: null, tool_calls: [] } }],
+        };
       return { choices: [{ message: { content: "done", tool_calls: [] } }] };
     });
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
       client: { chat: { completions: { create: mockCreate } } },
       model: "gpt-4o",
     } as any;
@@ -117,7 +129,9 @@ describe("ReflectionAgent — multiple reflection rounds", () => {
         call++;
         return call === 1 ? "draft" : call === 2 ? "critique" : "refined answer";
       }),
-      streamThink: vi.fn(async function* () { yield "final refined answer"; }),
+      streamThink: vi.fn(async function* () {
+        yield "final refined answer";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -132,7 +146,9 @@ describe("ReflectionAgent — multiple reflection rounds", () => {
     const responses = ["draft", "critique1", "revision1", "critique2", "revision2", "final"];
     const llm = {
       think: vi.fn().mockImplementation(async () => responses[call++] ?? "done"),
-      streamThink: vi.fn(async function* () { yield "done"; }),
+      streamThink: vi.fn(async function* () {
+        yield "done";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -160,7 +176,9 @@ describe("PlanSolveAgent — streamRun multi-step", () => {
         call++;
         return call === 1 ? plan : "intermediate result";
       }),
-      streamThink: vi.fn(async function* () { yield "streamed answer"; }),
+      streamThink: vi.fn(async function* () {
+        yield "streamed answer";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -178,16 +196,30 @@ describe("PlanSolveAgent — streamRun multi-step", () => {
       steps: [{ id: 1, description: "broken", toolName: "missing", parameters: {} }],
     });
     const registry = new ToolRegistry();
-    registry.registerTool(new class extends Tool {
-      constructor() { super("missing", "m"); }
-      getParameters(): ToolParameter[] { return []; }
-      async run() { throw new Error("tool error"); }
-    }());
+    registry.registerTool(
+      new (class extends Tool {
+        constructor() {
+          super("missing", "m");
+        }
+        getParameters(): ToolParameter[] {
+          return [];
+        }
+        async run() {
+          throw new Error("tool error");
+        }
+      })(),
+    );
     let call = 0;
     const llm = {
-      think: vi.fn().mockImplementation(async () => { call++; return call === 1 ? plan : "done"; }),
-      streamThink: vi.fn(async function* () { yield "done"; }),
-      client: undefined, model: "m",
+      think: vi.fn().mockImplementation(async () => {
+        call++;
+        return call === 1 ? plan : "done";
+      }),
+      streamThink: vi.fn(async function* () {
+        yield "done";
+      }),
+      client: undefined,
+      model: "m",
     } as any;
     const agent = new PlanSolveAgent({ name: "psa", llm, toolRegistry: registry });
     const chunks: string[] = [];

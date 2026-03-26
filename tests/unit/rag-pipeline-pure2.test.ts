@@ -22,7 +22,7 @@ describe("splitParagraphsWithHeadings()", () => {
   });
   it("tracks heading path", () => {
     const r = splitParagraphsWithHeadings("# Section\n\nContent");
-    const h = r.find(p => p.heading_path !== null);
+    const h = r.find((p) => p.heading_path !== null);
     expect(h?.heading_path).toContain("Section");
   });
   it("returns single item for plain text", () => {
@@ -34,7 +34,7 @@ describe("splitParagraphsWithHeadings()", () => {
   });
   it("handles nested headings", () => {
     const r = splitParagraphsWithHeadings("# H1\n\n## H2\n\nContent");
-    const deep = r.find(p => p.heading_path?.includes("H2"));
+    const deep = r.find((p) => p.heading_path?.includes("H2"));
     expect(deep).toBeDefined();
   });
   it("resets heading stack for lower-level heading", () => {
@@ -44,7 +44,12 @@ describe("splitParagraphsWithHeadings()", () => {
 });
 
 describe("chunkParagraphs()", () => {
-  const para = (content: string) => ({ content, heading_path: null as string | null, start: 0, end: content.length });
+  const para = (content: string) => ({
+    content,
+    heading_path: null as string | null,
+    start: 0,
+    end: content.length,
+  });
 
   it("combines short paragraphs", () => {
     const chunks = chunkParagraphs([para("hello"), para("world")], 100, 0);
@@ -153,7 +158,9 @@ describe("loadDocuments()", () => {
       const docs = loadDocuments({ paths: [f] });
       expect(docs.length).toBeGreaterThanOrEqual(1);
       expect(docs[0].markdownText).toContain("document");
-    } finally { fs.unlinkSync(f); }
+    } finally {
+      fs.unlinkSync(f);
+    }
   });
   it("skips non-existent files", () => {
     expect(Array.isArray(loadDocuments({ paths: ["/no/such/file.txt"] }))).toBe(true);
@@ -171,6 +178,8 @@ describe("loadAndChunkTexts()", () => {
     try {
       const chunks = loadAndChunkTexts({ paths: [f], chunkSize: 5, chunkOverlap: 0 });
       expect(chunks.length).toBeGreaterThan(0);
-    } finally { fs.unlinkSync(f); }
+    } finally {
+      fs.unlinkSync(f);
+    }
   });
 });

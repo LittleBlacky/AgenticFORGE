@@ -9,7 +9,9 @@ import { AgentSkill } from "@agenticforge/skills";
 import type { ToolParameter } from "@agenticforge/tools";
 
 class SampleTool extends Tool {
-  constructor() { super("sample", "A sample tool"); }
+  constructor() {
+    super("sample", "A sample tool");
+  }
   getParameters(): ToolParameter[] {
     return [
       { name: "input", type: "string", description: "text", required: true, default: null },
@@ -61,7 +63,7 @@ describe("Tool — basic properties", () => {
     const tool = new SampleTool();
     const params = tool.getParameters();
     expect(params.length).toBeGreaterThan(0);
-    expect(params.find(p => p.name === "input")).toBeDefined();
+    expect(params.find((p) => p.name === "input")).toBeDefined();
   });
 
   it("run() returns expected string", async () => {
@@ -102,7 +104,9 @@ describe("SkillAgent — streamRun extra paths", () => {
   it("streamRun() with no skills falls back to llm.streamThink", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("ok"),
-      streamThink: vi.fn(async function* () { yield "fallback-stream"; }),
+      streamThink: vi.fn(async function* () {
+        yield "fallback-stream";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -115,7 +119,9 @@ describe("SkillAgent — streamRun extra paths", () => {
   it("streamRun() with skillName option executes named skill", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("skill-output"),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: undefined,
       model: "m",
     } as any;
@@ -130,14 +136,17 @@ describe("SkillAgent — streamRun extra paths", () => {
     const llm = { think: vi.fn(), streamThink: vi.fn(), client: undefined, model: "m" } as any;
     const agent = new SkillAgent({ name: "sa", llm, skills: [] });
     await expect(async () => {
-      for await (const _ of agent.streamRun("q", { skillName: "nope" })) {}
+      for await (const _ of agent.streamRun("q", { skillName: "nope" })) {
+      }
     }).rejects.toThrow("nope");
   });
 
   it("streamRun() routes to single skill via LLM", async () => {
     const llm = {
       think: vi.fn().mockResolvedValue("routed-output"),
-      streamThink: vi.fn(async function* () { yield "s"; }),
+      streamThink: vi.fn(async function* () {
+        yield "s";
+      }),
       client: undefined,
       model: "m",
     } as any;

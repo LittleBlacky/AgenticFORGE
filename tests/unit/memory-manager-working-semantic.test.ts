@@ -13,8 +13,14 @@ import type { MemoryItem } from "../../packages/memory/src/types/base";
 
 function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
   return {
-    id: randomUUID(), content: "test content", memoryType: "working",
-    userId: "u1", timestamp: new Date(), importance: 0.5, metadata: {}, ...overrides,
+    id: randomUUID(),
+    content: "test content",
+    memoryType: "working",
+    userId: "u1",
+    timestamp: new Date(),
+    importance: 0.5,
+    metadata: {},
+    ...overrides,
   };
 }
 
@@ -24,7 +30,12 @@ function makeItem(overrides: Partial<MemoryItem> = {}): MemoryItem {
 describe("MemoryManager — retrieveMemories branches", () => {
   it("skips disabled memoryTypes entries in query list", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
-    await mgr.addMemory({ content: "only-working", memoryType: "working", importance: 0.6, userId: "u1" });
+    await mgr.addMemory({
+      content: "only-working",
+      memoryType: "working",
+      importance: 0.6,
+      userId: "u1",
+    });
 
     const out = await mgr.retrieveMemories({
       query: "only",
@@ -55,9 +66,18 @@ describe("MemoryManager — consolidateMemories", () => {
       enabledTypes: ["working", "episodic"],
       userId: "u1",
     });
-    await mgr.addMemory({ content: "important", memoryType: "working", importance: 0.9, userId: "u1" });
+    await mgr.addMemory({
+      content: "important",
+      memoryType: "working",
+      importance: 0.9,
+      userId: "u1",
+    });
     await mgr.addMemory({ content: "low", memoryType: "working", importance: 0.2, userId: "u1" });
-    const moved = await mgr.consolidateMemories({ fromType: "working", toType: "episodic", importanceThreshold: 0.7 });
+    const moved = await mgr.consolidateMemories({
+      fromType: "working",
+      toType: "episodic",
+      importanceThreshold: 0.7,
+    });
     expect(moved).toBeGreaterThanOrEqual(1);
   });
 
@@ -76,22 +96,40 @@ describe("MemoryManager — consolidateMemories", () => {
 
 describe("MemoryManager — classifyMemory via autoClassify", () => {
   it("routes high importance to semantic when enabled", async () => {
-    const mgr = new MemoryManager({ enabledTypes: ["working", "episodic", "semantic"], userId: "u1" });
-    await mgr.addMemory({ content: "semantic fact", importance: 0.9, autoClassify: true, userId: "u1" });
+    const mgr = new MemoryManager({
+      enabledTypes: ["working", "episodic", "semantic"],
+      userId: "u1",
+    });
+    await mgr.addMemory({
+      content: "semantic fact",
+      importance: 0.9,
+      autoClassify: true,
+      userId: "u1",
+    });
     const stats = await mgr.getMemoryStats();
     expect(stats.memoriesByType.semantic?.count ?? 0).toBeGreaterThanOrEqual(1);
   });
 
   it("routes medium importance to episodic when enabled", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working", "episodic"], userId: "u1" });
-    await mgr.addMemory({ content: "episodic event", importance: 0.7, autoClassify: true, userId: "u1" });
+    await mgr.addMemory({
+      content: "episodic event",
+      importance: 0.7,
+      autoClassify: true,
+      userId: "u1",
+    });
     const stats = await mgr.getMemoryStats();
     expect(stats.memoriesByType.episodic?.count ?? 0).toBeGreaterThanOrEqual(1);
   });
 
   it("routes low importance to working", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
-    await mgr.addMemory({ content: "low importance", importance: 0.3, autoClassify: true, userId: "u1" });
+    await mgr.addMemory({
+      content: "low importance",
+      importance: 0.3,
+      autoClassify: true,
+      userId: "u1",
+    });
     const stats = await mgr.getMemoryStats();
     expect(stats.memoriesByType.working?.count ?? 0).toBeGreaterThanOrEqual(1);
   });
@@ -101,9 +139,9 @@ describe("MemoryManager — getStore error paths", () => {
   it("throws when accessing disabled episodic store", async () => {
     const mgr = new MemoryManager({ enabledTypes: ["working"], userId: "u1" });
     // Direct access to retrieve with episodic type should fail gracefully
-    await expect(
-      mgr.retrieveMemories({ query: "x", memoryTypes: ["episodic"] })
-    ).resolves.toEqual([]);
+    await expect(mgr.retrieveMemories({ query: "x", memoryTypes: ["episodic"] })).resolves.toEqual(
+      [],
+    );
   });
 });
 
@@ -136,7 +174,7 @@ describe("WorkingMemory — forget strategies", () => {
     const removed = await mem.forget("time_based", 0, 30);
     // Either expireOldMemories or time_based filter removed the old item
     const all = await mem.getAll();
-    const hasOld = all.some(m => m.content === "old item");
+    const hasOld = all.some((m) => m.content === "old item");
     expect(hasOld).toBe(false);
   });
 
@@ -165,7 +203,12 @@ describe("WorkingMemory — getContextSummary", () => {
 
   it("truncates when maxLength is small", async () => {
     const mem = new WorkingMemory();
-    await mem.add(makeItem({ content: "A very long content string that should be truncated properly", importance: 0.9 }));
+    await mem.add(
+      makeItem({
+        content: "A very long content string that should be truncated properly",
+        importance: 0.9,
+      }),
+    );
     const summary = await mem.getContextSummary(10);
     expect(typeof summary).toBe("string");
     expect(summary.length).toBeLessThanOrEqual(60);

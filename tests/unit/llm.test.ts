@@ -15,7 +15,9 @@ function makeStreamChunks(chunks: Array<{ content?: string; reasoning_content?: 
   };
 }
 
-function makeLLMClient(streamChunks: Array<{ content?: string; reasoning_content?: string }> = [{ content: "hello" }]) {
+function makeLLMClient(
+  streamChunks: Array<{ content?: string; reasoning_content?: string }> = [{ content: "hello" }],
+) {
   const createMock = vi.fn().mockResolvedValue(makeStreamChunks(streamChunks));
   const client = new LLMClient({
     model: "gpt-4o",
@@ -44,7 +46,9 @@ describe("LLMClient — constructor", () => {
   });
 
   it("constructs successfully with all required fields", () => {
-    expect(() => new LLMClient({ model: "gpt-4o", apiKey: "k", baseURL: "http://x" })).not.toThrow();
+    expect(
+      () => new LLMClient({ model: "gpt-4o", apiKey: "k", baseURL: "http://x" }),
+    ).not.toThrow();
   });
 });
 
@@ -67,7 +71,9 @@ describe("LLMClient — think()", () => {
   it("calls completions.create with correct model", async () => {
     const { client, createMock } = makeLLMClient([{ content: "ok" }]);
     await client.think([{ role: "user", content: "q" }]);
-    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-4o", stream: true }));
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "gpt-4o", stream: true }),
+    );
   });
 
   it("passes temperature to completions.create", async () => {
@@ -101,22 +107,20 @@ describe("LLMClient — streamThink()", () => {
   });
 
   it("yields only thinking chunks in thinking-only mode", async () => {
-    const { client } = makeLLMClient([
-      { reasoning_content: "think" },
-      { content: "answer" },
-    ]);
+    const { client } = makeLLMClient([{ reasoning_content: "think" }, { content: "answer" }]);
     const chunks: string[] = [];
-    for await (const c of client.streamThink([{ role: "user", content: "q" }], 0, "thinking-only")) {
+    for await (const c of client.streamThink(
+      [{ role: "user", content: "q" }],
+      0,
+      "thinking-only",
+    )) {
       chunks.push(c);
     }
     expect(chunks).toEqual(["think"]);
   });
 
   it("yields both thinking and content in all mode", async () => {
-    const { client } = makeLLMClient([
-      { reasoning_content: "think" },
-      { content: "answer" },
-    ]);
+    const { client } = makeLLMClient([{ reasoning_content: "think" }, { content: "answer" }]);
     const chunks: string[] = [];
     for await (const c of client.streamThink([{ role: "user", content: "q" }], 0, "all")) {
       chunks.push(c);
@@ -125,10 +129,7 @@ describe("LLMClient — streamThink()", () => {
   });
 
   it("skips reasoning_content in content-only mode", async () => {
-    const { client } = makeLLMClient([
-      { reasoning_content: "think" },
-      { content: "answer" },
-    ]);
+    const { client } = makeLLMClient([{ reasoning_content: "think" }, { content: "answer" }]);
     const chunks: string[] = [];
     for await (const c of client.streamThink([{ role: "user", content: "q" }], 0, "content-only")) {
       chunks.push(c);
