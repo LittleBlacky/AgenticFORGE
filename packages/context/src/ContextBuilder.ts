@@ -1,14 +1,10 @@
 import type { TokenCounter } from "./tokenizer";
+import type { LLMMessage } from "@agenticforge/core";
 import { estimateTokens } from "./tokenizer";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-export interface Message {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
 
 /**
  * Packet section type for structured template rendering.
@@ -53,7 +49,7 @@ export interface ContextPacket {
  *     return res.data.map(d => d.embedding);
  *   };
  */
-export type TextEmbedder = (texts: string[]) => Promise<number[][]>;
+export type ContextTextEmbedder = (texts: string[]) => Promise<number[][]>;
 
 /**
  * Describes the shape of embedders from `@agenticforge/memory`.
@@ -73,7 +69,7 @@ export interface MemoryEmbedderLike {
  *     config: { enableMmr: true, memoryEmbedder: createDefaultTextEmbedder() },
  *   });
  */
-export function fromMemoryEmbedder(embedder: MemoryEmbedderLike): TextEmbedder {
+export function fromMemoryEmbedder(embedder: MemoryEmbedderLike): ContextTextEmbedder {
   return async (texts: string[]): Promise<number[][]> => {
     const result = await embedder.encode(texts);
     // encode(string[]) always returns number[][], but the type says number[]|number[][].
@@ -105,7 +101,7 @@ export interface ContextBuilderConfig {
    * Optional async text embedder for semantic MMR similarity.
    * When set, MMR uses dense vector cosine similarity instead of TF-IDF.
    */
-  embedder?: TextEmbedder;
+  embedder?: ContextTextEmbedder;
   /**
    * Convenience field: pass a `@agenticforge/memory` embedder directly.
    * Automatically adapted via `fromMemoryEmbedder()`.
@@ -129,7 +125,7 @@ export interface ContextBuilderConfig {
 
 export interface BuildContextInput {
   userQuery: string;
-  conversationHistory?: Message[];
+  conversationHistory?: LLMMessage[];
   systemInstructions?: string;
   additionalPackets?: ContextPacket[];
 }
@@ -141,7 +137,7 @@ export interface BuiltContext {
    * Format: [Role & Policies] / [Task] / [State] / [Evidence] / [Context] / [Output]
    */
   structuredSystem?: string;
-  messages: Message[];
+  messages: LLMMessage[];
   totalTokens: number;
   includedPackets: ContextPacket[];
   /** True if the structured context was truncated to fit the token budget. */
@@ -171,7 +167,7 @@ export class ContextBuilder {
     Omit<ContextBuilderConfig, "tokenCounter" | "embedder" | "memoryEmbedder">
   > & {
     tokenCounter?: TokenCounter;
-    embedder?: TextEmbedder;
+    embedder?: ContextTextEmbedder;
   };
 
   constructor(options: { config?: ContextBuilderConfig } = {}) {
@@ -209,7 +205,7 @@ export class ContextBuilder {
 
     const history = input.conversationHistory ?? [];
     const historyBudget = Math.min(this.config.historyTokenBudget, Math.floor(budget * 0.6));
-    const includedHistory: Message[] = [];
+    const includedHistory: LLMMessage[] = [];
     let historyTokensUsed = 0;
     for (let i = history.length - 1; i >= 0; i--) {
       const msg = history[i]!;
@@ -235,7 +231,7 @@ export class ContextBuilder {
 
     const packetTokens = selectedPackets.reduce((acc, p) => acc + (p.tokens ?? 0), 0);
     totalTokens += packetTokens;
-    const messages: Message[] = [
+    const messages: LLMMessage[] = [
       ...includedHistory,
       { role: "user" as const, content: input.userQuery },
     ];

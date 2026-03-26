@@ -8,7 +8,8 @@
     "outDir": "dist/types",
     "paths": {
       "@agenticforge/core": ["../core/dist/types"],
-      "@agenticforge/tools": ["../tools/dist/types"]
+      "@agenticforge/tools": ["../tools/dist/types"],
+      "@agenticforge/utils": ["../utils/dist/types"]
     }
   },
   "include": ["src/**/*.ts"]

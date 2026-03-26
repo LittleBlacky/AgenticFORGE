@@ -4,16 +4,17 @@
     "noEmit": true,
     "outDir": "dist/types",
     "baseUrl": ".",
+    "skipLibCheck": true,
     "paths": {
-      "@agenticforge/core": ["../core/src"],
-      "@agenticforge/context": ["../context/src"],
-      "@agenticforge/tools": ["../tools/src"],
-      "@agenticforge/tools-builtin": ["../tools-builtin/src"],
-      "@agenticforge/memory": ["../memory/src"],
-      "@agenticforge/utils": ["../utils/src"],
-      "@agenticforge/workflow": ["../workflow/src"],
-      "@agenticforge/agents": ["../agents/src"],
-      "@agenticforge/skills": ["../skills/src"]
+      "@agenticforge/core": ["../core/dist/types"],
+      "@agenticforge/context": ["../context/dist/types"],
+      "@agenticforge/tools": ["../tools/dist/types"],
+      "@agenticforge/tools-builtin": ["../tools-builtin/dist/types"],
+      "@agenticforge/memory": ["../memory/dist/types"],
+      "@agenticforge/utils": ["../utils/dist/types"],
+      "@agenticforge/agents": ["../agents/dist/types"],
+      "@agenticforge/workflow": ["../workflow/dist/types"],
+      "@agenticforge/skills": ["../skills/dist/types"]
     }
   },
   "include": ["src/**/*.ts"]

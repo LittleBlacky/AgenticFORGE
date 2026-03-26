@@ -69,7 +69,7 @@ export interface ToolCallRunOptions {
   ) => Promise<void>;
 }
 
-export interface ToolCallResult {
+export interface ToolCallExecutionResult {
   /** 最终输出文本 */
   output: string;
   /** 所有消息（含工具调用历史） */
@@ -116,7 +116,7 @@ export class ToolCallExecutor {
    * 执行完整的 function calling 循环。
    * 无工具时直接走单次 LLM 调用。
    */
-  async run(options: ToolCallRunOptions): Promise<ToolCallResult> {
+  async run(options: ToolCallRunOptions): Promise<ToolCallExecutionResult> {
     const messages = [...options.messages];
     const toolsUsed: string[] = [];
 
