@@ -499,6 +499,9 @@ importers:
       '@agenticforge/tools':
         specifier: workspace:^
         version: link:../tools
+      '@agenticforge/utils':
+        specifier: workspace:^
+        version: link:../utils
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.8
