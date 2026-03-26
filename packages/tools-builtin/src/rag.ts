@@ -1,14 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
-import {LLMClient} from "@agenticforge/core";
-import {
-  createRagPipeline,
-  type RagPipeline,
-  type VectorSearchHit,
-} from "@agenticforge/memory";
-import {createDefaultVectorStore} from "@agenticforge/memory";
-import {createDefaultTextEmbedder} from "@agenticforge/memory";
+import { Tool, type ToolParameter, toolAction } from "@agenticforge/tools";
+import { LLMClient } from "@agenticforge/core";
+import { createRagPipeline, type RagPipeline, type VectorSearchHit } from "@agenticforge/memory";
+import { createDefaultVectorStore } from "@agenticforge/memory";
+import { createDefaultTextEmbedder } from "@agenticforge/memory";
 
 // ---------------------------------------------------------------------------
 // 类型 & 选项
@@ -74,7 +70,7 @@ export class RagTool extends Tool {
     this.qdrantUrl = options.qdrantUrl ?? process.env["QDRANT_URL"];
     this.qdrantApiKey = options.qdrantApiKey ?? process.env["QDRANT_API_KEY"];
     this.dimension = options.dimension ?? 384;
-    fs.mkdirSync(this.knowledgeBasePath, {recursive: true});
+    fs.mkdirSync(this.knowledgeBasePath, { recursive: true });
     this.initComponents();
   }
 
@@ -111,7 +107,7 @@ export class RagTool extends Tool {
             qdrantCollection: this.collectionName,
             qdrantVectorSize: this.dimension,
           }
-        : {backend: "memory" as const},
+        : { backend: "memory" as const },
     );
     const pipeline = createRagPipeline({
       ragNamespace: ns,
@@ -134,16 +130,14 @@ export class RagTool extends Tool {
         type: "string",
         required: true,
         default: null,
-        description:
-          "操作类型：add_document | add_text | ask | search | stats | clear",
+        description: "操作类型：add_document | add_text | ask | search | stats | clear",
       },
       {
         name: "file_path",
         type: "string",
         required: false,
         default: null,
-        description:
-          "文档文件路径（支持 PDF、Word、Excel、PPT、图片、音频等多种格式）",
+        description: "文档文件路径（支持 PDF、Word、Excel、PPT、图片、音频等多种格式）",
       },
       {
         name: "text",
@@ -270,8 +264,7 @@ export class RagTool extends Tool {
             (parameters["query"] ?? parameters["question"]) as string,
             (parameters["limit"] as number | undefined) ?? 5,
             (parameters["min_score"] as number | undefined) ?? 0.1,
-            (parameters["enable_advanced_search"] as boolean | undefined) ??
-              true,
+            (parameters["enable_advanced_search"] as boolean | undefined) ?? true,
             (parameters["max_chars"] as number | undefined) ?? 1200,
             (parameters["include_citations"] as boolean | undefined) ?? true,
             ns,
@@ -280,8 +273,7 @@ export class RagTool extends Tool {
           return this._ask(
             (parameters["question"] ?? parameters["query"]) as string,
             (parameters["limit"] as number | undefined) ?? 5,
-            (parameters["enable_advanced_search"] as boolean | undefined) ??
-              true,
+            (parameters["enable_advanced_search"] as boolean | undefined) ?? true,
             (parameters["include_citations"] as boolean | undefined) ?? true,
             (parameters["max_chars"] as number | undefined) ?? 1200,
             ns,
@@ -407,9 +399,7 @@ export class RagTool extends Tool {
         const content = `${String(meta["content"] ?? "").slice(0, 200)}...`;
         const source = String(meta["source_path"] ?? "unknown");
 
-        lines.push(
-          `\n${i + 1}. 文档: **${path.basename(source)}** (相似度: ${score.toFixed(3)})`,
-        );
+        lines.push(`\n${i + 1}. 文档: **${path.basename(source)}** (相似度: ${score.toFixed(3)})`);
         lines.push(`   ${content}`);
         if (includeCitations && meta["heading_path"]) {
           lines.push(`   章节: ${String(meta["heading_path"])}`);
@@ -498,8 +488,8 @@ export class RagTool extends Tool {
       // 4. 构建提示词并调用 LLM
       if (!this.llm) return "❌ LLM 客户端未初始化";
       const messages = [
-        {role: "system" as const, content: buildSystemPrompt()},
-        {role: "user" as const, content: buildUserPrompt(userQuestion, context)},
+        { role: "system" as const, content: buildSystemPrompt() },
+        { role: "user" as const, content: buildUserPrompt(userQuestion, context) },
       ];
 
       const llmStart = Date.now();
@@ -565,18 +555,13 @@ export class RagTool extends Tool {
   @toolAction("rag_clear", "清空 RAG 知识库（危险操作）")
   async _clearKnowledgeBase(confirm = false, namespace = "default"): Promise<string> {
     if (!confirm) {
-      return (
-        "⚠️ 危险操作：清空知识库将删除所有数据！\n" +
-        "请使用 confirm=true 参数确认执行。"
-      );
+      return "⚠️ 危险操作：清空知识库将删除所有数据！\n" + "请使用 confirm=true 参数确认执行。";
     }
     try {
       const pipeline = this.getOrCreatePipeline(namespace);
-      const store = pipeline.store as {clearCollection?: () => Promise<boolean> | boolean};
+      const store = pipeline.store as { clearCollection?: () => Promise<boolean> | boolean };
       const success =
-        typeof store.clearCollection === "function"
-          ? await store.clearCollection()
-          : false;
+        typeof store.clearCollection === "function" ? await store.clearCollection() : false;
 
       if (success) {
         // 重新初始化该命名空间管道
@@ -596,12 +581,12 @@ export class RagTool extends Tool {
 
   /** 便捷方法：添加单个文档 */
   addDocument(filePath: string, namespace = "default"): Promise<string> {
-    return this.run({action: "add_document", file_path: filePath, namespace});
+    return this.run({ action: "add_document", file_path: filePath, namespace });
   }
 
   /** 便捷方法：添加文本内容 */
   addText(text: string, namespace = "default", documentId?: string): Promise<string> {
-    return this.run({action: "add_text", text, namespace, document_id: documentId});
+    return this.run({ action: "add_text", text, namespace, document_id: documentId });
   }
 
   /** 便捷方法：智能问答 */
@@ -610,7 +595,7 @@ export class RagTool extends Tool {
     namespace = "default",
     extra: Partial<Record<string, unknown>> = {},
   ): Promise<string> {
-    return this.run({action: "ask", question, namespace, ...extra});
+    return this.run({ action: "ask", question, namespace, ...extra });
   }
 
   /** 便捷方法：搜索知识库 */
@@ -619,7 +604,7 @@ export class RagTool extends Tool {
     namespace = "default",
     extra: Partial<Record<string, unknown>> = {},
   ): Promise<string> {
-    return this.run({action: "search", query, namespace, ...extra});
+    return this.run({ action: "search", query, namespace, ...extra });
   }
 
   /** 批量添加多个文档 */
@@ -634,9 +619,7 @@ export class RagTool extends Tool {
 
     for (let i = 0; i < filePaths.length; i++) {
       const fp = filePaths[i]!;
-      console.log(
-        `[RagTool] 📄 处理文档 ${i + 1}/${filePaths.length}: ${path.basename(fp)}`,
-      );
+      console.log(`[RagTool] 📄 处理文档 ${i + 1}/${filePaths.length}: ${path.basename(fp)}`);
       try {
         const result = await this.addDocument(fp, namespace);
         if (result.startsWith("✅")) {
@@ -730,9 +713,7 @@ export class RagTool extends Tool {
       const results = await pipeline.search(query, limit);
       if (!results.length) return "";
 
-      const parts = results
-        .map((r) => String(r.metadata["content"] ?? "").trim())
-        .filter(Boolean);
+      const parts = results.map((r) => String(r.metadata["content"] ?? "").trim()).filter(Boolean);
 
       let merged = parts.join("\n\n");
       if (merged.length > maxChars) merged = merged.slice(0, maxChars) + "...";
@@ -746,7 +727,7 @@ export class RagTool extends Tool {
   async clearAllNamespaces(): Promise<string> {
     try {
       for (const [, pipeline] of this.pipelines) {
-        const store = pipeline.store as {clearCollection?: () => Promise<boolean> | boolean};
+        const store = pipeline.store as { clearCollection?: () => Promise<boolean> | boolean };
         if (typeof store.clearCollection === "function") {
           await store.clearCollection();
         }
@@ -835,9 +816,7 @@ function formatFinalAnswer(
     lines.push("\n\n📚 **参考来源**");
     for (const c of citations) {
       const emoji = c.score > 0.8 ? "🟢" : c.score > 0.6 ? "🟡" : "🔵";
-      lines.push(
-        `${emoji} [${c.index}] ${c.source} (相似度: ${c.score.toFixed(3)})`,
-      );
+      lines.push(`${emoji} [${c.index}] ${c.source} (相似度: ${c.score.toFixed(3)})`);
     }
   }
 

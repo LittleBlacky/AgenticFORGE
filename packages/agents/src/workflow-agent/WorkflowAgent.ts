@@ -1,7 +1,7 @@
-import {Agent, Message} from "@agenticforge/core";
-import {ToolRegistry} from "@agenticforge/tools";
-import {WorkflowEngine} from "@agenticforge/workflow";
-import type {WorkflowDefinition, WorkflowResult} from "@agenticforge/workflow";
+import { Agent, Message } from "@agenticforge/core";
+import type { ToolRegistry } from "@agenticforge/tools";
+import { WorkflowEngine } from "@agenticforge/workflow";
+import type { WorkflowDefinition, WorkflowResult } from "@agenticforge/workflow";
 
 export interface WorkflowAgentOptions {
   name: string;
@@ -107,13 +107,10 @@ export class WorkflowAgent extends Agent {
    * @param definition  工作流定义（节点列表）
    * @param input       初始输入，可在节点模板中用 {input} 引用
    */
-  async runWorkflow(
-    definition: WorkflowDefinition,
-    input: string,
-  ): Promise<WorkflowResult> {
+  async runWorkflow(definition: WorkflowDefinition, input: string): Promise<WorkflowResult> {
     const result = await this.engine.execute(definition, input);
-    this.addMessage(new Message({role: "user",      content: input}));
-    this.addMessage(new Message({role: "assistant", content: result.output}));
+    this.addMessage(new Message({ role: "user", content: input }));
+    this.addMessage(new Message({ role: "assistant", content: result.output }));
     return result;
   }
 
@@ -133,7 +130,7 @@ export class WorkflowAgent extends Agent {
     if (!this.currentWorkflow) {
       throw new Error(
         "[WorkflowAgent] 请先调用 setWorkflow(definition) 设置工作流，" +
-        "或直接使用 runWorkflow(definition, input)",
+          "或直接使用 runWorkflow(definition, input)",
       );
     }
     const result = await this.runWorkflow(this.currentWorkflow, inputText);

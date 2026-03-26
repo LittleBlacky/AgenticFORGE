@@ -1,4 +1,4 @@
-import type {Provider, ProviderConfig} from "./types";
+import type { Provider, ProviderConfig } from "./types";
 
 export interface RuntimeConfig {
   defaultProvider: Provider;

@@ -4,11 +4,11 @@
  * 提供上下文管理、消息解析等辅助功能。
  */
 
-import type {MCPPromptMessage} from "./types";
+import type { MCPPromptMessage } from "./types";
 
 /** MCP 上下文对象 */
 export interface MCPContext {
-  messages: Array<{role: string; content: string}>;
+  messages: Array<{ role: string; content: string }>;
   tools: Array<Record<string, unknown>>;
   resources: Array<Record<string, unknown>>;
   metadata: Record<string, unknown>;
@@ -33,12 +33,14 @@ export interface MCPErrorResponse {
 /**
  * 创建 MCP 上下文对象
  */
-export function createContext(options: {
-  messages?: Array<{role: string; content: string}>;
-  tools?: Array<Record<string, unknown>>;
-  resources?: Array<Record<string, unknown>>;
-  metadata?: Record<string, unknown>;
-} = {}): MCPContext {
+export function createContext(
+  options: {
+    messages?: Array<{ role: string; content: string }>;
+    tools?: Array<Record<string, unknown>>;
+    resources?: Array<Record<string, unknown>>;
+    metadata?: Record<string, unknown>;
+  } = {},
+): MCPContext {
   return {
     messages: options.messages ?? [],
     tools: options.tools ?? [],
@@ -102,7 +104,7 @@ export function createSuccessResponse<T>(
   data: T,
   metadata?: Record<string, unknown>,
 ): MCPSuccessResponse<T> {
-  const response: MCPSuccessResponse<T> = {success: true, data};
+  const response: MCPSuccessResponse<T> = { success: true, data };
   if (metadata) response.metadata = metadata;
   return response;
 }

@@ -18,6 +18,48 @@ export interface MemoryStats {
   semantic?: unknown;
 }
 
+// ── 流式 chat — 返回 AsyncGenerator，逐 token yield ──────────────────────
+export type StreamChunk =
+  | { type: "token";  token: string }
+  | { type: "meta";   agent: string; skillUsed: string }
+  | { type: "error";  message: string }
+  | { type: "done" };
+
+export async function* chatStream(
+  message: string,
+  signal?: AbortSignal,
+): AsyncGenerator<StreamChunk> {
+  const res = await fetch(`${BASE}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error(await res.text());
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    // SSE 帧以 \n\n 分隔
+    const parts = buf.split("\n\n");
+    buf = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.trim();
+      if (!line.startsWith("data:")) continue;
+      const json = line.slice(5).trim();
+      if (!json) continue;
+      try {
+        yield JSON.parse(json) as StreamChunk;
+      } catch { /* skip malformed */ }
+    }
+  }
+}
+
 export async function chat(message: string): Promise<ChatResponse> {
   const res = await fetch(`${BASE}/chat`, {
     method: "POST",

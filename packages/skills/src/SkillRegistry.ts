@@ -1,5 +1,5 @@
-import type {IAgentSkill} from "./types";
-import {AgentSkill} from "./AgentSkill";
+import type { IAgentSkill } from "./types";
+import { AgentSkill } from "./AgentSkill";
 
 /**
  * Manages a collection of AgentSkills.

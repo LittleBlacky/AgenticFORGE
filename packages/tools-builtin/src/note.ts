@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import lockfile from "proper-lockfile";
-import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
+import { Tool, type ToolParameter, toolAction } from "@agenticforge/tools";
 
 export interface NoteToolOptions {
   workspace?: string;
@@ -13,13 +13,7 @@ export interface NoteToolOptions {
   enableAtomicNoteWrites?: boolean;
 }
 
-type NoteType =
-  | "task_state"
-  | "conclusion"
-  | "blocker"
-  | "action"
-  | "reference"
-  | "general";
+type NoteType = "task_state" | "conclusion" | "blocker" | "action" | "reference" | "general";
 
 type NoteIndexRecord = {
   id: string;
@@ -51,14 +45,7 @@ type NoteRecord = {
   };
 };
 
-type NoteAction =
-  | "create"
-  | "read"
-  | "update"
-  | "delete"
-  | "list"
-  | "search"
-  | "summary";
+type NoteAction = "create" | "read" | "update" | "delete" | "list" | "search" | "summary";
 
 export class NoteTool extends Tool {
   private readonly workspace: string;
@@ -85,7 +72,7 @@ export class NoteTool extends Tool {
     this.lockRetryIntervalMs = options.lockRetryIntervalMs ?? 120;
     this.enableAtomicNoteWrites = options.enableAtomicNoteWrites ?? false;
 
-    fs.mkdirSync(this.workspace, {recursive: true});
+    fs.mkdirSync(this.workspace, { recursive: true });
     this.notesIndex = this.loadIndex();
   }
 
@@ -150,8 +137,7 @@ export class NoteTool extends Tool {
       {
         name: "action",
         type: "string",
-        description:
-          "操作类型: create/read/update/delete/list/search/summary",
+        description: "操作类型: create/read/update/delete/list/search/summary",
         required: true,
         default: null,
       },
@@ -172,8 +158,7 @@ export class NoteTool extends Tool {
       {
         name: "note_type",
         type: "string",
-        description:
-          "笔记类型: task_state/conclusion/blocker/action/reference/general",
+        description: "笔记类型: task_state/conclusion/blocker/action/reference/general",
         required: false,
         default: "general",
       },
@@ -439,7 +424,10 @@ export class NoteTool extends Tool {
   }
 
   private generateNoteId(): string {
-    const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:.TZ]/g, "")
+      .slice(0, 14);
     const count = this.notesIndex.notes.length;
     return `note_${timestamp}_${count}`;
   }
@@ -526,9 +514,7 @@ export class NoteTool extends Tool {
 
   private formatNote(note: NoteRecord, compact: boolean): string {
     if (compact) {
-      const preview = note.content.length > 100
-        ? `${note.content.slice(0, 100)}...`
-        : note.content;
+      const preview = note.content.length > 100 ? `${note.content.slice(0, 100)}...` : note.content;
       return `[${note.type}] ${note.title}\nID: ${note.id}\n内容: ${preview}`;
     }
 

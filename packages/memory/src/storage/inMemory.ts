@@ -4,7 +4,7 @@ import type {
   GraphStoreAdapter,
   BlobStoreAdapter,
 } from "./types";
-import type {Entity, Relation} from "./types";
+import type { Entity, Relation } from "./types";
 
 export class InMemoryKVStore<T> implements KVStoreAdapter<T> {
   private readonly store = new Map<string, T>();
@@ -21,7 +21,7 @@ export class InMemoryKVStore<T> implements KVStoreAdapter<T> {
     this.store.delete(id);
   }
 
-  async list(params?: {limit?: number}): Promise<T[]> {
+  async list(params?: { limit?: number }): Promise<T[]> {
     const values = Array.from(this.store.values());
     if (!params?.limit) return values;
     return values.slice(0, Math.max(1, Math.floor(params.limit)));
@@ -39,7 +39,7 @@ export class InMemoryKVStore<T> implements KVStoreAdapter<T> {
 export class InMemoryVectorStore implements VectorStoreAdapter {
   private readonly vectors = new Map<
     string,
-    {vector: number[]; payload: Record<string, unknown>}
+    { vector: number[]; payload: Record<string, unknown> }
   >();
 
   async upsertVector(params: {
@@ -56,7 +56,7 @@ export class InMemoryVectorStore implements VectorStoreAdapter {
   async queryVector(params: {
     vector: number[];
     limit: number;
-  }): Promise<Array<{id: string; score: number; payload: Record<string, unknown>}>> {
+  }): Promise<Array<{ id: string; score: number; payload: Record<string, unknown> }>> {
     const scored = Array.from(this.vectors.entries())
       .map(([id, entry]) => ({
         id,
@@ -91,7 +91,7 @@ export class InMemoryGraphStore implements GraphStoreAdapter {
       const prev = this.entities.get(entity.entityId);
       this.entities.set(
         entity.entityId,
-        prev ? {...prev, frequency: prev.frequency + 1} : entity,
+        prev ? { ...prev, frequency: prev.frequency + 1 } : entity,
       );
     }
   }
@@ -120,14 +120,12 @@ export class InMemoryGraphStore implements GraphStoreAdapter {
   async queryGraph(params: {
     queryText: string;
     limit: number;
-  }): Promise<Array<{entityId: string; score: number}>> {
-    const tokens = new Set(
-      params.queryText.toLowerCase().split(/\s+/g).filter(Boolean),
-    );
+  }): Promise<Array<{ entityId: string; score: number }>> {
+    const tokens = new Set(params.queryText.toLowerCase().split(/\s+/g).filter(Boolean));
     const scored = Array.from(this.entities.values())
       .map((entity) => {
         const matched = tokens.has(entity.name.toLowerCase()) ? 1 : 0;
-        return {entityId: entity.entityId, score: matched};
+        return { entityId: entity.entityId, score: matched };
       })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
@@ -157,10 +155,13 @@ export class InMemoryGraphStore implements GraphStoreAdapter {
 }
 
 export class InMemoryBlobStore implements BlobStoreAdapter {
-  private readonly store = new Map<string, {data: Buffer | string; meta?: Record<string, unknown>}>();
+  private readonly store = new Map<
+    string,
+    { data: Buffer | string; meta?: Record<string, unknown> }
+  >();
 
   async putBlob(id: string, data: Buffer | string, meta?: Record<string, unknown>): Promise<void> {
-    this.store.set(id, {data, meta});
+    this.store.set(id, { data, meta });
   }
 
   async getBlob(id: string): Promise<Buffer | string | null> {

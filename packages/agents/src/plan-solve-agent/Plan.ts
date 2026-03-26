@@ -15,7 +15,7 @@ export interface Plan {
 export function createPlan(goal: string, steps: Omit<PlanStep, "status">[]): Plan {
   return {
     goal,
-    steps: steps.map((s) => ({...s, status: "pending"})),
+    steps: steps.map((s) => ({ ...s, status: "pending" })),
     createdAt: new Date(),
   };
 }
@@ -41,7 +41,5 @@ export function getPendingSteps(plan: Plan): PlanStep[] {
 }
 
 export function getCompletedResults(plan: Plan): string[] {
-  return plan.steps
-    .filter((s) => s.status === "done" && s.result)
-    .map((s) => s.result!);
+  return plan.steps.filter((s) => s.status === "done" && s.result).map((s) => s.result!);
 }

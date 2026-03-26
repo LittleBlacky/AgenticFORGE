@@ -1,5 +1,5 @@
-import type {TokenCounter} from "./tokenizer";
-import {estimateTokens} from "./tokenizer";
+import type { TokenCounter } from "./tokenizer";
+import { estimateTokens } from "./tokenizer";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -153,15 +153,12 @@ export interface BuiltContext {
 // ---------------------------------------------------------------------------
 
 export class ContextPacketBuilder {
-  static create(
-    content: string,
-    metadata: Record<string, unknown> = {},
-  ): ContextPacket {
-    return {content, metadata};
+  static create(content: string, metadata: Record<string, unknown> = {}): ContextPacket {
+    return { content, metadata };
   }
 
   static withRelevance(packet: ContextPacket, score: number): ContextPacket {
-    return {...packet, relevanceScore: score};
+    return { ...packet, relevanceScore: score };
   }
 }
 
@@ -170,12 +167,14 @@ export class ContextPacketBuilder {
 // ---------------------------------------------------------------------------
 
 export class ContextBuilder {
-  private readonly config: Required<Omit<ContextBuilderConfig, "tokenCounter" | "embedder" | "memoryEmbedder">> & {
+  private readonly config: Required<
+    Omit<ContextBuilderConfig, "tokenCounter" | "embedder" | "memoryEmbedder">
+  > & {
     tokenCounter?: TokenCounter;
     embedder?: TextEmbedder;
   };
 
-  constructor(options: {config?: ContextBuilderConfig} = {}) {
+  constructor(options: { config?: ContextBuilderConfig } = {}) {
     const cfg = options.config ?? {};
     this.config = {
       maxTokens: cfg.maxTokens ?? 4096,
@@ -190,7 +189,8 @@ export class ContextBuilder {
       recencyWeight: cfg.recencyWeight ?? 0.3,
       recencyTau: cfg.recencyTau ?? 3_600_000,
       // memoryEmbedder takes lower precedence than explicit embedder
-      embedder: cfg.embedder ?? (cfg.memoryEmbedder ? fromMemoryEmbedder(cfg.memoryEmbedder) : undefined),
+      embedder:
+        cfg.embedder ?? (cfg.memoryEmbedder ? fromMemoryEmbedder(cfg.memoryEmbedder) : undefined),
       enableStructuredTemplate: cfg.enableStructuredTemplate ?? false,
       enableCompression: cfg.enableCompression ?? true,
     };
@@ -208,10 +208,7 @@ export class ContextBuilder {
     totalTokens += systemTokens;
 
     const history = input.conversationHistory ?? [];
-    const historyBudget = Math.min(
-      this.config.historyTokenBudget,
-      Math.floor(budget * 0.6),
-    );
+    const historyBudget = Math.min(this.config.historyTokenBudget, Math.floor(budget * 0.6));
     const includedHistory: Message[] = [];
     let historyTokensUsed = 0;
     for (let i = history.length - 1; i >= 0; i--) {
@@ -236,14 +233,11 @@ export class ContextBuilder {
       ? await this.selectMmr(scoredPackets, input.userQuery, budget)
       : this.selectGreedy(scoredPackets, budget);
 
-    const packetTokens = selectedPackets.reduce(
-      (acc, p) => acc + (p.tokens ?? 0),
-      0,
-    );
+    const packetTokens = selectedPackets.reduce((acc, p) => acc + (p.tokens ?? 0), 0);
     totalTokens += packetTokens;
     const messages: Message[] = [
       ...includedHistory,
-      {role: "user" as const, content: input.userQuery},
+      { role: "user" as const, content: input.userQuery },
     ];
 
     // ------------------------------------------------------------------
@@ -259,11 +253,19 @@ export class ContextBuilder {
         packets: selectedPackets,
       });
       if (this.config.enableCompression) {
-        const structTokenBudget = this.config.maxTokens - historyTokensUsed - estimateTokens(input.userQuery, counter);
-        const {text, wasTruncated} = this.compressContext(raw, Math.max(structTokenBudget, 256), counter);
+        const structTokenBudget =
+          this.config.maxTokens - historyTokensUsed - estimateTokens(input.userQuery, counter);
+        const { text, wasTruncated } = this.compressContext(
+          raw,
+          Math.max(structTokenBudget, 256),
+          counter,
+        );
         structuredSystem = text;
         truncated = wasTruncated;
-        totalTokens = historyTokensUsed + estimateTokens(input.userQuery, counter) + estimateTokens(text, counter);
+        totalTokens =
+          historyTokensUsed +
+          estimateTokens(input.userQuery, counter) +
+          estimateTokens(text, counter);
       } else {
         structuredSystem = raw;
       }
@@ -292,10 +294,9 @@ export class ContextBuilder {
 
     // [Role & Policies] — system instructions
     const instrPackets = params.packets.filter((p) => this.packetType(p) === "instructions");
-    const instrText = [
-      params.systemInstructions ?? "",
-      ...instrPackets.map((p) => p.content),
-    ].filter(Boolean).join("\n");
+    const instrText = [params.systemInstructions ?? "", ...instrPackets.map((p) => p.content)]
+      .filter(Boolean)
+      .join("\n");
     if (instrText) sections.push(`[Role & Policies]\n${instrText}`);
 
     // [Task] — current user query
@@ -323,11 +324,11 @@ export class ContextBuilder {
     // [Output] — response format guidance
     sections.push(
       "[Output]\n" +
-      "Please respond with:\n" +
-      "1. Conclusion (concise and direct)\n" +
-      "2. Supporting evidence (with sources)\n" +
-      "3. Risks and assumptions (if any)\n" +
-      "4. Recommended next steps (if applicable)",
+        "Please respond with:\n" +
+        "1. Conclusion (concise and direct)\n" +
+        "2. Supporting evidence (with sources)\n" +
+        "3. Risks and assumptions (if any)\n" +
+        "4. Recommended next steps (if applicable)",
     );
 
     return sections.join("\n\n");
@@ -349,9 +350,9 @@ export class ContextBuilder {
     text: string,
     budgetTokens: number,
     counter?: TokenCounter,
-  ): {text: string; wasTruncated: boolean} {
+  ): { text: string; wasTruncated: boolean } {
     const total = estimateTokens(text, counter);
-    if (total <= budgetTokens) return {text, wasTruncated: false};
+    if (total <= budgetTokens) return { text, wasTruncated: false };
 
     const lines = text.split("\n");
     const kept: string[] = [];
@@ -364,7 +365,7 @@ export class ContextBuilder {
       used += t;
     }
 
-    return {text: kept.join("\n"), wasTruncated: true};
+    return { text: kept.join("\n"), wasTruncated: true };
   }
 
   private compositeScore(packet: ContextPacket, relevance: number): number {
@@ -378,15 +379,15 @@ export class ContextBuilder {
   }
 
   private selectGreedy(
-    packets: Array<ContextPacket & {tokens: number}>,
+    packets: Array<ContextPacket & { tokens: number }>,
     budget: number,
-  ): Array<ContextPacket & {tokens: number}> {
+  ): Array<ContextPacket & { tokens: number }> {
     const sorted = [...packets].sort(
       (a, b) =>
         this.compositeScore(b, b.relevanceScore ?? 0.5) -
         this.compositeScore(a, a.relevanceScore ?? 0.5),
     );
-    const selected: Array<ContextPacket & {tokens: number}> = [];
+    const selected: Array<ContextPacket & { tokens: number }> = [];
     let used = 0;
     for (const p of sorted) {
       if (used + p.tokens <= budget) {
@@ -398,10 +399,10 @@ export class ContextBuilder {
   }
 
   private async selectMmr(
-    packets: Array<ContextPacket & {tokens: number}>,
+    packets: Array<ContextPacket & { tokens: number }>,
     query: string,
     budget: number,
-  ): Promise<Array<ContextPacket & {tokens: number}>> {
+  ): Promise<Array<ContextPacket & { tokens: number }>> {
     if (packets.length === 0) return [];
     const lambda = this.config.mmrLambda;
 
@@ -409,7 +410,7 @@ export class ContextBuilder {
     // Build vector representations
     // Priority: external embedder (dense) → TF-IDF weighted bag-of-words
     // ------------------------------------------------------------------
-    type PacketWithTokens = ContextPacket & {tokens: number};
+    type PacketWithTokens = ContextPacket & { tokens: number };
     let vecMap: Map<PacketWithTokens, number[]>;
     let queryVec: number[];
 
@@ -421,12 +422,12 @@ export class ContextBuilder {
         vecMap = new Map(packets.map((p, i) => [p, vecs[i + 1] ?? []]));
       } catch {
         // embedder failed — fall back to TF-IDF
-        const {qv, pm} = buildTfIdfVecs(query, packets);
+        const { qv, pm } = buildTfIdfVecs(query, packets);
         queryVec = qv;
         vecMap = pm;
       }
     } else {
-      const {qv, pm} = buildTfIdfVecs(query, packets);
+      const { qv, pm } = buildTfIdfVecs(query, packets);
       queryVec = qv;
       vecMap = pm;
     }
@@ -451,9 +452,7 @@ export class ContextBuilder {
         // Diversity penalty: max cosine to already-selected
         const maxSim =
           selected.length > 0
-            ? Math.max(
-                ...selected.map((s) => denseCosine(pVec, vecMap.get(s) ?? [])),
-              )
+            ? Math.max(...selected.map((s) => denseCosine(pVec, vecMap.get(s) ?? [])))
             : 0;
 
         const score = lambda * composite - (1 - lambda) * maxSim;
@@ -479,7 +478,10 @@ export class ContextBuilder {
 // ---------------------------------------------------------------------------
 
 function tokenize(text: string): string[] {
-  return text.toLowerCase().split(/[\s\W]+/g).filter(Boolean);
+  return text
+    .toLowerCase()
+    .split(/[\s\W]+/g)
+    .filter(Boolean);
 }
 
 function buildIdf(docs: string[]): Map<string, number> {
@@ -497,7 +499,11 @@ function buildIdf(docs: string[]): Map<string, number> {
   return idf;
 }
 
-function tfidfArray(text: string, idf: Map<string, number>, termIndex: Map<string, number>): number[] {
+function tfidfArray(
+  text: string,
+  idf: Map<string, number>,
+  termIndex: Map<string, number>,
+): number[] {
   const terms = tokenize(text);
   const tf = new Map<string, number>();
   for (const t of terms) tf.set(t, (tf.get(t) ?? 0) + 1);
@@ -511,10 +517,10 @@ function tfidfArray(text: string, idf: Map<string, number>, termIndex: Map<strin
   return arr;
 }
 
-function buildTfIdfVecs<T extends {content: string}>(
+function buildTfIdfVecs<T extends { content: string }>(
   query: string,
   packets: T[],
-): {qv: number[]; pm: Map<T, number[]>} {
+): { qv: number[]; pm: Map<T, number[]> } {
   const corpus = [query, ...packets.map((p) => p.content)];
   const idf = buildIdf(corpus);
   const termIndex = new Map<string, number>();
@@ -524,7 +530,7 @@ function buildTfIdfVecs<T extends {content: string}>(
   const qv = tfidfArray(query, idf, termIndex);
   const pm = new Map<T, number[]>();
   for (const p of packets) pm.set(p, tfidfArray(p.content, idf, termIndex));
-  return {qv, pm};
+  return { qv, pm };
 }
 
 // ---------------------------------------------------------------------------
@@ -533,12 +539,14 @@ function buildTfIdfVecs<T extends {content: string}>(
 
 function denseCosine(a: number[], b: number[]): number {
   if (a.length === 0 || b.length === 0) return 0;
-  let dot = 0, na = 0, nb = 0;
+  let dot = 0,
+    na = 0,
+    nb = 0;
   const len = Math.min(a.length, b.length);
   for (let i = 0; i < len; i++) {
     dot += a[i]! * b[i]!;
-    na  += a[i]! * a[i]!;
-    nb  += b[i]! * b[i]!;
+    na += a[i]! * a[i]!;
+    nb += b[i]! * b[i]!;
   }
   const denom = Math.sqrt(na) * Math.sqrt(nb);
   return denom > 0 ? dot / denom : 0;

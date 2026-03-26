@@ -1,5 +1,5 @@
-import type {LLMClient} from "@agenticforge/core";
-import type {IAgentSkill, SkillContext, SkillResult} from "./types";
+import type { LLMClient } from "@agenticforge/core";
+import type { IAgentSkill, SkillContext, SkillResult } from "./types";
 
 // ---------------------------------------------------------------------------
 // Frontmatter parser (no external deps)
@@ -46,8 +46,14 @@ export function parseFrontmatter(source: string): {
     if (!kv) continue;
     const [, key, value] = kv as [string, string, string];
     // Booleans
-    if (value === "true")  { frontmatter[key] = true;  continue; }
-    if (value === "false") { frontmatter[key] = false; continue; }
+    if (value === "true") {
+      frontmatter[key] = true;
+      continue;
+    }
+    if (value === "false") {
+      frontmatter[key] = false;
+      continue;
+    }
     // Unquote strings
     frontmatter[key] = value.replace(/^"|"$/g, "").replace(/^'|'$/g, "").trim();
   }
@@ -67,7 +73,10 @@ export function parseFrontmatter(source: string): {
 }
 
 function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -122,11 +131,7 @@ export class MarkdownSkill implements IAgentSkill {
   /** Original source file path (if loaded from disk) */
   readonly filePath?: string;
 
-  private constructor(
-    frontmatter: SkillFrontmatter,
-    body: string,
-    filePath?: string,
-  ) {
+  private constructor(frontmatter: SkillFrontmatter, body: string, filePath?: string) {
     this.frontmatter = frontmatter;
     this.name = frontmatter.name;
     this.description = frontmatter.description;
@@ -144,7 +149,7 @@ export class MarkdownSkill implements IAgentSkill {
    * Create a MarkdownSkill from a raw markdown string.
    */
   static fromSource(source: string, filePath?: string): MarkdownSkill {
-    const {frontmatter, body} = parseFrontmatter(source);
+    const { frontmatter, body } = parseFrontmatter(source);
     return new MarkdownSkill(frontmatter, body, filePath);
   }
 
@@ -153,7 +158,7 @@ export class MarkdownSkill implements IAgentSkill {
    * Uses Node.js `fs/promises` — only available in Node environments.
    */
   static async fromFile(filePath: string): Promise<MarkdownSkill> {
-    const {readFile} = await import("node:fs/promises");
+    const { readFile } = await import("node:fs/promises");
     const source = await readFile(filePath, "utf8");
     return MarkdownSkill.fromSource(source, filePath);
   }
@@ -167,14 +172,14 @@ export class MarkdownSkill implements IAgentSkill {
    * prepend conversation history, then call the LLM.
    */
   async execute(context: SkillContext, llm: LLMClient): Promise<SkillResult> {
-    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
-      {role: "system", content: this.systemPrompt},
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: this.systemPrompt },
       ...(context.history ?? []),
-      {role: "user", content: context.query},
+      { role: "user", content: context.query },
     ];
 
     const output = await llm.think(messages);
-    return {output};
+    return { output };
   }
 
   // -------------------------------------------------------------------------

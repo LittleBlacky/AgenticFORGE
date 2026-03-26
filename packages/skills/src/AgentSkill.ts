@@ -1,6 +1,6 @@
-import {Tool, type FunctionTool, ToolRegistry} from "@agenticforge/tools";
-import type {LLMClient} from "@agenticforge/core";
-import type {IAgentSkill, SkillContext, SkillDefinition, SkillResult} from "./types";
+import { Tool, type FunctionTool, ToolRegistry } from "@agenticforge/tools";
+import type { LLMClient } from "@agenticforge/core";
+import type { IAgentSkill, SkillContext, SkillDefinition, SkillResult } from "./types";
 
 // ---------------------------------------------------------------------------
 // AgentSkill — 可继承的 Skill 基类
@@ -75,12 +75,7 @@ export class AgentSkill implements IAgentSkill {
         if (t instanceof Tool) {
           this._registry.registerTool(t);
         } else {
-          this._registry.registerFunction(
-            t.name,
-            t.description,
-            t.func,
-            t.schema,
-          );
+          this._registry.registerFunction(t.name, t.description, t.func, t.schema);
         }
       }
     }
@@ -101,21 +96,21 @@ export class AgentSkill implements IAgentSkill {
   async execute(context: SkillContext, llm: LLMClient): Promise<SkillResult> {
     const sysPrompt = this.systemPrompt ?? `你是专门负责"${this.description}"的助理。`;
 
-    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
-      {role: "system", content: sysPrompt},
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: sysPrompt },
       ...(context.history ?? []),
-      {role: "user", content: context.query},
+      { role: "user", content: context.query },
     ];
 
     // No tools — plain LLM call
     if (this.tools.length === 0) {
       const output = await llm.think(messages);
-      return {output};
+      return { output };
     }
 
     // With tools — function-calling loop
     const toolsUsed: string[] = [];
-    const rawMessages: Array<Record<string, unknown>> = messages.map((m) => ({...m}));
+    const rawMessages: Array<Record<string, unknown>> = messages.map((m) => ({ ...m }));
     const schemas = this.toolRegistry.getOpenAISchemas();
 
     // Access the underlying OpenAI client via duck-typing
@@ -126,7 +121,7 @@ export class AgentSkill implements IAgentSkill {
             choices?: Array<{
               message?: {
                 content?: string;
-                tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>;
+                tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
               };
             }>;
           }>;
@@ -138,7 +133,7 @@ export class AgentSkill implements IAgentSkill {
     if (!client || !model) {
       // Fallback: plain LLM call without tools
       const output = await llm.think(messages);
-      return {output};
+      return { output };
     }
 
     let finalOutput = "";
@@ -161,12 +156,16 @@ export class AgentSkill implements IAgentSkill {
         break;
       }
 
-      rawMessages.push({role: "assistant", content, tool_calls: toolCalls});
+      rawMessages.push({ role: "assistant", content, tool_calls: toolCalls });
 
       for (const call of toolCalls) {
         toolsUsed.push(call.function.name);
         let args: Record<string, unknown> = {};
-        try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
+        try {
+          args = JSON.parse(call.function.arguments) as Record<string, unknown>;
+        } catch {
+          /* ignore */
+        }
         let result = "";
         try {
           result = await this.toolRegistry.execute(call.function.name, args);
@@ -193,7 +192,7 @@ export class AgentSkill implements IAgentSkill {
       finalOutput = fallback.choices?.[0]?.message?.content ?? "";
     }
 
-    return {output: finalOutput, toolsUsed};
+    return { output: finalOutput, toolsUsed };
   }
 
   // -------------------------------------------------------------------------

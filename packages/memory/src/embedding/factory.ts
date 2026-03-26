@@ -1,5 +1,5 @@
-import {HashTextEmbedder, OpenAITextEmbedder} from "./embedders";
-import type {TextEmbedder} from "./embedders";
+import { HashTextEmbedder, OpenAITextEmbedder } from "./embedders";
+import type { TextEmbedder } from "./embedders";
 
 export function createDefaultTextEmbedder(dimension = 384): TextEmbedder {
   const model = process.env.EMBEDDING_MODEL_ID;
@@ -8,7 +8,7 @@ export function createDefaultTextEmbedder(dimension = 384): TextEmbedder {
 
   if (model && apiKey && baseURL) {
     try {
-      return new OpenAITextEmbedder({model, apiKey, baseURL});
+      return new OpenAITextEmbedder({ model, apiKey, baseURL });
     } catch {
       // fallback to hash embedder
     }

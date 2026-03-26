@@ -26,16 +26,14 @@ class ApproxTokenCounter implements TokenCounter {
  * When tiktoken is available and encodingName is provided, uses tiktoken.
  * Otherwise falls back to a character-ratio approximation.
  */
-export function createTokenCounter(
-  options: TokenCounterOptions = {},
-): TokenCounter {
+export function createTokenCounter(options: TokenCounterOptions = {}): TokenCounter {
   const charsPerToken = options.charsPerToken ?? 4;
 
   if (options.encodingName) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const tiktoken = require("tiktoken") as {
-        get_encoding: (name: string) => {encode: (t: string) => Uint32Array};
+        get_encoding: (name: string) => { encode: (t: string) => Uint32Array };
       };
       const enc = tiktoken.get_encoding(options.encodingName);
       return {
@@ -51,9 +49,6 @@ export function createTokenCounter(
   return new ApproxTokenCounter(charsPerToken);
 }
 
-export function estimateTokens(
-  text: string,
-  counter?: TokenCounter,
-): number {
+export function estimateTokens(text: string, counter?: TokenCounter): number {
   return counter ? counter.count(text) : Math.ceil(text.length / 4);
 }

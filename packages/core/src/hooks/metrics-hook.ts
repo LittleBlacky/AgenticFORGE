@@ -1,4 +1,4 @@
-import type {AgentHook, AgentHookContext, AgentHookEvent} from "./types";
+import type { AgentHook, AgentHookContext, AgentHookEvent } from "./types";
 
 export interface HookMetricsSnapshot {
   totals: {
@@ -53,10 +53,7 @@ export class MetricsHook {
 
   private capture(context: AgentHookContext): void {
     this.eventCounts[context.event] += 1;
-    this.agentCounts.set(
-      context.agentName,
-      (this.agentCounts.get(context.agentName) ?? 0) + 1,
-    );
+    this.agentCounts.set(context.agentName, (this.agentCounts.get(context.agentName) ?? 0) + 1);
 
     const runKey = `${context.traceId}`;
     const llmKey = `${context.traceId}:llm`;
@@ -111,16 +108,12 @@ export class MetricsHook {
         llmCalls: this.eventCounts.beforeLLMCall,
         toolCalls: this.eventCounts.beforeToolCall,
       },
-      eventCounts: {...this.eventCounts},
+      eventCounts: { ...this.eventCounts },
       agentCounts,
-      avgRunLatencyMs:
-        this.runLatencyCount === 0 ? 0 : this.runLatencySum / this.runLatencyCount,
-      avgLlmLatencyMs:
-        this.llmLatencyCount === 0 ? 0 : this.llmLatencySum / this.llmLatencyCount,
+      avgRunLatencyMs: this.runLatencyCount === 0 ? 0 : this.runLatencySum / this.runLatencyCount,
+      avgLlmLatencyMs: this.llmLatencyCount === 0 ? 0 : this.llmLatencySum / this.llmLatencyCount,
       avgToolLatencyMs:
-        this.toolLatencyCount === 0
-          ? 0
-          : this.toolLatencySum / this.toolLatencyCount,
+        this.toolLatencyCount === 0 ? 0 : this.toolLatencySum / this.toolLatencyCount,
     };
   }
 }

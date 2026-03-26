@@ -1,7 +1,7 @@
-import {LLMClient} from "@agenticforge/core";
-import {ToolRegistry} from "@agenticforge/tools";
-import type {PlanStep} from "./Plan";
-import {buildStepPrompt} from "./prompts";
+import type { LLMClient } from "@agenticforge/core";
+import type { ToolRegistry } from "@agenticforge/tools";
+import type { PlanStep } from "./Plan";
+import { buildStepPrompt } from "./prompts";
 
 export interface StepExecutorOptions {
   llm: LLMClient;
@@ -23,7 +23,7 @@ export class StepExecutor {
   async execute(step: PlanStep, context = ""): Promise<string> {
     if (step.tool && this.toolRegistry?.hasTool(step.tool)) {
       try {
-        return await this.toolRegistry.execute(step.tool, {input: step.description});
+        return await this.toolRegistry.execute(step.tool, { input: step.description });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return `工具执行失败 (${step.tool}): ${msg}`;
@@ -32,8 +32,8 @@ export class StepExecutor {
 
     const prompt = buildStepPrompt(step.description, context);
     return this.llm.think([
-      {role: "system", content: "你是一个专注执行具体任务的AI助手，直接给出结果。"},
-      {role: "user", content: prompt},
+      { role: "system", content: "你是一个专注执行具体任务的AI助手，直接给出结果。" },
+      { role: "user", content: prompt },
     ]);
   }
 }

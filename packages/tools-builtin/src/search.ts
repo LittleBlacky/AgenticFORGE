@@ -1,4 +1,4 @@
-import {Tool, type ToolParameter} from "@agenticforge/tools";
+import { Tool, type ToolParameter } from "@agenticforge/tools";
 
 const CHARS_PER_TOKEN = 4;
 const DEFAULT_MAX_RESULTS = 5;
@@ -73,7 +73,7 @@ function limitText(text: string, tokenLimit: number): string {
 
 async function fetchRawContent(url: string): Promise<string | null> {
   try {
-    const response = await fetch(url, {method: "GET"});
+    const response = await fetch(url, { method: "GET" });
     if (!response.ok) return null;
     return await response.text();
   } catch {
@@ -136,24 +136,17 @@ export class SearchTool extends Tool {
     this.backend = (options?.backend ?? "hybrid").toLowerCase();
     this.tavilyKey = options?.tavilyKey ?? process.env.TAVILY_API_KEY;
     this.serpapiKey = options?.serpapiKey ?? process.env.SERPAPI_API_KEY;
-    this.perplexityKey =
-      options?.perplexityKey ?? process.env.PERPLEXITY_API_KEY;
+    this.perplexityKey = options?.perplexityKey ?? process.env.PERPLEXITY_API_KEY;
   }
 
   run(parameters: Record<string, unknown>): string | Promise<string> {
-    const query = String(
-      (parameters.input ?? parameters.query ?? "") as string,
-    ).trim();
+    const query = String((parameters.input ?? parameters.query ?? "") as string).trim();
     if (!query) return "错误：搜索查询不能为空";
 
-    const backend = String(
-      parameters.backend ?? this.backend ?? "hybrid",
-    ).toLowerCase();
+    const backend = String(parameters.backend ?? this.backend ?? "hybrid").toLowerCase();
     const targetBackend = SUPPORTED_BACKENDS.has(backend) ? backend : "hybrid";
 
-    const mode = String(
-      parameters.mode ?? parameters.return_mode ?? "text",
-    ).toLowerCase();
+    const mode = String(parameters.mode ?? parameters.return_mode ?? "text").toLowerCase();
     const returnMode = SUPPORTED_RETURN_MODES.has(mode) ? mode : "text";
 
     const fetchFullPage = Boolean(parameters.fetch_full_page ?? false);
@@ -208,8 +201,7 @@ export class SearchTool extends Tool {
     maxTokens: number;
     loopCount: number;
   }): Promise<StructuredPayload> {
-    const targetBackend =
-      params.backend === "hybrid" ? "advanced" : params.backend;
+    const targetBackend = params.backend === "hybrid" ? "advanced" : params.backend;
 
     if (targetBackend === "tavily") {
       return this.searchTavily(params);
@@ -261,20 +253,16 @@ export class SearchTool extends Tool {
     }
 
     const data = (await response.json()) as TavilyResponse;
-    const results = (data.results ?? [])
-      .slice(0, params.maxResults)
-      .map((item) => {
-        const raw = params.fetchFullPage
-          ? (item.raw_content ?? item.content)
-          : null;
-        const rawContent = raw ? limitText(raw, params.maxTokens) : undefined;
-        return normalizedResult(
-          item.title ?? item.url ?? "",
-          item.url ?? "",
-          item.content ?? "",
-          rawContent,
-        );
-      });
+    const results = (data.results ?? []).slice(0, params.maxResults).map((item) => {
+      const raw = params.fetchFullPage ? (item.raw_content ?? item.content) : null;
+      const rawContent = raw ? limitText(raw, params.maxTokens) : undefined;
+      return normalizedResult(
+        item.title ?? item.url ?? "",
+        item.url ?? "",
+        item.content ?? "",
+        rawContent,
+      );
+    });
 
     return structuredPayload(results, "tavily", data.answer ?? null);
   }
@@ -297,7 +285,7 @@ export class SearchTool extends Tool {
     url.searchParams.set("hl", "zh-cn");
     url.searchParams.set("num", String(params.maxResults));
 
-    const response = await fetch(url.toString(), {method: "GET"});
+    const response = await fetch(url.toString(), { method: "GET" });
     if (!response.ok) {
       throw new Error(`SerpApi 搜索失败: ${response.statusText}`);
     }
@@ -305,18 +293,16 @@ export class SearchTool extends Tool {
     const data = (await response.json()) as SerpApiResponse;
     const answer = data.answer_box?.answer ?? data.answer_box?.snippet;
 
-    const results = (data.organic_results ?? [])
-      .slice(0, params.maxResults)
-      .map((item) => {
-        const raw = params.fetchFullPage ? (item.snippet ?? "") : null;
-        const rawContent = raw ? limitText(raw, params.maxTokens) : undefined;
-        return normalizedResult(
-          item.title ?? item.link ?? "",
-          item.link ?? "",
-          item.snippet ?? "",
-          rawContent,
-        );
-      });
+    const results = (data.organic_results ?? []).slice(0, params.maxResults).map((item) => {
+      const raw = params.fetchFullPage ? (item.snippet ?? "") : null;
+      const rawContent = raw ? limitText(raw, params.maxTokens) : undefined;
+      return normalizedResult(
+        item.title ?? item.link ?? "",
+        item.link ?? "",
+        item.snippet ?? "",
+        rawContent,
+      );
+    });
 
     return structuredPayload(results, "serpapi", answer ?? null);
   }
@@ -369,10 +355,7 @@ export class SearchTool extends Tool {
     maxResults: number;
     maxTokens: number;
   }): Promise<StructuredPayload> {
-    const host = (process.env.SEARXNG_URL ?? "http://localhost:8888").replace(
-      /\/$/,
-      "",
-    );
+    const host = (process.env.SEARXNG_URL ?? "http://localhost:8888").replace(/\/$/, "");
     const url = new URL(`${host}/search`);
     url.searchParams.set("q", params.query);
     url.searchParams.set("format", "json");
@@ -380,7 +363,7 @@ export class SearchTool extends Tool {
     url.searchParams.set("safesearch", "1");
     url.searchParams.set("categories", "general");
 
-    const response = await fetch(url.toString(), {method: "GET"});
+    const response = await fetch(url.toString(), { method: "GET" });
     if (!response.ok) {
       throw new Error(`SearXNG 搜索失败: ${response.statusText}`);
     }
@@ -398,14 +381,7 @@ export class SearchTool extends Tool {
           rawContent = limitText(fetched, params.maxTokens);
         }
       }
-      results.push(
-        normalizedResult(
-          title,
-          link,
-          entry.content ?? entry.snippet ?? "",
-          rawContent,
-        ),
-      );
+      results.push(normalizedResult(title, link, entry.content ?? entry.snippet ?? "", rawContent));
     }
 
     return structuredPayload(results, "searxng", null);
@@ -436,7 +412,7 @@ export class SearchTool extends Tool {
             role: "system",
             content: "Search the web and provide factual information with sources.",
           },
-          {role: "user", content: params.query},
+          { role: "user", content: params.query },
         ],
       }),
     });
@@ -446,23 +422,18 @@ export class SearchTool extends Tool {
     }
 
     const data = (await response.json()) as {
-      choices: Array<{message: {content: string}}>;
+      choices: Array<{ message: { content: string } }>;
       citations?: string[];
     };
 
     const content = data.choices?.[0]?.message?.content ?? "";
-    const citations = data.citations?.length
-      ? data.citations
-      : ["https://perplexity.ai"];
+    const citations = data.citations?.length ? data.citations : ["https://perplexity.ai"];
 
     const results: SearchResult[] = [];
     citations.slice(0, params.maxResults).forEach((url, index) => {
-      const snippet =
-        index === 0 ? content : "See main Perplexity response above.";
+      const snippet = index === 0 ? content : "See main Perplexity response above.";
       const raw =
-        params.fetchFullPage && index === 0
-          ? limitText(content, params.maxTokens)
-          : undefined;
+        params.fetchFullPage && index === 0 ? limitText(content, params.maxTokens) : undefined;
       results.push(
         normalizedResult(
           `Perplexity Source ${params.loopCount + 1}-${index + 1}`,
@@ -519,19 +490,13 @@ export class SearchTool extends Tool {
     return structuredPayload([], "advanced", null, notices);
   }
 
-  private formatTextResponse(
-    query: string,
-    payload: StructuredPayload,
-  ): string {
+  private formatTextResponse(query: string, payload: StructuredPayload): string {
     const answer = payload.answer ?? undefined;
     const notices = payload.notices ?? [];
     const results = payload.results ?? [];
     const backend = payload.backend ?? this.backend;
 
-    const lines: string[] = [
-      `🔍 搜索关键词：${query}`,
-      `🧭 使用搜索源：${backend}`,
-    ];
+    const lines: string[] = [`🔍 搜索关键词：${query}`, `🧭 使用搜索源：${backend}`];
     if (answer) {
       lines.push(`💡 直接答案：${answer}`);
     }
@@ -560,21 +525,21 @@ export class SearchTool extends Tool {
 }
 
 export async function search(query: string, backend = "hybrid"): Promise<string> {
-  const tool = new SearchTool({backend});
-  return await tool.run({input: query, backend});
+  const tool = new SearchTool({ backend });
+  return await tool.run({ input: query, backend });
 }
 
 export async function searchTavily(query: string): Promise<string> {
-  const tool = new SearchTool({backend: "tavily"});
-  return await tool.run({input: query, backend: "tavily"});
+  const tool = new SearchTool({ backend: "tavily" });
+  return await tool.run({ input: query, backend: "tavily" });
 }
 
 export async function searchSerpapi(query: string): Promise<string> {
-  const tool = new SearchTool({backend: "serpapi"});
-  return await tool.run({input: query, backend: "serpapi"});
+  const tool = new SearchTool({ backend: "serpapi" });
+  return await tool.run({ input: query, backend: "serpapi" });
 }
 
 export async function searchHybrid(query: string): Promise<string> {
-  const tool = new SearchTool({backend: "hybrid"});
-  return await tool.run({input: query, backend: "hybrid"});
+  const tool = new SearchTool({ backend: "hybrid" });
+  return await tool.run({ input: query, backend: "hybrid" });
 }

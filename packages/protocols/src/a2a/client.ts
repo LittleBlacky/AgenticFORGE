@@ -15,13 +15,8 @@
  * ```
  */
 
-import type {A2AServer} from "./server";
-import type {
-  A2AServerInfo,
-  AskResult,
-  SkillExecuteResult,
-  AgentNode,
-} from "./types";
+import type { A2AServer } from "./server";
+import type { A2AServerInfo, AskResult, SkillExecuteResult, AgentNode } from "./types";
 
 export type A2AClientSource = A2AServer | string;
 
@@ -49,7 +44,7 @@ export class A2AClient {
       const result = await (this.source as A2AServer).ask(question);
       return result.answer;
     }
-    const res = await this._post<AskResult>("/ask", {question});
+    const res = await this._post<AskResult>("/ask", { question });
     return res.answer;
   }
 
@@ -75,7 +70,7 @@ export class A2AClient {
     if (this._isInMemory()) {
       return (this.source as A2AServer).listSkills();
     }
-    const res = await this._get<{skills: Array<{name: string}>}>("/skills");
+    const res = await this._get<{ skills: Array<{ name: string }> }>("/skills");
     return res.skills.map((s) => s.name);
   }
 
@@ -108,7 +103,7 @@ export class A2AClient {
 
   private async _get<T>(path: string): Promise<T> {
     const res = await fetch(`${this._baseUrl}${path}`, {
-      headers: {Accept: "application/json"},
+      headers: { Accept: "application/json" },
     });
     if (!res.ok) {
       const text = await res.text();
@@ -120,7 +115,7 @@ export class A2AClient {
   private async _post<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(`${this._baseUrl}${path}`, {
       method: "POST",
-      headers: {"Content-Type": "application/json", Accept: "application/json"},
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
@@ -158,7 +153,7 @@ export class AgentNetwork {
   }
 
   listAgents(): AgentNode[] {
-    return Array.from(this._agents.entries()).map(([name, url]) => ({name, url}));
+    return Array.from(this._agents.entries()).map(([name, url]) => ({ name, url }));
   }
 
   /** 探测 URL 列表，自动注册可达的 Agent */
@@ -189,19 +184,12 @@ export class AgentRegistry {
   readonly description: string;
   private readonly _entries = new Map<string, AgentNode>();
 
-  constructor(
-    name = "Agent Registry",
-    description = "Central agent registry",
-  ) {
+  constructor(name = "Agent Registry", description = "Central agent registry") {
     this.name = name;
     this.description = description;
   }
 
-  registerAgent(
-    agentName: string,
-    agentUrl: string,
-    metadata?: Record<string, unknown>,
-  ): void {
+  registerAgent(agentName: string, agentUrl: string, metadata?: Record<string, unknown>): void {
     this._entries.set(agentName, {
       name: agentName,
       url: agentUrl,

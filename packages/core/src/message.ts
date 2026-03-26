@@ -23,7 +23,7 @@ export class Message {
   }
 
   /** 转换为字典格式（OpenAI API 格式） */
-  toDict(): {role: MessageRole; content: string} {
+  toDict(): { role: MessageRole; content: string } {
     return {
       role: this.role,
       content: this.content,

@@ -12,18 +12,24 @@ import type { ToolParameter } from "@agenticforge/tools";
 function makeMockLLM(response = "agent-response") {
   return {
     think: vi.fn().mockResolvedValue(response),
-    streamThink: vi.fn(async function* () { yield response; }),
+    streamThink: vi.fn(async function* () {
+      yield response;
+    }),
     client: { chat: { completions: { create: vi.fn() } } },
     model: "mock-model",
   } as any;
 }
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes input"); }
+  constructor() {
+    super("echo", "Echoes input");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 // ===========================================================================
@@ -47,8 +53,8 @@ describe("SimpleAgent", () => {
   it("run() adds messages to history", async () => {
     await agent.run("hello");
     const history = agent.getHistory();
-    expect(history.some(m => m.role === "user" && m.content === "hello")).toBe(true);
-    expect(history.some(m => m.role === "assistant")).toBe(true);
+    expect(history.some((m) => m.role === "user" && m.content === "hello")).toBe(true);
+    expect(history.some((m) => m.role === "assistant")).toBe(true);
   });
 
   it("run() with custom systemPrompt includes it in messages", async () => {
@@ -84,12 +90,19 @@ describe("SimpleAgent", () => {
       callCount++;
       if (callCount === 1) {
         return {
-          choices: [{
-            message: {
-              content: "",
-              tool_calls: [{ id: "t1", function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) } }],
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [
+                  {
+                    id: "t1",
+                    function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         };
       }
       return { choices: [{ message: { content: "done", tool_calls: [] } }] };
@@ -226,12 +239,19 @@ describe("FunctionCallAgent — with ToolRegistry", () => {
       callCount++;
       if (callCount === 1) {
         return {
-          choices: [{
-            message: {
-              content: "",
-              tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) } }],
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [
+                  {
+                    id: "c1",
+                    function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         };
       }
       return { choices: [{ message: { content: "done after tool", tool_calls: [] } }] };
@@ -255,12 +275,19 @@ describe("FunctionCallAgent — with ToolRegistry", () => {
       callCount++;
       if (callCount === 1) {
         return {
-          choices: [{
-            message: {
-              content: "",
-              tool_calls: [{ id: "c1", function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) } }],
+          choices: [
+            {
+              message: {
+                content: "",
+                tool_calls: [
+                  {
+                    id: "c1",
+                    function: { name: "echo", arguments: JSON.stringify({ input: "hello" }) },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         };
       }
       return { choices: [{ message: { content: "done after tool", tool_calls: [] } }] };

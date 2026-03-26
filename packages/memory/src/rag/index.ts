@@ -56,4 +56,4 @@ export type {
   VectorStore,
 } from "./pipeline";
 
-export {createDefaultVectorStore, registerRagVectorStoreFactory} from "./storeFactory";
+export { createDefaultVectorStore, registerRagVectorStoreFactory } from "./storeFactory";

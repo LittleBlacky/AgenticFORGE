@@ -1,13 +1,8 @@
-import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
-import {HashTextEmbedder} from "../rag/pipeline";
-import type {BlobStoreAdapter, KVStoreAdapter, VectorStoreAdapter} from "../storage";
+import { BaseMemory, type MemoryConfig, type MemoryItem } from "./base";
+import { HashTextEmbedder } from "../rag/pipeline";
+import type { BlobStoreAdapter, KVStoreAdapter, VectorStoreAdapter } from "../storage";
 
-export type PerceptualModality =
-  | "text"
-  | "image"
-  | "audio"
-  | "video"
-  | "structured";
+export type PerceptualModality = "text" | "image" | "audio" | "video" | "structured";
 
 export interface Perception {
   perceptionId: string;
@@ -37,10 +32,7 @@ export class PerceptualMemory extends BaseMemory {
   private readonly blobStore?: BlobStoreAdapter;
   private readonly kvStore?: KVStoreAdapter<MemoryItem>;
 
-  constructor(
-    config: Partial<MemoryConfig> = {},
-    adapters: PerceptualStorageAdapters = {},
-  ) {
+  constructor(config: Partial<MemoryConfig> = {}, adapters: PerceptualStorageAdapters = {}) {
     super(config);
     this.supportedModalities = new Set(this.config.perceptualMemoryModalities);
     this.vectorStore = adapters.vectorStore;
@@ -50,8 +42,7 @@ export class PerceptualMemory extends BaseMemory {
   }
 
   async add(memoryItem: MemoryItem): Promise<string> {
-    const modality =
-      (memoryItem.metadata.modality as PerceptualModality) ?? "text";
+    const modality = (memoryItem.metadata.modality as PerceptualModality) ?? "text";
     if (!this.supportedModalities.has(modality)) {
       throw new Error(`不支持的模态类型: ${modality}`);
     }
@@ -102,12 +93,9 @@ export class PerceptualMemory extends BaseMemory {
     limit = 5,
     options: Record<string, unknown> = {},
   ): Promise<MemoryItem[]> {
-    const targetModality =
-      (options.targetModality as PerceptualModality | undefined) ?? undefined;
+    const targetModality = (options.targetModality as PerceptualModality | undefined) ?? undefined;
     const queryModality =
-      (options.queryModality as PerceptualModality | undefined) ??
-      targetModality ??
-      "text";
+      (options.queryModality as PerceptualModality | undefined) ?? targetModality ?? "text";
 
     const queryEncoding = this.encodeData(query, queryModality);
 
@@ -117,8 +105,8 @@ export class PerceptualMemory extends BaseMemory {
           vector: queryEncoding,
           limit: Math.max(limit * 5, 20),
           filter: {
-            ...(options.userId ? {userId: options.userId} : {}),
-            ...(targetModality ? {"metadata.modality": targetModality} : {}),
+            ...(options.userId ? { userId: options.userId } : {}),
+            ...(targetModality ? { "metadata.modality": targetModality } : {}),
           },
         })
       : [];
@@ -128,25 +116,22 @@ export class PerceptualMemory extends BaseMemory {
     }
 
     const scored = this.perceptualMemories
-      .filter((m) =>
-        targetModality ? m.metadata.modality === targetModality : true,
-      )
+      .filter((m) => (targetModality ? m.metadata.modality === targetModality : true))
       .map((m) => {
         const perceptionId = String(m.metadata.perception_id ?? "");
         const p = this.perceptions.get(perceptionId);
         const sim = p ? cosine(queryEncoding, p.encoding) : 0;
-        const recency =
-          1 / (1 + (Date.now() - m.timestamp.getTime()) / 86400000);
+        const recency = 1 / (1 + (Date.now() - m.timestamp.getTime()) / 86400000);
         const base = sim * 0.8 + recency * 0.2;
         const weight = 0.8 + m.importance * 0.4;
-        return {score: base * weight, item: m};
+        return { score: base * weight, item: m };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, Math.floor(limit)));
 
     return scored.map((x) => ({
       ...x.item,
-      metadata: {...x.item.metadata, relevance_score: x.score},
+      metadata: { ...x.item.metadata, relevance_score: x.score },
     }));
   }
 
@@ -163,9 +148,8 @@ export class PerceptualMemory extends BaseMemory {
     const next: MemoryItem = {
       ...old,
       content: content ?? old.content,
-      importance:
-        typeof importance === "number" ? clamp01(importance) : old.importance,
-      metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
+      importance: typeof importance === "number" ? clamp01(importance) : old.importance,
+      metadata: metadata ? { ...old.metadata, ...metadata } : old.metadata,
     };
 
     if (content !== undefined || (metadata && "raw_data" in metadata)) {
@@ -212,8 +196,7 @@ export class PerceptualMemory extends BaseMemory {
 
     const [removed] = this.perceptualMemories.splice(idx, 1);
     const pid = String(removed.metadata.perception_id ?? "");
-    const modality =
-      (removed.metadata.modality as PerceptualModality) ?? "text";
+    const modality = (removed.metadata.modality as PerceptualModality) ?? "text";
 
     this.perceptions.delete(pid);
     const arr = this.modalityIndex.get(modality) ?? [];
@@ -279,10 +262,7 @@ export class PerceptualMemory extends BaseMemory {
     });
   }
 
-  async getByModality(
-    modality: PerceptualModality,
-    limit = 10,
-  ): Promise<MemoryItem[]> {
+  async getByModality(modality: PerceptualModality, limit = 10): Promise<MemoryItem[]> {
     return this.perceptualMemories
       .filter((m) => m.metadata.modality === modality)
       .slice(0, Math.max(1, Math.floor(limit)));
@@ -294,14 +274,11 @@ export class PerceptualMemory extends BaseMemory {
   ): Promise<string | null> {
     if (!this.supportedModalities.has(targetModality)) return null;
 
-    const relevant = await this.retrieve(prompt, 3, {targetModality});
+    const relevant = await this.retrieve(prompt, 3, { targetModality });
     if (!relevant.length) return null;
 
     if (targetModality === "text") {
-      return [
-        "基于感知记忆生成的内容：",
-        ...relevant.map((m) => m.content),
-      ].join("\n");
+      return ["基于感知记忆生成的内容：", ...relevant.map((m) => m.content)].join("\n");
     }
 
     return `生成的${targetModality}内容（基于${relevant.length}个相关记忆）`;
@@ -318,7 +295,7 @@ export class PerceptualMemory extends BaseMemory {
       data,
       modality,
       encoding,
-      metadata: {source: "memory_system"},
+      metadata: { source: "memory_system" },
       timestamp: new Date(),
       dataHash: simpleHash(JSON.stringify(data) || String(data)),
     };
@@ -327,23 +304,19 @@ export class PerceptualMemory extends BaseMemory {
   private encodeData(data: unknown, modality: PerceptualModality): number[] {
     if (modality === "text") {
       const v = this.embedder.encode(String(data ?? ""));
-      return Array.isArray(v) && typeof v[0] === "number"
-        ? (v as number[])
-        : [];
+      return Array.isArray(v) && typeof v[0] === "number" ? (v as number[]) : [];
     }
     // lightweight deterministic hash embedding for non-text modalities
     return hashToVector(String(data ?? ""), 384);
   }
 
-  private getVectorStoreForModality(
-    modality?: PerceptualModality,
-  ): VectorStoreAdapter | undefined {
+  private getVectorStoreForModality(modality?: PerceptualModality): VectorStoreAdapter | undefined {
     const key = modality ?? "text";
     return this.vectorStores[key] ?? this.vectorStore;
   }
 
   private mergeAdapterResults(
-    vectorResults: Array<{id: string; score: number; payload: Record<string, unknown>}>,
+    vectorResults: Array<{ id: string; score: number; payload: Record<string, unknown> }>,
     limit: number,
     targetModality?: PerceptualModality,
   ): MemoryItem[] {
@@ -351,11 +324,8 @@ export class PerceptualMemory extends BaseMemory {
     const items = vectorResults
       .map((result) => {
         const payload = result.payload;
-        const timestamp = payload.timestamp
-          ? new Date(String(payload.timestamp))
-          : new Date();
-        const importance =
-          typeof payload.importance === "number" ? payload.importance : 0.5;
+        const timestamp = payload.timestamp ? new Date(String(payload.timestamp)) : new Date();
+        const importance = typeof payload.importance === "number" ? payload.importance : 0.5;
         const ageDays = Math.max(0, (nowMs - timestamp.getTime()) / 86400000);
         const recencyScore = 1 / (1 + ageDays);
         const base = result.score * 0.8 + recencyScore * 0.2;
@@ -381,9 +351,7 @@ export class PerceptualMemory extends BaseMemory {
           item,
         };
       })
-      .filter((entry) =>
-        targetModality ? entry.item.metadata.modality === targetModality : true,
-      )
+      .filter((entry) => (targetModality ? entry.item.metadata.modality === targetModality : true))
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, Math.floor(limit)))
       .map((entry) => ({

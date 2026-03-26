@@ -1,15 +1,15 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import type {VectorStoreAdapter} from "../storage/types";
-import {LLMClient} from "@agenticforge/core";
-import {HashTextEmbedder} from "../embedding/embedders";
-import {createDefaultTextEmbedder} from "../embedding/factory";
-import {createDefaultVectorStore} from "./storeFactory";
+import type { VectorStoreAdapter } from "../storage/types";
+import { LLMClient } from "@agenticforge/core";
+import { HashTextEmbedder } from "../embedding/embedders";
+import { createDefaultTextEmbedder } from "../embedding/factory";
+import { createDefaultVectorStore } from "./storeFactory";
 
 // Re-export embedder types so rag/index.ts consumers get them from one place
-export type {TextEmbedder, OpenAITextEmbedderOptions} from "../embedding/embedders";
-export {HashTextEmbedder, OpenAITextEmbedder} from "../embedding/embedders";
+export type { TextEmbedder, OpenAITextEmbedderOptions } from "../embedding/embedders";
+export { HashTextEmbedder, OpenAITextEmbedder } from "../embedding/embedders";
 
 export interface RagChunkMetadata {
   source_path?: string;
@@ -55,16 +55,8 @@ export interface MarkitdownAdapter {
 export interface RagPipeline {
   store: VectorStoreAdapter;
   namespace: string;
-  addDocuments: (
-    filePaths: string[],
-    chunkSize?: number,
-    chunkOverlap?: number,
-  ) => Promise<number>;
-  search: (
-    query: string,
-    topK?: number,
-    scoreThreshold?: number,
-  ) => Promise<VectorSearchHit[]>;
+  addDocuments: (filePaths: string[], chunkSize?: number, chunkOverlap?: number) => Promise<number>;
+  search: (query: string, topK?: number, scoreThreshold?: number) => Promise<VectorSearchHit[]>;
   searchAdvanced: (
     query: string,
     topK?: number,
@@ -96,14 +88,54 @@ export interface LoadedDocument {
 export function isMarkitdownSupportedFormat(filePath: string): boolean {
   const ext = (path.extname(filePath) || "").toLowerCase();
   const supported = new Set([
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-    ".txt", ".md", ".csv", ".json", ".xml", ".html", ".htm",
-    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp",
-    ".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg",
-    ".zip", ".tar", ".gz", ".rar",
-    ".py", ".js", ".ts", ".java", ".cpp", ".c", ".h",
-    ".css", ".scss", ".log", ".conf", ".ini", ".cfg",
-    ".yaml", ".yml", ".toml",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".md",
+    ".csv",
+    ".json",
+    ".xml",
+    ".html",
+    ".htm",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".webp",
+    ".mp3",
+    ".wav",
+    ".m4a",
+    ".aac",
+    ".flac",
+    ".ogg",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".rar",
+    ".py",
+    ".js",
+    ".ts",
+    ".java",
+    ".cpp",
+    ".c",
+    ".h",
+    ".css",
+    ".scss",
+    ".log",
+    ".conf",
+    ".ini",
+    ".cfg",
+    ".yaml",
+    ".yml",
+    ".toml",
   ]);
   return supported.has(ext);
 }
@@ -113,10 +145,7 @@ export function fallbackTextReader(filePath: string): string {
   return fs.readFileSync(filePath).toString("utf-8");
 }
 
-export function convertToMarkdown(
-  filePath: string,
-  markitdownAdapter?: MarkitdownAdapter,
-): string {
+export function convertToMarkdown(filePath: string, markitdownAdapter?: MarkitdownAdapter): string {
   if (!fs.existsSync(filePath)) return "";
   if (markitdownAdapter && isMarkitdownSupportedFormat(filePath)) {
     try {
@@ -183,7 +212,10 @@ export function splitParagraphsWithHeadings(text: string): Paragraph[] {
   const flush = (endPos: number): void => {
     if (buf.length === 0) return;
     const content = buf.join("\n").trim();
-    if (!content) { buf = []; return; }
+    if (!content) {
+      buf = [];
+      return;
+    }
     paragraphs.push({
       content,
       heading_path: headingStack.length > 0 ? headingStack.join(" > ") : null,
@@ -215,7 +247,7 @@ export function splitParagraphsWithHeadings(text: string): Paragraph[] {
 
   flush(charPos);
   if (paragraphs.length === 0) {
-    return [{content: text, heading_path: null, start: 0, end: text.length}];
+    return [{ content: text, heading_path: null, start: 0, end: text.length }];
   }
   return paragraphs;
 }
@@ -270,8 +302,7 @@ export function chunkParagraphs(
 
 function emitChunk(paragraphs: Paragraph[]): TokenChunk {
   const content = paragraphs.map((p) => p.content).join("\n\n");
-  const heading =
-    [...paragraphs].reverse().find((p) => p.heading_path)?.heading_path ?? null;
+  const heading = [...paragraphs].reverse().find((p) => p.heading_path)?.heading_path ?? null;
   return {
     content,
     start: paragraphs[0].start,
@@ -280,10 +311,8 @@ function emitChunk(paragraphs: Paragraph[]): TokenChunk {
   };
 }
 
-export function loadDocuments(
-  options: LoadAndChunkTextsOptions,
-): LoadedDocument[] {
-  const {paths, markitdownAdapter} = options;
+export function loadDocuments(options: LoadAndChunkTextsOptions): LoadedDocument[] {
+  const { paths, markitdownAdapter } = options;
   const loaded: LoadedDocument[] = [];
   for (const filePath of paths) {
     if (!fs.existsSync(filePath)) continue;
@@ -293,20 +322,13 @@ export function loadDocuments(
     const lang = detectLang(markdownText);
     const docId = md5(`${filePath}|${markdownText.length}`);
     const paragraphs = splitParagraphsWithHeadings(markdownText);
-    loaded.push({filePath, ext, markdownText, lang, docId, paragraphs});
+    loaded.push({ filePath, ext, markdownText, lang, docId, paragraphs });
   }
   return loaded;
 }
 
-export function loadAndChunkTexts(
-  options: LoadAndChunkTextsOptions,
-): RagChunk[] {
-  const {
-    chunkSize = 800,
-    chunkOverlap = 100,
-    namespace,
-    sourceLabel = "rag",
-  } = options;
+export function loadAndChunkTexts(options: LoadAndChunkTextsOptions): RagChunk[] {
+  const { chunkSize = 800, chunkOverlap = 100, namespace, sourceLabel = "rag" } = options;
 
   const chunks: RagChunk[] = [];
   const seenHashes = new Set<string>();
@@ -378,7 +400,7 @@ export function buildGraphFromChunks(
           entity_id: docId,
           name: path.basename(sourcePath ?? docId),
           entity_type: "Document",
-          properties: {source_path: sourcePath, lang: meta.lang},
+          properties: { source_path: sourcePath, lang: meta.lang },
         });
       } catch {}
     }
@@ -387,7 +409,7 @@ export function buildGraphFromChunks(
         entity_id: memId,
         name: memId,
         entity_type: "Memory",
-        properties: {source_path: sourcePath, doc_id: docId, start: meta.start, end: meta.end},
+        properties: { source_path: sourcePath, doc_id: docId, start: meta.start, end: meta.end },
       });
     } catch {}
     if (docId) {
@@ -455,7 +477,7 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
   if (!options.store) throw new Error("VectorStoreAdapter is required for indexChunks");
 
   const embedder = options.embedder ?? new HashTextEmbedder(dimension);
-    const store = options.store;
+  const store = options.store;
   const processedTexts = chunks.map((c) => preprocessMarkdownForEmbedding(c.content));
   const vectors: number[][] = [];
   for (let i = 0; i < processedTexts.length; i += batchSize) {
@@ -470,7 +492,11 @@ export async function indexChunks(options: IndexChunksOptions): Promise<void> {
     ids.push(ch.id);
   }
   for (let i = 0; i < ids.length; i++) {
-    await store.upsertVector({id: ids[i], vector: vectors[i], payload: metadata[i] as Record<string, unknown>});
+    await store.upsertVector({
+      id: ids[i],
+      vector: vectors[i],
+      payload: metadata[i] as Record<string, unknown>,
+    });
   }
 }
 
@@ -504,64 +530,101 @@ export interface SearchVectorsOptions {
 }
 
 export async function searchVectors(options: SearchVectorsOptions): Promise<VectorSearchHit[]> {
-  const {query, dimension = 384} = options;
-  const {topK = 8, ragNamespace, onlyRagData = true, scoreThreshold} = options.options ?? {};
+  const { query, dimension = 384 } = options;
+  const { topK = 8, ragNamespace, onlyRagData = true, scoreThreshold } = options.options ?? {};
   if (!query.trim()) return [];
   if (!options.store) throw new Error("VectorStoreAdapter is required for searchVectors");
   const store = options.store;
   const queryVector = await embedQuery(query, options.embedder, dimension);
-  const where: Record<string, unknown> = {memory_type: "rag_chunk"};
-  if (onlyRagData) { where.is_rag_data = true; where.data_source = "rag_pipeline"; }
+  const where: Record<string, unknown> = { memory_type: "rag_chunk" };
+  if (onlyRagData) {
+    where.is_rag_data = true;
+    where.data_source = "rag_pipeline";
+  }
   if (ragNamespace) where.rag_namespace = ragNamespace;
-  const rawHits = await store.queryVector({vector: queryVector, limit: topK, filter: where});
+  const rawHits = await store.queryVector({ vector: queryVector, limit: topK, filter: where });
   return rawHits
-    .filter(h => scoreThreshold === undefined || h.score >= scoreThreshold)
-    .map(h => ({id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata}));
-}async function promptMqe(query: string, n: number, llm?: LLMClient): Promise<string[]> {
+    .filter((h) => scoreThreshold === undefined || h.score >= scoreThreshold)
+    .map((h) => ({ id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata }));
+}
+async function promptMqe(query: string, n: number, llm?: LLMClient): Promise<string[]> {
   try {
     const client = llm ?? new LLMClient();
     const text = await client.think([
-      {role: "system", content: "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点。"},
-      {role: "user", content: `原始查询：${query}\n请给${n}个不同表述的查询，每行一个。`},
+      {
+        role: "system",
+        content: "你是检索查询扩展助手。生成语义等价或互补的多样化查询。使用中文，简短，避免标点。",
+      },
+      { role: "user", content: `原始查询：${query}\n请给${n}个不同表述的查询，每行一个。` },
     ]);
-    const lines = text.split(/\r?\n/g).map((l: string) => l.replace(/^[-\s]+/, "").trim()).filter(Boolean);
+    const lines = text
+      .split(/\r?\n/g)
+      .map((l: string) => l.replace(/^[-\s]+/, "").trim())
+      .filter(Boolean);
     return lines.slice(0, n).length > 0 ? lines.slice(0, n) : [query];
-  } catch { return [query]; }
+  } catch {
+    return [query];
+  }
 }
 
 async function promptHyde(query: string, llm?: LLMClient): Promise<string | null> {
   try {
     const client = llm ?? new LLMClient();
     return await client.think([
-      {role: "system", content: "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）。"},
-      {role: "user", content: `问题：${query}\n请直接写一段中等长度、客观、包含关键术语的段落。`},
+      {
+        role: "system",
+        content: "根据用户问题，先写一段可能的答案性段落，用于向量检索的查询文档（不要分析过程）。",
+      },
+      { role: "user", content: `问题：${query}\n请直接写一段中等长度、客观、包含关键术语的段落。` },
     ]);
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
-export interface SearchVectorsExpandedOptions extends SearchVectorsOptions { llm?: LLMClient; }
+export interface SearchVectorsExpandedOptions extends SearchVectorsOptions {
+  llm?: LLMClient;
+}
 
-export async function searchVectorsExpanded(options: SearchVectorsExpandedOptions): Promise<VectorSearchHit[]> {
-  const {query, dimension = 384} = options;
-  const {topK = 8, ragNamespace, onlyRagData = true, scoreThreshold, enableMqe = false, mqeExpansions = 2, enableHyde = false, candidatePoolMultiplier = 4} = options.options ?? {};
+export async function searchVectorsExpanded(
+  options: SearchVectorsExpandedOptions,
+): Promise<VectorSearchHit[]> {
+  const { query, dimension = 384 } = options;
+  const {
+    topK = 8,
+    ragNamespace,
+    onlyRagData = true,
+    scoreThreshold,
+    enableMqe = false,
+    mqeExpansions = 2,
+    enableHyde = false,
+    candidatePoolMultiplier = 4,
+  } = options.options ?? {};
   if (!query.trim()) return [];
   if (!options.store) throw new Error("VectorStoreAdapter is required for searchVectorsExpanded");
   const store = options.store;
   const expansions: string[] = [query];
-  if (enableMqe && mqeExpansions > 0) expansions.push(...(await promptMqe(query, mqeExpansions, options.llm)));
-  if (enableHyde) { const hyde = await promptHyde(query, options.llm); if (hyde) expansions.push(hyde); }
+  if (enableMqe && mqeExpansions > 0)
+    expansions.push(...(await promptMqe(query, mqeExpansions, options.llm)));
+  if (enableHyde) {
+    const hyde = await promptHyde(query, options.llm);
+    if (hyde) expansions.push(hyde);
+  }
   const uniq = [...new Set(expansions.filter(Boolean))];
   const pool = Math.max(topK * candidatePoolMultiplier, 20);
   const per = Math.max(1, Math.floor(pool / Math.max(1, uniq.length)));
-  const where: Record<string, unknown> = {memory_type: "rag_chunk"};
-  if (onlyRagData) { where.is_rag_data = true; where.data_source = "rag_pipeline"; }
+  const where: Record<string, unknown> = { memory_type: "rag_chunk" };
+  if (onlyRagData) {
+    where.is_rag_data = true;
+    where.data_source = "rag_pipeline";
+  }
   if (ragNamespace) where.rag_namespace = ragNamespace;
   const agg = new Map<string, VectorSearchHit>();
   for (const q of uniq) {
     const qv = await embedQuery(q, options.embedder, dimension);
-    const hits = (await store.queryVector({vector: qv, limit: per, filter: where}))
-      .filter(h => scoreThreshold === undefined || h.score >= scoreThreshold)
-      .map(h => ({id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata}));
+    const hits = (await store.queryVector({ vector: qv, limit: per, filter: where }))
+      .filter((h) => scoreThreshold === undefined || h.score >= scoreThreshold)
+      .map((h) => ({ id: h.id, score: h.score, metadata: h.payload as RagChunkMetadata }));
     for (const hit of hits) {
       const mid = String(hit.metadata.memory_id ?? hit.id);
       const prev = agg.get(mid);
@@ -569,36 +632,67 @@ export async function searchVectorsExpanded(options: SearchVectorsExpandedOption
     }
   }
   return [...agg.values()].sort((a, b) => b.score - a.score).slice(0, topK);
-}export async function rerankWithCrossEncoder(query: string, items: Array<Record<string, unknown>>, topK = 10, reranker?: (q: string, c: Array<Record<string, unknown>>) => Promise<number[]>): Promise<Array<Record<string, unknown>>> {
+}
+export async function rerankWithCrossEncoder(
+  query: string,
+  items: Array<Record<string, unknown>>,
+  topK = 10,
+  reranker?: (q: string, c: Array<Record<string, unknown>>) => Promise<number[]>,
+): Promise<Array<Record<string, unknown>>> {
   if (!items.length || !reranker) return items.slice(0, topK);
   try {
     const scores = await reranker(query, items);
-    const cloned = items.map((item, idx) => ({...item, rerank_score: Number(scores[idx] ?? 0)})) as Array<Record<string, unknown> & {rerank_score: number}>;
-    cloned.sort((a, b) => Number(b.rerank_score ?? b["score"] ?? 0) - Number(a.rerank_score ?? a["score"] ?? 0));
+    const cloned = items.map((item, idx) => ({
+      ...item,
+      rerank_score: Number(scores[idx] ?? 0),
+    })) as Array<Record<string, unknown> & { rerank_score: number }>;
+    cloned.sort(
+      (a, b) =>
+        Number(b.rerank_score ?? b["score"] ?? 0) - Number(a.rerank_score ?? a["score"] ?? 0),
+    );
     return cloned.slice(0, topK);
-  } catch { return items.slice(0, topK); }
+  } catch {
+    return items.slice(0, topK);
+  }
 }
 
-export function computeGraphSignalsFromPool(vectorHits: Array<Record<string, unknown>>, sameDocWeight = 1, proximityWeight = 1, proximityWindowChars = 1600): Record<string, number> {
+export function computeGraphSignalsFromPool(
+  vectorHits: Array<Record<string, unknown>>,
+  sameDocWeight = 1,
+  proximityWeight = 1,
+  proximityWindowChars = 1600,
+): Record<string, number> {
   const byDoc: Record<string, Array<Record<string, unknown>>> = {};
   for (const hit of vectorHits) {
     const meta = toMetadata(hit.metadata);
     const docId = String(meta.doc_id ?? meta.memory_id ?? hit.id ?? "unknown");
-    byDoc[docId] ??= []; byDoc[docId].push(hit);
+    byDoc[docId] ??= [];
+    byDoc[docId].push(hit);
   }
   const docCounts = Object.fromEntries(Object.entries(byDoc).map(([k, arr]) => [k, arr.length]));
   const maxCount = Math.max(1, ...Object.values(docCounts));
   const graphSignal: Record<string, number> = {};
   for (const [docId, arr] of Object.entries(byDoc)) {
-    arr.sort((a, b) => Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0));
+    arr.sort(
+      (a, b) =>
+        Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0),
+    );
     const density = (docCounts[docId] ?? 1) / maxCount;
     for (let i = 0; i < arr.length; i++) {
       const curMeta = toMetadata(arr[i].metadata);
       const mid = String(curMeta.memory_id ?? arr[i].id ?? `hit-${i}`);
       const posI = Number(curMeta.start ?? 0);
       let prox = 0;
-      for (let j = i - 1; j >= 0; j--) { const dist = Math.abs(posI - Number(toMetadata(arr[j].metadata).start ?? 0)); if (dist > proximityWindowChars) break; prox += Math.max(0, 1 - dist / Math.max(1, proximityWindowChars)); }
-      for (let j = i + 1; j < arr.length; j++) { const dist = Math.abs(posI - Number(toMetadata(arr[j].metadata).start ?? 0)); if (dist > proximityWindowChars) break; prox += Math.max(0, 1 - dist / Math.max(1, proximityWindowChars)); }
+      for (let j = i - 1; j >= 0; j--) {
+        const dist = Math.abs(posI - Number(toMetadata(arr[j].metadata).start ?? 0));
+        if (dist > proximityWindowChars) break;
+        prox += Math.max(0, 1 - dist / Math.max(1, proximityWindowChars));
+      }
+      for (let j = i + 1; j < arr.length; j++) {
+        const dist = Math.abs(posI - Number(toMetadata(arr[j].metadata).start ?? 0));
+        if (dist > proximityWindowChars) break;
+        prox += Math.max(0, 1 - dist / Math.max(1, proximityWindowChars));
+      }
       graphSignal[mid] = (graphSignal[mid] ?? 0) + sameDocWeight * density + proximityWeight * prox;
     }
   }
@@ -607,111 +701,255 @@ export function computeGraphSignalsFromPool(vectorHits: Array<Record<string, unk
   return graphSignal;
 }
 
-export function rank(vectorHits: VectorSearchHit[], graphSignals: Record<string, number> = {}, wVector = 0.7, wGraph = 0.3): Array<Record<string, unknown>> {
+export function rank(
+  vectorHits: VectorSearchHit[],
+  graphSignals: Record<string, number> = {},
+  wVector = 0.7,
+  wGraph = 0.3,
+): Array<Record<string, unknown>> {
   const items = vectorHits.map((h) => {
     const mid = String(h.metadata.memory_id ?? h.id);
-    const g = Number(graphSignals[mid] ?? 0); const v = Number(h.score ?? 0);
-    return {memory_id: mid, score: wVector * v + wGraph * g, vector_score: v, graph_score: g, content: String(h.metadata.content ?? ""), metadata: h.metadata};
+    const g = Number(graphSignals[mid] ?? 0);
+    const v = Number(h.score ?? 0);
+    return {
+      memory_id: mid,
+      score: wVector * v + wGraph * g,
+      vector_score: v,
+      graph_score: g,
+      content: String(h.metadata.content ?? ""),
+      metadata: h.metadata,
+    };
   });
   items.sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0));
   return items;
 }
 
-export function mergeSnippets(rankedItems: Array<Record<string, unknown>>, maxChars = 1200): string {
-  const out: string[] = []; let total = 0;
+export function mergeSnippets(
+  rankedItems: Array<Record<string, unknown>>,
+  maxChars = 1200,
+): string {
+  const out: string[] = [];
+  let total = 0;
   for (const it of rankedItems) {
-    const text = String(it.content ?? "").trim(); if (!text) continue;
-    if (total + text.length > maxChars) { const remain = maxChars - total; if (remain <= 0) break; out.push(text.slice(0, remain)); break; }
-    out.push(text); total += text.length;
+    const text = String(it.content ?? "").trim();
+    if (!text) continue;
+    if (total + text.length > maxChars) {
+      const remain = maxChars - total;
+      if (remain <= 0) break;
+      out.push(text.slice(0, remain));
+      break;
+    }
+    out.push(text);
+    total += text.length;
   }
   return out.join("\n\n");
-}export function expandNeighborsFromPool(selected: Array<Record<string, unknown>>, pool: Array<Record<string, unknown>>, neighbors = 1, maxAdditions = 5): Array<Record<string, unknown>> {
+}
+export function expandNeighborsFromPool(
+  selected: Array<Record<string, unknown>>,
+  pool: Array<Record<string, unknown>>,
+  neighbors = 1,
+  maxAdditions = 5,
+): Array<Record<string, unknown>> {
   if (!selected.length || !pool.length || neighbors <= 0) return selected;
   const byDoc: Record<string, Array<Record<string, unknown>>> = {};
-  for (const item of pool) { const did = String(toMetadata(item.metadata).doc_id ?? ""); if (!did) continue; byDoc[did] ??= []; byDoc[did].push(item); }
-  for (const arr of Object.values(byDoc)) arr.sort((a, b) => Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0));
+  for (const item of pool) {
+    const did = String(toMetadata(item.metadata).doc_id ?? "");
+    if (!did) continue;
+    byDoc[did] ??= [];
+    byDoc[did].push(item);
+  }
+  for (const arr of Object.values(byDoc))
+    arr.sort(
+      (a, b) =>
+        Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0),
+    );
   const selectedIds = new Set(selected.map((it) => String(it.memory_id ?? it.id ?? "")));
   const additions: Array<Record<string, unknown>> = [];
   for (const item of selected) {
-    const did = String(toMetadata(item.metadata).doc_id ?? ""); if (!did || !byDoc[did]) continue;
-    const arr = byDoc[did]; const idx = arr.findIndex((x) => String(x.memory_id ?? x.id ?? "") === String(item.memory_id ?? item.id ?? ""));
+    const did = String(toMetadata(item.metadata).doc_id ?? "");
+    if (!did || !byDoc[did]) continue;
+    const arr = byDoc[did];
+    const idx = arr.findIndex(
+      (x) => String(x.memory_id ?? x.id ?? "") === String(item.memory_id ?? item.id ?? ""),
+    );
     if (idx < 0) continue;
     for (let offset = 1; offset <= neighbors; offset++) {
       for (const j of [idx - offset, idx + offset]) {
         if (j < 0 || j >= arr.length) continue;
         const mid = String(arr[j].memory_id ?? arr[j].id ?? "");
-        if (!selectedIds.has(mid)) { additions.push(arr[j]); selectedIds.add(mid); if (additions.length >= maxAdditions) break; }
+        if (!selectedIds.has(mid)) {
+          additions.push(arr[j]);
+          selectedIds.add(mid);
+          if (additions.length >= maxAdditions) break;
+        }
       }
       if (additions.length >= maxAdditions) break;
     }
     if (additions.length >= maxAdditions) break;
   }
   const extended = [...selected, ...additions];
-  extended.sort((a, b) => { const ra = a["rerank_score"]; const rb = b["rerank_score"]; const sa = typeof ra === "number" ? ra : Number(a["score"] ?? 0); const sb = typeof rb === "number" ? rb : Number(b["score"] ?? 0); return sb - sa; });
+  extended.sort((a, b) => {
+    const ra = a["rerank_score"];
+    const rb = b["rerank_score"];
+    const sa = typeof ra === "number" ? ra : Number(a["score"] ?? 0);
+    const sb = typeof rb === "number" ? rb : Number(b["score"] ?? 0);
+    return sb - sa;
+  });
   return extended;
 }
 
-export function mergeSnippetsGrouped(rankedItems: Array<Record<string, unknown>>, maxChars = 1200, includeCitations = true): string {
-  const byDoc: Record<string, Array<Record<string, unknown>>> = {}; const docScore: Record<string, number> = {};
-  for (const it of rankedItems) { const meta = toMetadata(it.metadata); const did = String(meta.doc_id ?? meta.source_path ?? "unknown"); byDoc[did] ??= []; byDoc[did].push(it); docScore[did] = (docScore[did] ?? 0) + Number(it.score ?? 0); }
+export function mergeSnippetsGrouped(
+  rankedItems: Array<Record<string, unknown>>,
+  maxChars = 1200,
+  includeCitations = true,
+): string {
+  const byDoc: Record<string, Array<Record<string, unknown>>> = {};
+  const docScore: Record<string, number> = {};
+  for (const it of rankedItems) {
+    const meta = toMetadata(it.metadata);
+    const did = String(meta.doc_id ?? meta.source_path ?? "unknown");
+    byDoc[did] ??= [];
+    byDoc[did].push(it);
+    docScore[did] = (docScore[did] ?? 0) + Number(it.score ?? 0);
+  }
   const orderedDocs = Object.keys(byDoc).sort((a, b) => (docScore[b] ?? 0) - (docScore[a] ?? 0));
-  for (const did of orderedDocs) byDoc[did].sort((a, b) => Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0));
-  const out: string[] = []; const citations: Array<Record<string, unknown>> = []; let total = 0; let citeIndex = 1;
+  for (const did of orderedDocs)
+    byDoc[did].sort(
+      (a, b) =>
+        Number(toMetadata(a.metadata).start ?? 0) - Number(toMetadata(b.metadata).start ?? 0),
+    );
+  const out: string[] = [];
+  const citations: Array<Record<string, unknown>> = [];
+  let total = 0;
+  let citeIndex = 1;
   outer: for (const did of orderedDocs) {
     for (const it of byDoc[did]) {
-      const text = String(it.content ?? "").trim(); if (!text) continue;
-      const suffix = includeCitations ? ` [${citeIndex}]` : ""; const need = text.length + suffix.length;
+      const text = String(it.content ?? "").trim();
+      if (!text) continue;
+      const suffix = includeCitations ? ` [${citeIndex}]` : "";
+      const need = text.length + suffix.length;
       if (total + need > maxChars) {
-        const remain = maxChars - total; if (remain <= 0) break outer;
+        const remain = maxChars - total;
+        if (remain <= 0) break outer;
         const clipped = text.slice(0, Math.max(0, remain - suffix.length));
-        if (clipped) { out.push(clipped + suffix); total += clipped.length + suffix.length; if (includeCitations) { const m = toMetadata(it.metadata); citations.push({index: citeIndex, source_path: m.source_path, doc_id: m.doc_id, start: m.start, end: m.end, heading_path: m.heading_path}); citeIndex++; } }
+        if (clipped) {
+          out.push(clipped + suffix);
+          total += clipped.length + suffix.length;
+          if (includeCitations) {
+            const m = toMetadata(it.metadata);
+            citations.push({
+              index: citeIndex,
+              source_path: m.source_path,
+              doc_id: m.doc_id,
+              start: m.start,
+              end: m.end,
+              heading_path: m.heading_path,
+            });
+            citeIndex++;
+          }
+        }
         break outer;
       }
-      out.push(text + suffix); total += need;
-      if (includeCitations) { const m = toMetadata(it.metadata); citations.push({index: citeIndex, source_path: m.source_path, doc_id: m.doc_id, start: m.start, end: m.end, heading_path: m.heading_path}); citeIndex++; }
+      out.push(text + suffix);
+      total += need;
+      if (includeCitations) {
+        const m = toMetadata(it.metadata);
+        citations.push({
+          index: citeIndex,
+          source_path: m.source_path,
+          doc_id: m.doc_id,
+          start: m.start,
+          end: m.end,
+          heading_path: m.heading_path,
+        });
+        citeIndex++;
+      }
     }
   }
   const merged = out.join("\n\n");
   if (!includeCitations || citations.length === 0) return merged;
   const lines: string[] = [merged, "", "References:"];
-  for (const c of citations) { const loc = c.start !== undefined && c.end !== undefined ? ` (${c.start}-${c.end})` : ""; const hp = c.heading_path ? ` > ${String(c.heading_path)}` : ""; lines.push(`[${c.index}] ${String(c.source_path ?? c.doc_id ?? "source")}${loc}${hp}`); }
+  for (const c of citations) {
+    const loc = c.start !== undefined && c.end !== undefined ? ` (${c.start}-${c.end})` : "";
+    const hp = c.heading_path ? ` > ${String(c.heading_path)}` : "";
+    lines.push(`[${c.index}] ${String(c.source_path ?? c.doc_id ?? "source")}${loc}${hp}`);
+  }
   return lines.join("\n");
 }
 
-export function compressRankedItems(rankedItems: Array<Record<string, unknown>>, enableCompression = true, maxPerDoc = 2, joinGap = 200): Array<Record<string, unknown>> {
+export function compressRankedItems(
+  rankedItems: Array<Record<string, unknown>>,
+  enableCompression = true,
+  maxPerDoc = 2,
+  joinGap = 200,
+): Array<Record<string, unknown>> {
   if (!enableCompression) return rankedItems;
-  const byDocCount: Record<string, number> = {}; const lastByDoc: Record<string, Record<string, unknown>> = {}; const next: Array<Record<string, unknown>> = [];
+  const byDocCount: Record<string, number> = {};
+  const lastByDoc: Record<string, Record<string, unknown>> = {};
+  const next: Array<Record<string, unknown>> = [];
   for (const item of rankedItems) {
-    const meta = toMetadata(item.metadata); const did = String(meta.doc_id ?? meta.source_path ?? "unknown");
-    const start = Number(meta.start ?? 0); const end = Number(meta.end ?? start + String(item.content ?? "").length);
-    if (!lastByDoc[did]) { lastByDoc[did] = item; byDocCount[did] = 1; next.push(item); continue; }
-    const last = lastByDoc[did]; const lastMeta = toMetadata(last.metadata);
-    const lastStart = Number(lastMeta.start ?? 0); const lastEnd = Number(lastMeta.end ?? lastStart + String(last.content ?? "").length);
+    const meta = toMetadata(item.metadata);
+    const did = String(meta.doc_id ?? meta.source_path ?? "unknown");
+    const start = Number(meta.start ?? 0);
+    const end = Number(meta.end ?? start + String(item.content ?? "").length);
+    if (!lastByDoc[did]) {
+      lastByDoc[did] = item;
+      byDocCount[did] = 1;
+      next.push(item);
+      continue;
+    }
+    const last = lastByDoc[did];
+    const lastMeta = toMetadata(last.metadata);
+    const lastStart = Number(lastMeta.start ?? 0);
+    const lastEnd = Number(lastMeta.end ?? lastStart + String(last.content ?? "").length);
     if (start - lastEnd <= joinGap && start >= lastStart) {
-      last.content = [String(last.content ?? "").trim(), String(item.content ?? "").trim()].filter(Boolean).join("\n\n");
-      lastMeta.end = Math.max(lastEnd, end); last.score = Math.max(Number(last.score ?? 0), Number(item.score ?? 0)); lastByDoc[did] = last;
+      last.content = [String(last.content ?? "").trim(), String(item.content ?? "").trim()]
+        .filter(Boolean)
+        .join("\n\n");
+      lastMeta.end = Math.max(lastEnd, end);
+      last.score = Math.max(Number(last.score ?? 0), Number(item.score ?? 0));
+      lastByDoc[did] = last;
     } else {
-      const cnt = byDocCount[did] ?? 0; if (cnt >= maxPerDoc) continue;
-      next.push(item); lastByDoc[did] = item; byDocCount[did] = cnt + 1;
+      const cnt = byDocCount[did] ?? 0;
+      if (cnt >= maxPerDoc) continue;
+      next.push(item);
+      lastByDoc[did] = item;
+      byDocCount[did] = cnt + 1;
     }
   }
   return next;
 }
 
-export async function tldrSummarize(text: string, bullets = 3, llm?: LLMClient): Promise<string | null> {
+export async function tldrSummarize(
+  text: string,
+  bullets = 3,
+  llm?: LLMClient,
+): Promise<string | null> {
   if (!text.trim()) return null;
   try {
     const client = llm ?? new LLMClient();
     return await client.think([
-      {role: "system", content: "请将以下内容概括为简洁的要点列表（3-5条），用中文，避免重复，突出关键信息。"},
-      {role: "user", content: `请用 ${Math.max(1, Math.min(5, Math.floor(bullets)))} 条要点总结：\n\n${text}`},
+      {
+        role: "system",
+        content: "请将以下内容概括为简洁的要点列表（3-5条），用中文，避免重复，突出关键信息。",
+      },
+      {
+        role: "user",
+        content: `请用 ${Math.max(1, Math.min(5, Math.floor(bullets)))} 条要点总结：\n\n${text}`,
+      },
     ]);
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export interface CreateRagPipelineOptions {
-  ragNamespace?: string; ragUserId?: string; store?: VectorStoreAdapter;
-  embedder?: import("../embedding/embedders").TextEmbedder; dimension?: number; markitdownAdapter?: MarkitdownAdapter;
+  ragNamespace?: string;
+  ragUserId?: string;
+  store?: VectorStoreAdapter;
+  embedder?: import("../embedding/embedders").TextEmbedder;
+  dimension?: number;
+  markitdownAdapter?: MarkitdownAdapter;
 }
 
 export function createRagPipeline(options: CreateRagPipelineOptions = {}): RagPipeline {
@@ -721,14 +959,42 @@ export function createRagPipeline(options: CreateRagPipelineOptions = {}): RagPi
   const store = options.store ?? createDefaultVectorStore();
   const embedder = options.embedder ?? createDefaultTextEmbedder(dimension);
   return {
-    store, namespace: ragNamespace,
+    store,
+    namespace: ragNamespace,
     addDocuments: async (filePaths, chunkSize = 800, chunkOverlap = 100) => {
-      const chunks = loadAndChunkTexts({paths: filePaths, chunkSize, chunkOverlap, namespace: ragNamespace, sourceLabel: "rag", markitdownAdapter: options.markitdownAdapter});
-      await indexChunks({store, chunks, ragNamespace, ragUserId, embedder, dimension});
+      const chunks = loadAndChunkTexts({
+        paths: filePaths,
+        chunkSize,
+        chunkOverlap,
+        namespace: ragNamespace,
+        sourceLabel: "rag",
+        markitdownAdapter: options.markitdownAdapter,
+      });
+      await indexChunks({ store, chunks, ragNamespace, ragUserId, embedder, dimension });
       return chunks.length;
     },
-    search: async (query, topK = 8, scoreThreshold) => searchVectors({store, query, options: {topK, ragNamespace, scoreThreshold}, embedder, dimension}),
-    searchAdvanced: async (query, topK = 8, enableMqe = false, enableHyde = false, scoreThreshold) => searchVectorsExpanded({store, query, options: {topK, ragNamespace, enableMqe, enableHyde, scoreThreshold}, embedder, dimension}),
+    search: async (query, topK = 8, scoreThreshold) =>
+      searchVectors({
+        store,
+        query,
+        options: { topK, ragNamespace, scoreThreshold },
+        embedder,
+        dimension,
+      }),
+    searchAdvanced: async (
+      query,
+      topK = 8,
+      enableMqe = false,
+      enableHyde = false,
+      scoreThreshold,
+    ) =>
+      searchVectorsExpanded({
+        store,
+        query,
+        options: { topK, ragNamespace, enableMqe, enableHyde, scoreThreshold },
+        embedder,
+        dimension,
+      }),
     getStats: async () => ({}),
   };
 }
@@ -741,14 +1007,20 @@ function normalize1DVector(raw: number[] | number[][], dimension: number): numbe
   return out;
 }
 
-function normalize2DVectors(raw: number[] | number[][], dimension: number, expectedCount: number): number[][] {
+function normalize2DVectors(
+  raw: number[] | number[][],
+  dimension: number,
+  expectedCount: number,
+): number[][] {
   const vectors = Array.isArray(raw[0]) ? (raw as number[][]) : [raw as number[]];
   const normalized = vectors.map((v) => normalize1DVector(v, dimension));
   while (normalized.length < expectedCount) normalized.push(new Array(dimension).fill(0));
   return normalized.slice(0, expectedCount);
 }
 
-function md5(input: string): string { return crypto.createHash("md5").update(input).digest("hex"); }
+function md5(input: string): string {
+  return crypto.createHash("md5").update(input).digest("hex");
+}
 
 function toMetadata(value: unknown): RagChunkMetadata {
   if (!value || typeof value !== "object") return {};

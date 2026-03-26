@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type {ChatCompletionMessageParam} from "openai/resources/chat/completions";
-import type {LLMMessage, LLMOptions, StreamMode, StreamChunk} from "./types";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type { LLMMessage, LLMOptions, StreamMode, StreamChunk } from "./types";
 
 function toChatMessages(messages: LLMMessage[]): ChatCompletionMessageParam[] {
   return messages.map((message) => {
@@ -26,13 +26,10 @@ export class LLMClient {
     const model = options.model ?? process.env.LLM_MODEL_ID;
     const apiKey = options.apiKey ?? process.env.LLM_API_KEY;
     const baseURL = options.baseURL ?? process.env.LLM_BASE_URL;
-    const timeoutMs =
-      options.timeoutMs ?? Number(process.env.LLM_TIMEOUT ?? 60) * 1000;
+    const timeoutMs = options.timeoutMs ?? Number(process.env.LLM_TIMEOUT ?? 60) * 1000;
 
     if (!model || !apiKey || !baseURL) {
-      throw new Error(
-        "LLM_MODEL_ID, LLM_API_KEY, LLM_BASE_URL 必须在参数或 .env 中提供",
-      );
+      throw new Error("LLM_MODEL_ID, LLM_API_KEY, LLM_BASE_URL 必须在参数或 .env 中提供");
     }
 
     this.model = model;
@@ -89,10 +86,7 @@ export class LLMClient {
    * }
    * ```
    */
-  async *streamThinkChunked(
-    messages: LLMMessage[],
-    temperature = 0,
-  ): AsyncGenerator<StreamChunk> {
+  async *streamThinkChunked(messages: LLMMessage[], temperature = 0): AsyncGenerator<StreamChunk> {
     const stream = await this.client.chat.completions.create({
       model: this.model,
       messages: toChatMessages(messages),
@@ -107,13 +101,13 @@ export class LLMClient {
       // 思考模型（DeepSeek R1 / Claude 等）的 reasoning_content 字段
       const thinking = delta["reasoning_content"];
       if (typeof thinking === "string" && thinking.length > 0) {
-        yield {type: "thinking", text: thinking};
+        yield { type: "thinking", text: thinking };
       }
 
       // 正文 content
       const content = delta["content"];
       if (typeof content === "string" && content.length > 0) {
-        yield {type: "content", text: content};
+        yield { type: "content", text: content };
       }
     }
   }

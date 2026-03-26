@@ -1,5 +1,5 @@
-import type {LLMClient} from "@agenticforge/core";
-import type {ToolRegistry} from "@agenticforge/tools";
+import type { LLMClient } from "@agenticforge/core";
+import type { ToolRegistry } from "@agenticforge/tools";
 import type {
   WorkflowDefinition,
   WorkflowNode,
@@ -61,9 +61,7 @@ function topoSort(nodes: WorkflowNode[]): WorkflowNode[] {
   }
 
   if (sorted.length !== nodes.length) {
-    const cycle = nodes
-      .map((n) => n.id)
-      .filter((id) => !sorted.find((s) => s.id === id));
+    const cycle = nodes.map((n) => n.id).filter((id) => !sorted.find((s) => s.id === id));
     throw new Error(`工作流存在循环依赖，涉及节点: ${cycle.join(", ")}`);
   }
 
@@ -88,15 +86,15 @@ async function executeLeafNode(
         throw new Error(`节点 "${node.id}": 类型为 tool 但未提供 ToolRegistry`);
       }
       const input = interpolate(node.inputTemplate, ctx);
-      return registry.execute(node.toolName, {input});
+      return registry.execute(node.toolName, { input });
     }
     case "llm": {
       const prompt = interpolate(node.promptTemplate, ctx);
-      const messages: Array<{role: "system" | "user"; content: string}> = [];
+      const messages: Array<{ role: "system" | "user"; content: string }> = [];
       if (node.systemPrompt) {
-        messages.push({role: "system", content: node.systemPrompt});
+        messages.push({ role: "system", content: node.systemPrompt });
       }
-      messages.push({role: "user", content: prompt});
+      messages.push({ role: "user", content: prompt });
       return llm.think(messages);
     }
     case "fn": {
@@ -141,17 +139,14 @@ export class WorkflowEngine {
   // Public entry
   // -------------------------------------------------------------------------
 
-  async execute(
-    definition: WorkflowDefinition,
-    input: string,
-  ): Promise<WorkflowResult> {
-    const ctx: WorkflowContext = {input};
+  async execute(definition: WorkflowDefinition, input: string): Promise<WorkflowResult> {
+    const ctx: WorkflowContext = { input };
     const nodeResults: NodeResult[] = [];
     await this.executeDAG(definition.nodes, ctx, nodeResults);
 
     const lastDone = [...nodeResults].reverse().find((r) => r.status === "done");
     const output = lastDone?.output ?? "";
-    return {output, nodeResults, context: {...ctx}};
+    return { output, nodeResults, context: { ...ctx } };
   }
 
   // -------------------------------------------------------------------------
@@ -169,9 +164,7 @@ export class WorkflowEngine {
 
     while (remaining.length > 0) {
       // Collect nodes whose all deps are satisfied
-      const wave = remaining.filter((n) =>
-        (n.depends ?? []).every((dep) => done.has(dep)),
-      );
+      const wave = remaining.filter((n) => (n.depends ?? []).every((dep) => done.has(dep)));
 
       if (wave.length === 0) {
         throw new Error("[WorkflowEngine] 调度异常：存在无法就绪的节点，请检查依赖配置");
@@ -224,13 +217,19 @@ export class WorkflowEngine {
         return await this.executeLoop(node, ctx, nodeResults, start);
       }
       const output = await executeLeafNode(node, ctx, this.llm, this.registry);
-      return {nodeId: node.id, status: "done", output, durationMs: Date.now() - start};
+      return { nodeId: node.id, status: "done", output, durationMs: Date.now() - start };
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       if (this.verbose) {
         console.warn(`[WorkflowEngine] 节点 "${node.id}" 失败: ${error}`);
       }
-      return {nodeId: node.id, status: "failed", output: "", error, durationMs: Date.now() - start};
+      return {
+        nodeId: node.id,
+        status: "failed",
+        output: "",
+        error,
+        durationMs: Date.now() - start,
+      };
     }
   }
 
@@ -249,7 +248,7 @@ export class WorkflowEngine {
     if (!(branchName in node.branches)) {
       throw new Error(
         `[WorkflowEngine] branch 节点 "${node.id}" 返回了未定义的分支 "${branchName}"，` +
-        `可用分支: ${Object.keys(node.branches).join(", ")}`,
+          `可用分支: ${Object.keys(node.branches).join(", ")}`,
       );
     }
 

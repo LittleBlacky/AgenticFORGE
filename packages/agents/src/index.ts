@@ -1,3 +1,4 @@
+export * from "./cot-agent";
 export * from "./function-call-agent/FunctionCallAgent";
 export * from "./plan-solve-agent/PlanSolveAgent";
 export * from "./plan-solve-agent/Plan";

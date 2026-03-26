@@ -1,5 +1,5 @@
-import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
-import {HashTextEmbedder} from "../rag/pipeline";
+import { BaseMemory, type MemoryConfig, type MemoryItem } from "./base";
+import { HashTextEmbedder } from "../rag/pipeline";
 import type {
   Entity,
   GraphStoreAdapter,
@@ -24,10 +24,7 @@ export class SemanticMemory extends BaseMemory {
   private readonly graphStore?: GraphStoreAdapter;
   private readonly kvStore?: KVStoreAdapter<MemoryItem>;
 
-  constructor(
-    config: Partial<MemoryConfig> = {},
-    adapters: SemanticStorageAdapters = {},
-  ) {
+  constructor(config: Partial<MemoryConfig> = {}, adapters: SemanticStorageAdapters = {}) {
     super(config);
     this.vectorStore = adapters.vectorStore;
     this.graphStore = adapters.graphStore;
@@ -97,16 +94,11 @@ export class SemanticMemory extends BaseMemory {
       : [];
 
     const graphResults = this.graphStore
-      ? await this.graphStore.queryGraph({queryText: query, limit})
+      ? await this.graphStore.queryGraph({ queryText: query, limit })
       : [];
 
     if (vectorResults.length || graphResults.length) {
-      const merged = await this.mergeAdapterResults(
-        vectorResults,
-        graphResults,
-        limit,
-        userId,
-      );
+      const merged = await this.mergeAdapterResults(vectorResults, graphResults, limit, userId);
       return merged.filter((item) => {
         if (item.memoryType !== "semantic") return false;
         const score = item.metadata.combined_score;
@@ -119,13 +111,10 @@ export class SemanticMemory extends BaseMemory {
       .map((m) => {
         const mv = this.embeddings.get(m.id) ?? [];
         const vectorScore = cosine(qv, mv);
-        const graphScore = this.graphScore(
-          m.metadata.entities as string[] | undefined,
-          query,
-        );
+        const graphScore = this.graphScore(m.metadata.entities as string[] | undefined, query);
         const base = vectorScore * 0.7 + graphScore * 0.3;
         const weight = 0.8 + m.importance * 0.4;
-        return {score: base * weight, item: m, vectorScore, graphScore};
+        return { score: base * weight, item: m, vectorScore, graphScore };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, Math.floor(limit)));
@@ -154,9 +143,8 @@ export class SemanticMemory extends BaseMemory {
     const next: MemoryItem = {
       ...old,
       content: content ?? old.content,
-      importance:
-        typeof importance === "number" ? clamp01(importance) : old.importance,
-      metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
+      importance: typeof importance === "number" ? clamp01(importance) : old.importance,
+      metadata: metadata ? { ...old.metadata, ...metadata } : old.metadata,
     };
 
     if (content !== undefined) {
@@ -232,8 +220,7 @@ export class SemanticMemory extends BaseMemory {
 
   async getStats(): Promise<Record<string, unknown>> {
     const avgImportance = this.memories.length
-      ? this.memories.reduce((acc, m) => acc + m.importance, 0) /
-        this.memories.length
+      ? this.memories.reduce((acc, m) => acc + m.importance, 0) / this.memories.length
       : 0;
 
     return {
@@ -332,8 +319,8 @@ export class SemanticMemory extends BaseMemory {
   }
 
   private async mergeAdapterResults(
-    vectorResults: Array<{id: string; score: number; payload: Record<string, unknown>}>,
-    graphResults: Array<{entityId: string; score: number}>,
+    vectorResults: Array<{ id: string; score: number; payload: Record<string, unknown> }>,
+    graphResults: Array<{ entityId: string; score: number }>,
     limit: number,
     userId?: string,
   ): Promise<MemoryItem[]> {
@@ -378,7 +365,7 @@ export class SemanticMemory extends BaseMemory {
       })
       .filter((entry) => (userId ? entry.item.userId === userId : true));
 
-    const deduped = new Map<string, {score: number; item: MemoryItem}>();
+    const deduped = new Map<string, { score: number; item: MemoryItem }>();
     for (const entry of entries) {
       const prev = deduped.get(entry.item.id);
       if (!prev || entry.score > prev.score) {
@@ -396,7 +383,7 @@ export class SemanticMemory extends BaseMemory {
     }
 
     if (this.kvStore) {
-      const items = (await this.kvStore.list({limit}))
+      const items = (await this.kvStore.list({ limit }))
         .filter((item) => (userId ? (item as MemoryItem).userId === userId : true))
         .map((item) => item as MemoryItem);
       return items.slice(0, Math.max(1, Math.floor(limit)));

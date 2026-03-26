@@ -1,4 +1,4 @@
-import {Protocol, ProtocolType} from "../base";
+import { Protocol, ProtocolType } from "../base";
 import type {
   A2AServerInfo,
   A2ASkillHandler,
@@ -27,7 +27,7 @@ export class A2AServer extends Protocol {
   }
 
   addSkill(name: string, description: string, handler: A2ASkillHandler): this {
-    this._skills.set(name, {name, description, handler});
+    this._skills.set(name, { name, description, handler });
     return this;
   }
 
@@ -54,7 +54,7 @@ export class A2AServer extends Protocol {
     }
     try {
       const result = await sk.handler(text, data);
-      return {skill: skillName, result, status: "success"};
+      return { skill: skillName, result, status: "success" };
     } catch (err) {
       return {
         skill: skillName,
@@ -70,13 +70,13 @@ export class A2AServer extends Protocol {
       try {
         const result = await sk.handler(question);
         if (result && !result.startsWith("Error")) {
-          return {answer: result, skillUsed: name, status: "success"};
+          return { answer: result, skillUsed: name, status: "success" };
         }
       } catch {
         // try next skill
       }
     }
-    return {answer: "No suitable skill found for this question.", status: "no_match"};
+    return { answer: "No suitable skill found for this question.", status: "no_match" };
   }
 
   listSkills(): string[] {
@@ -99,27 +99,26 @@ export class A2AServer extends Protocol {
   }
 
   async serve(port = 5000, host = "0.0.0.0"): Promise<void> {
-    const {createServer} = await import("node:http");
+    const { createServer } = await import("node:http");
 
-    const jsonReply = (
-      res: import("node:http").ServerResponse,
-      data: unknown,
-      status = 200,
-    ) => {
+    const jsonReply = (res: import("node:http").ServerResponse, data: unknown, status = 200) => {
       const body = JSON.stringify(data);
-      res.writeHead(status, {"Content-Type": "application/json"});
+      res.writeHead(status, { "Content-Type": "application/json" });
       res.end(body);
     };
 
-    const readBody = (
-      req: import("node:http").IncomingMessage,
-    ): Promise<Record<string, unknown>> =>
+    const readBody = (req: import("node:http").IncomingMessage): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
         let raw = "";
-        req.on("data", (chunk: Buffer) => { raw += chunk.toString(); });
+        req.on("data", (chunk: Buffer) => {
+          raw += chunk.toString();
+        });
         req.on("end", () => {
-          try { resolve(JSON.parse(raw) as Record<string, unknown>); }
-          catch { resolve({}); }
+          try {
+            resolve(JSON.parse(raw) as Record<string, unknown>);
+          } catch {
+            resolve({});
+          }
         });
       });
 
@@ -128,18 +127,22 @@ export class A2AServer extends Protocol {
       const pathname = url.pathname;
       try {
         if (pathname === "/health" && req.method === "GET") {
-          jsonReply(res, {status: "healthy", agent: this.name}); return;
+          jsonReply(res, { status: "healthy", agent: this.name });
+          return;
         }
         if (pathname === "/info" && req.method === "GET") {
-          jsonReply(res, this.getInfo()); return;
+          jsonReply(res, this.getInfo());
+          return;
         }
         if (pathname === "/skills" && req.method === "GET") {
           jsonReply(res, {
-            skills: Array.from(this._skills.values()).map(
-              ({name, description}) => ({name, description})
-            ),
+            skills: Array.from(this._skills.values()).map(({ name, description }) => ({
+              name,
+              description,
+            })),
             count: this._skills.size,
-          }); return;
+          });
+          return;
         }
         const execMatch = pathname.match(/^\/execute\/(.+)$/);
         if (execMatch && req.method === "POST") {
@@ -148,16 +151,18 @@ export class A2AServer extends Protocol {
           const text = String(body["text"] ?? body["query"] ?? "");
           const data = body["data"] as Record<string, unknown> | undefined;
           const result = await this.executeSkill(skillName, text, data);
-          jsonReply(res, result, result.status === "error" ? 500 : 200); return;
+          jsonReply(res, result, result.status === "error" ? 500 : 200);
+          return;
         }
         if (pathname === "/ask" && req.method === "POST") {
           const body = await readBody(req);
           const question = String(body["question"] ?? body["text"] ?? "");
-          jsonReply(res, await this.ask(question)); return;
+          jsonReply(res, await this.ask(question));
+          return;
         }
-        jsonReply(res, {error: `Not found: ${pathname}`}, 404);
+        jsonReply(res, { error: `Not found: ${pathname}` }, 404);
       } catch (err) {
-        jsonReply(res, {error: err instanceof Error ? err.message : String(err)}, 500);
+        jsonReply(res, { error: err instanceof Error ? err.message : String(err) }, 500);
       }
     });
 
@@ -177,7 +182,7 @@ export function createExampleA2AServer(): A2AServer {
     name: "Example A2A Agent",
     description: "A simple example A2A agent with calculate and greet skills",
     version: "1.0.0",
-    capabilities: {chat: true, calculation: true},
+    capabilities: { chat: true, calculation: true },
   });
 
   server.addSkill(
@@ -189,8 +194,7 @@ export function createExampleA2AServer(): A2AServer {
       const expr = match[1]!.trim();
       if (!/^[\d+\-*/().\s]+$/.test(expr)) return "Error: invalid characters";
       try {
-        // eslint-disable-next-line no-new-func
-        const result = new Function('"use strict"; return (' + expr + ')')() as number;
+        const result = new Function('"use strict"; return (' + expr + ")")() as number;
         return `The result is: ${result}`;
       } catch (err) {
         return `Calculation error: ${err instanceof Error ? err.message : String(err)}`;
@@ -198,10 +202,8 @@ export function createExampleA2AServer(): A2AServer {
     },
   );
 
-  server.addSkill(
-    "greet",
-    "Greet the user",
-    (text) => /hello|hi|greet/i.test(text)
+  server.addSkill("greet", "Greet the user", (text) =>
+    /hello|hi|greet/i.test(text)
       ? "Hello! I'm an A2A agent. How can I help you today?"
       : "Hi there!",
   );

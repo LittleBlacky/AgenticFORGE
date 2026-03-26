@@ -1,11 +1,11 @@
-import type {MemoryStorageAdapters} from "./types";
+import type { MemoryStorageAdapters } from "./types";
 import {
   InMemoryKVStore,
   InMemoryVectorStore,
   InMemoryGraphStore,
   InMemoryBlobStore,
 } from "./inMemory";
-import type {MemoryItem} from "../types/base";
+import type { MemoryItem } from "../types/base";
 
 export class AdapterFactory {
   static createInMemory(): MemoryStorageAdapters {

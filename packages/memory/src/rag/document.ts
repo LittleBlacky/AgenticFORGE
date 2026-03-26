@@ -105,7 +105,7 @@ export class DocumentProcessor {
     const mergedChunks: DocumentChunk[] = [];
     let currentChunk = new DocumentChunk({
       content: chunks[0].content,
-      metadata: {...chunks[0].metadata},
+      metadata: { ...chunks[0].metadata },
       chunkId: chunks[0].chunkId,
       docId: chunks[0].docId,
       chunkIndex: chunks[0].chunkIndex,
@@ -123,7 +123,7 @@ export class DocumentProcessor {
         mergedChunks.push(currentChunk);
         currentChunk = new DocumentChunk({
           content: nextChunk.content,
-          metadata: {...nextChunk.metadata},
+          metadata: { ...nextChunk.metadata },
           chunkId: nextChunk.chunkId,
           docId: nextChunk.docId,
           chunkIndex: nextChunk.chunkIndex,
@@ -199,7 +199,7 @@ export interface LoadTextFileOptions {
 
 export function loadTextFile(filePath: string, options: LoadTextFileOptions = {}): Document {
   const encoding = options.encoding ?? "utf-8";
-  const content = fs.readFileSync(filePath, {encoding});
+  const content = fs.readFileSync(filePath, { encoding });
 
   return new Document({
     content,
@@ -212,7 +212,7 @@ export function loadTextFile(filePath: string, options: LoadTextFileOptions = {}
 }
 
 export function createDocument(content: string, metadata: DocumentMetadata = {}): Document {
-  return new Document({content, metadata});
+  return new Document({ content, metadata });
 }
 
 function md5(content: string): string {

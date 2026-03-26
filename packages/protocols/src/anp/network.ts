@@ -9,7 +9,7 @@
  * - ANPNetwork    网络节点管理、路由、广播
  */
 
-import {Protocol, ProtocolType} from "../base";
+import { Protocol, ProtocolType } from "../base";
 import type {
   ServiceInfo as IServiceInfo,
   NetworkNode,
@@ -103,7 +103,7 @@ export class ANPDiscovery extends Protocol {
   }
 
   findServicesByType(serviceType: string): ServiceInfo[] {
-    return this.discoverServices({serviceType});
+    return this.discoverServices({ serviceType });
   }
 
   getService(serviceId: string): ServiceInfo | undefined {
@@ -135,12 +135,8 @@ export class ANPNetwork extends Protocol {
 
   // Node management
 
-  addNode(
-    nodeId: string,
-    endpoint: string,
-    metadata: Record<string, unknown> = {},
-  ): void {
-    this._nodes.set(nodeId, {nodeId, endpoint, metadata, status: "active"});
+  addNode(nodeId: string, endpoint: string, metadata: Record<string, unknown> = {}): void {
+    this._nodes.set(nodeId, { nodeId, endpoint, metadata, status: "active" });
     this._connections.set(nodeId, new Set());
   }
 
@@ -160,14 +156,14 @@ export class ANPNetwork extends Protocol {
   setNodeStatus(nodeId: string, status: NetworkNode["status"]): boolean {
     const node = this._nodes.get(nodeId);
     if (!node) return false;
-    this._nodes.set(nodeId, {...node, status});
+    this._nodes.set(nodeId, { ...node, status });
     return true;
   }
 
-  getNodeInfo(nodeId: string): (NetworkNode & {connections: string[]}) | undefined {
+  getNodeInfo(nodeId: string): (NetworkNode & { connections: string[] }) | undefined {
     const node = this._nodes.get(nodeId);
     if (!node) return undefined;
-    return {...node, connections: Array.from(this._connections.get(nodeId) ?? [])};
+    return { ...node, connections: Array.from(this._connections.get(nodeId) ?? []) };
   }
 
   // Connection management
@@ -217,10 +213,7 @@ export class ANPNetwork extends Protocol {
    * 广播消息到所有与 fromNode 直连的节点。
    * 对应 Python 版 broadcast_message()。
    */
-  broadcastMessage(
-    fromNode: string,
-    _message: Record<string, unknown>,
-  ): string[] {
+  broadcastMessage(fromNode: string, _message: Record<string, unknown>): string[] {
     if (!this._connections.has(fromNode)) return [];
     return Array.from(this._connections.get(fromNode)!);
   }
@@ -246,12 +239,15 @@ export class ANPNetwork extends Protocol {
   }
 
   /** Alias used in Python examples */
-  getNetworkStatus(): NetworkStats & {healthStatus: string} {
+  getNetworkStatus(): NetworkStats & { healthStatus: string } {
     const stats = this.getNetworkStats();
     const healthStatus =
-      stats.activeNodes === stats.totalNodes ? "healthy" :
-      stats.activeNodes > 0 ? "degraded" : "down";
-    return {...stats, healthStatus};
+      stats.activeNodes === stats.totalNodes
+        ? "healthy"
+        : stats.activeNodes > 0
+          ? "degraded"
+          : "down";
+    return { ...stats, healthStatus };
   }
 
   listNodes(): string[] {
@@ -265,9 +261,9 @@ export class ANPNetwork extends Protocol {
 
 export function createExampleANPNetwork(): ANPNetwork {
   const network = new ANPNetwork("example_network");
-  network.addNode("node1", "http://localhost:8001", {type: "agent", role: "coordinator"});
-  network.addNode("node2", "http://localhost:8002", {type: "agent", role: "worker"});
-  network.addNode("node3", "http://localhost:8003", {type: "agent", role: "worker"});
+  network.addNode("node1", "http://localhost:8001", { type: "agent", role: "coordinator" });
+  network.addNode("node2", "http://localhost:8002", { type: "agent", role: "worker" });
+  network.addNode("node3", "http://localhost:8003", { type: "agent", role: "worker" });
   network.connectNodes("node1", "node2");
   network.connectNodes("node1", "node3");
   network.connectNodes("node2", "node3");

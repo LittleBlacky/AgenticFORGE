@@ -29,7 +29,7 @@ export {
   type FilterClause,
   type QdrantFilter,
 } from "./qdrant";
-export {Neo4jGraphStore, type Neo4jGraphStoreOptions} from "./neo4j";
+export { Neo4jGraphStore, type Neo4jGraphStoreOptions } from "./neo4j";
 
-export {AdapterFactory} from "./factory";
-export {AdapterRegistry, type AdapterRegistryOptions} from "./registry";
+export { AdapterFactory } from "./factory";
+export { AdapterRegistry, type AdapterRegistryOptions } from "./registry";

@@ -1,5 +1,5 @@
-import type {LLMClient} from "@agenticforge/core";
-import type {Tool, FunctionTool} from "@agenticforge/tools";
+import type { LLMClient } from "@agenticforge/core";
+import type { Tool, FunctionTool } from "@agenticforge/tools";
 
 // ---------------------------------------------------------------------------
 // SkillContext — 每次调用时注入给 Skill 的上下文
@@ -11,7 +11,7 @@ export interface SkillContext {
   /** 调用方传入的任意元数据（权限、用户身份、会话 ID 等） */
   metadata?: Record<string, unknown>;
   /** 可选：对话历史（转发给 Skill 内部 LLM 调用） */
-  history?: Array<{role: "user" | "assistant" | "system"; content: string}>;
+  history?: Array<{ role: "user" | "assistant" | "system"; content: string }>;
 }
 
 // ---------------------------------------------------------------------------

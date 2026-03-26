@@ -1,8 +1,8 @@
-import {z} from "zod";
-import {Agent} from "@agenticforge/core";
-import {Message} from "@agenticforge/core";
-import type {FunctionTool} from "@agenticforge/tools";
-import {ToolRegistry} from "@agenticforge/tools";
+import { z } from "zod";
+import { Agent } from "@agenticforge/core";
+import { Message } from "@agenticforge/core";
+import type { FunctionTool } from "@agenticforge/tools";
+import { ToolRegistry } from "@agenticforge/tools";
 
 export interface SimpleAgentOptions {
   name: string;
@@ -33,17 +33,11 @@ export class SimpleAgent extends Agent {
     if ((options.tools ?? []).length > 0) {
       this.toolRegistry = new ToolRegistry();
       for (const tool of options.tools ?? []) {
-        this.toolRegistry.registerFunction(
-          tool.name,
-          tool.description,
-          tool.func,
-          tool.schema,
-        );
+        this.toolRegistry.registerFunction(tool.name, tool.description, tool.func, tool.schema);
       }
     }
 
-    this.enableToolCalling =
-      (options.enableToolCalling ?? true) && this.toolRegistry !== undefined;
+    this.enableToolCalling = (options.enableToolCalling ?? true) && this.toolRegistry !== undefined;
     this.maxToolIterations = options.maxToolIterations ?? 3;
   }
 
@@ -63,28 +57,37 @@ export class SimpleAgent extends Agent {
     if (!client || !model) {
       throw new Error("LLMClient does not expose underlying OpenAI client");
     }
-    return (client as {
-      chat: {completions: {create: (p: Record<string, unknown>) => Promise<Record<string, unknown>>}};
-    }).chat.completions.create({
+    return (
+      client as {
+        chat: {
+          completions: { create: (p: Record<string, unknown>) => Promise<Record<string, unknown>> };
+        };
+      }
+    ).chat.completions.create({
       model,
       messages,
       tools,
       tool_choice: toolChoice,
-      temperature: temperature ?? (this.config as unknown as Record<string, unknown>).temperature ?? 0,
+      temperature:
+        temperature ?? (this.config as unknown as Record<string, unknown>).temperature ?? 0,
       stream: false,
     });
   }
 
-  async run(inputText: string, options?: {temperature?: number}): Promise<string> {
+  async run(inputText: string, options?: { temperature?: number }): Promise<string> {
     const traceId = this.createTraceId();
-    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "simple"}});
+    await this.emitHook("beforeRun", {
+      traceId,
+      inputText,
+      metadata: { mode: "run", agent: "simple" },
+    });
 
     try {
       const sys = this.systemPrompt ?? "你是一个简洁、高效的AI助手。";
       const messages: Array<Record<string, unknown>> = [
-        {role: "system", content: sys},
-        ...this.history.map((m) => ({role: m.role, content: m.content})),
-        {role: "user", content: inputText},
+        { role: "system", content: sys },
+        ...this.history.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user", content: inputText },
       ];
 
       const toolSchemas = this.buildToolSchemas();
@@ -92,20 +95,25 @@ export class SimpleAgent extends Agent {
         await this.emitHook("beforeLLMCall", {
           traceId,
           inputText,
-          llmRequest: {messages, temperature: options?.temperature, mode: "non-tool"},
+          llmRequest: { messages, temperature: options?.temperature, mode: "non-tool" },
         });
         const response = await this.llm.think(
-          messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
+          messages as Array<{ role: "system" | "user" | "assistant"; content: string }>,
           options?.temperature,
         );
         await this.emitHook("afterLLMCall", {
           traceId,
           inputText,
-          llmResponse: {outputText: response, mode: "non-tool"},
+          llmResponse: { outputText: response, mode: "non-tool" },
         });
-        this.addMessage(new Message({role: "user", content: inputText}));
-        this.addMessage(new Message({role: "assistant", content: response}));
-        await this.emitHook("afterRun", {traceId, inputText, outputText: response, metadata: {mode: "run"}});
+        this.addMessage(new Message({ role: "user", content: inputText }));
+        this.addMessage(new Message({ role: "assistant", content: response }));
+        await this.emitHook("afterRun", {
+          traceId,
+          inputText,
+          outputText: response,
+          metadata: { mode: "run" },
+        });
         return response;
       }
 
@@ -114,14 +122,26 @@ export class SimpleAgent extends Agent {
         await this.emitHook("beforeLLMCall", {
           traceId,
           inputText,
-          llmRequest: {messages, tools: toolSchemas, toolChoice: "auto", temperature: options?.temperature},
+          llmRequest: {
+            messages,
+            tools: toolSchemas,
+            toolChoice: "auto",
+            temperature: options?.temperature,
+          },
         });
-        const response = await this.invokeWithTools(
+        const response = (await this.invokeWithTools(
           messages,
           toolSchemas,
           "auto",
           options?.temperature,
-        ) as {choices?: Array<{message?: {content?: string; tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>}}>};
+        )) as {
+          choices?: Array<{
+            message?: {
+              content?: string;
+              tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+            };
+          }>;
+        };
         await this.emitHook("afterLLMCall", {
           traceId,
           inputText,
@@ -134,15 +154,19 @@ export class SimpleAgent extends Agent {
 
         if (toolCalls.length === 0) {
           finalResponse = content;
-          messages.push({role: "assistant", content});
+          messages.push({ role: "assistant", content });
           break;
         }
 
-        messages.push({role: "assistant", content, tool_calls: toolCalls});
+        messages.push({ role: "assistant", content, tool_calls: toolCalls });
 
         for (const call of toolCalls) {
           let args: Record<string, unknown> = {};
-          try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
+          try {
+            args = JSON.parse(call.function.arguments) as Record<string, unknown>;
+          } catch {
+            /* ignore */
+          }
           await this.emitHook("beforeToolCall", {
             traceId,
             inputText,
@@ -162,7 +186,12 @@ export class SimpleAgent extends Agent {
             toolInput: args,
             toolOutput: result,
           });
-          messages.push({role: "tool", tool_call_id: call.id, name: call.function.name, content: result});
+          messages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            name: call.function.name,
+            content: result,
+          });
         }
       }
 
@@ -170,10 +199,20 @@ export class SimpleAgent extends Agent {
         await this.emitHook("beforeLLMCall", {
           traceId,
           inputText,
-          llmRequest: {messages, tools: toolSchemas, toolChoice: "none", temperature: options?.temperature},
+          llmRequest: {
+            messages,
+            tools: toolSchemas,
+            toolChoice: "none",
+            temperature: options?.temperature,
+          },
         });
-        const last = await this.invokeWithTools(messages, toolSchemas, "none", options?.temperature) as {
-          choices?: Array<{message?: {content?: string}}>;
+        const last = (await this.invokeWithTools(
+          messages,
+          toolSchemas,
+          "none",
+          options?.temperature,
+        )) as {
+          choices?: Array<{ message?: { content?: string } }>;
         };
         await this.emitHook("afterLLMCall", {
           traceId,
@@ -183,23 +222,28 @@ export class SimpleAgent extends Agent {
         finalResponse = last.choices?.[0]?.message?.content ?? "";
       }
 
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: finalResponse}));
-      await this.emitHook("afterRun", {traceId, inputText, outputText: finalResponse, metadata: {mode: "run"}});
+      this.addMessage(new Message({ role: "user", content: inputText }));
+      this.addMessage(new Message({ role: "assistant", content: finalResponse }));
+      await this.emitHook("afterRun", {
+        traceId,
+        inputText,
+        outputText: finalResponse,
+        metadata: { mode: "run" },
+      });
       return finalResponse;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      await this.emitHook("onError", { traceId, inputText, error: err, metadata: { mode: "run" } });
       throw err;
     }
   }
 
-  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+  async *streamRun(inputText: string, options?: { temperature?: number }): AsyncGenerator<string> {
     const sys = this.systemPrompt ?? "你是一个简洁、高效的AI助手。";
     const messages: Array<Record<string, unknown>> = [
-      {role: "system", content: sys},
-      ...this.history.map((m) => ({role: m.role, content: m.content})),
-      {role: "user", content: inputText},
+      { role: "system", content: sys },
+      ...this.history.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: inputText },
     ];
 
     const toolSchemas = this.buildToolSchemas();
@@ -208,25 +252,32 @@ export class SimpleAgent extends Agent {
     if (toolSchemas.length === 0) {
       let fullResponse = "";
       for await (const chunk of this.llm.streamThink(
-        messages as Array<{role: "system" | "user" | "assistant"; content: string}>,
+        messages as Array<{ role: "system" | "user" | "assistant"; content: string }>,
         options?.temperature,
       )) {
         fullResponse += chunk;
         yield chunk;
       }
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: fullResponse}));
+      this.addMessage(new Message({ role: "user", content: inputText }));
+      this.addMessage(new Message({ role: "assistant", content: fullResponse }));
       return;
     }
 
     // Tool loop (non-streaming), then stream the final synthesis
     for (let i = 0; i < this.maxToolIterations; i++) {
-      const response = await this.invokeWithTools(
+      const response = (await this.invokeWithTools(
         messages,
         toolSchemas,
         "auto",
         options?.temperature,
-      ) as {choices?: Array<{message?: {content?: string; tool_calls?: Array<{id: string; function: {name: string; arguments: string}}>}}>};
+      )) as {
+        choices?: Array<{
+          message?: {
+            content?: string;
+            tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+          };
+        }>;
+      };
 
       const msg = response.choices?.[0]?.message;
       const content = msg?.content ?? "";
@@ -234,18 +285,27 @@ export class SimpleAgent extends Agent {
 
       if (toolCalls.length === 0) break;
 
-      messages.push({role: "assistant", content, tool_calls: toolCalls});
+      messages.push({ role: "assistant", content, tool_calls: toolCalls });
 
       for (const call of toolCalls) {
         let args: Record<string, unknown> = {};
-        try { args = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* ignore */ }
+        try {
+          args = JSON.parse(call.function.arguments) as Record<string, unknown>;
+        } catch {
+          /* ignore */
+        }
         let result = "";
         try {
           result = await this.toolRegistry!.execute(call.function.name, args);
         } catch (e) {
           result = `Error: ${e instanceof Error ? e.message : String(e)}`;
         }
-        messages.push({role: "tool", tool_call_id: call.id, name: call.function.name, content: result});
+        messages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          name: call.function.name,
+          content: result,
+        });
       }
     }
 
@@ -257,7 +317,10 @@ export class SimpleAgent extends Agent {
       messages,
       tool_choice: "none",
       tools: toolSchemas,
-      temperature: options?.temperature ?? (this.config as unknown as Record<string, unknown>).temperature ?? 0,
+      temperature:
+        options?.temperature ??
+        (this.config as unknown as Record<string, unknown>).temperature ??
+        0,
       stream: true,
     });
 
@@ -271,10 +334,9 @@ export class SimpleAgent extends Agent {
       }
     }
 
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+    this.addMessage(new Message({ role: "user", content: inputText }));
+    this.addMessage(new Message({ role: "assistant", content: fullResponse }));
   }
-
 }
 
-export {z};
+export { z };

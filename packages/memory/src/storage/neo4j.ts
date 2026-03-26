@@ -1,5 +1,5 @@
-import neo4j, {type Driver, type Session, type Integer} from "neo4j-driver";
-import type {Entity, GraphStoreAdapter, Relation} from "./types";
+import neo4j, { type Driver, type Session, type Integer } from "neo4j-driver";
+import type { Entity, GraphStoreAdapter, Relation } from "./types";
 
 export interface Neo4jGraphStoreOptions {
   uri?: string;
@@ -20,15 +20,11 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
     const user = options.user ?? "neo4j";
     const password = options.password ?? "neo4j";
 
-    this.driver = neo4j.driver(
-      uri,
-      neo4j.auth.basic(user, password),
-      {
-        maxConnectionLifetime: options.maxConnectionLifetime,
-        maxConnectionPoolSize: options.maxConnectionPoolSize,
-        connectionAcquisitionTimeout: options.connectionAcquisitionTimeout,
-      },
-    );
+    this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password), {
+      maxConnectionLifetime: options.maxConnectionLifetime,
+      maxConnectionPoolSize: options.maxConnectionPoolSize,
+      connectionAcquisitionTimeout: options.connectionAcquisitionTimeout,
+    });
     this.database = options.database;
   }
 
@@ -53,7 +49,7 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
              e.description = row.description,
              e += row.props,
              e.frequency = coalesce(e.frequency, 0) + row.frequency`,
-        {rows},
+        { rows },
       );
     } finally {
       await session.close();
@@ -83,7 +79,7 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
              r.evidence = row.evidence,
              r += row.props,
              r.frequency = coalesce(r.frequency, 0) + row.frequency`,
-        {rows},
+        { rows },
       );
     } finally {
       await session.close();
@@ -93,12 +89,8 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
   async queryGraph(params: {
     queryText: string;
     limit: number;
-  }): Promise<Array<{entityId: string; score: number}>> {
-    const tokens = params.queryText
-      .toLowerCase()
-      .split(/\s+/g)
-      .filter(Boolean)
-      .slice(0, 8);
+  }): Promise<Array<{ entityId: string; score: number }>> {
+    const tokens = params.queryText.toLowerCase().split(/\s+/g).filter(Boolean).slice(0, 8);
 
     if (tokens.length === 0) return [];
 
@@ -110,12 +102,12 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
          RETURN e.entityId AS entityId, e.frequency AS frequency
          ORDER BY frequency DESC
          LIMIT $limit`,
-        {tokens, limit: neo4j.int(Math.max(1, Math.floor(params.limit)))}
+        { tokens, limit: neo4j.int(Math.max(1, Math.floor(params.limit))) },
       );
 
       return res.records.map((record) => {
         const freq = record.get("frequency") as Integer | number | null;
-        const score = typeof freq === "number" ? freq : freq?.toNumber() ?? 1;
+        const score = typeof freq === "number" ? freq : (freq?.toNumber() ?? 1);
         return {
           entityId: String(record.get("entityId")),
           score,
@@ -132,7 +124,7 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
       await session.run(
         `MATCH (e:Entity {entityId: $memoryId})
          DETACH DELETE e`,
-        {memoryId},
+        { memoryId },
       );
     } finally {
       await session.close();
@@ -161,6 +153,6 @@ export class Neo4jGraphStore implements GraphStoreAdapter {
   }
 
   private openSession(): Session {
-    return this.driver.session({database: this.database});
+    return this.driver.session({ database: this.database });
   }
 }

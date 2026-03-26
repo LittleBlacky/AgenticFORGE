@@ -1,4 +1,4 @@
-import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
+import { BaseMemory, type MemoryConfig, type MemoryItem } from "./base";
 
 export interface Episode {
   id: string;
@@ -35,7 +35,9 @@ export class EpisodicMemory extends BaseMemory {
     const q = query.trim().toLowerCase();
     const scored = filtered
       .map((m) => ({
-        score: q ? this.relevanceScore(q, m.content.toLowerCase()) * (0.5 + m.importance * 0.5) : m.importance,
+        score: q
+          ? this.relevanceScore(q, m.content.toLowerCase()) * (0.5 + m.importance * 0.5)
+          : m.importance,
         item: m,
       }))
       .filter((x) => x.score > 0)
@@ -55,8 +57,9 @@ export class EpisodicMemory extends BaseMemory {
     this.memories[idx] = {
       ...old,
       content: content ?? old.content,
-      importance: typeof importance === "number" ? Math.max(0, Math.min(1, importance)) : old.importance,
-      metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
+      importance:
+        typeof importance === "number" ? Math.max(0, Math.min(1, importance)) : old.importance,
+      metadata: metadata ? { ...old.metadata, ...metadata } : old.metadata,
     };
     return true;
   }

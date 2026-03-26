@@ -1,10 +1,10 @@
-import {randomUUID} from "node:crypto";
-import type {MemoryType, MemoryItem, MemoryConfig} from "./types/base";
-import {WorkingMemory} from "./types/working";
-import {EpisodicMemory} from "./types/episodic";
-import {SemanticMemory} from "./types/semantic";
-import {PerceptualMemory} from "./types/perceptual";
-import type {MemoryStorageAdapters} from "./storage/types";
+import { randomUUID } from "node:crypto";
+import type { MemoryType, MemoryItem, MemoryConfig } from "./types/base";
+import { WorkingMemory } from "./types/working";
+import { EpisodicMemory } from "./types/episodic";
+import { SemanticMemory } from "./types/semantic";
+import { PerceptualMemory } from "./types/perceptual";
+import type { MemoryStorageAdapters } from "./storage/types";
 
 export interface MemoryManagerOptions {
   userId?: string;
@@ -114,12 +114,7 @@ export class MemoryManager {
   // ---------------------------------------------------------------------------
 
   async addMemory(options: AddMemoryOptions): Promise<string> {
-    const {
-      content,
-      importance = 0.5,
-      metadata = {},
-      autoClassify = false,
-    } = options;
+    const { content, importance = 0.5, metadata = {}, autoClassify = false } = options;
 
     let memoryType: MemoryType = options.memoryType ?? "working";
 
@@ -152,7 +147,7 @@ export class MemoryManager {
   // ---------------------------------------------------------------------------
 
   async retrieveMemories(options: RetrieveMemoriesOptions): Promise<MemoryItem[]> {
-    const {query, limit = 5, minImportance = 0} = options;
+    const { query, limit = 5, minImportance = 0 } = options;
     const types = options.memoryTypes ?? [...this.enabledTypes];
     const allResults: MemoryItem[] = [];
 
@@ -231,7 +226,7 @@ export class MemoryManager {
     const toStore = this.getStore(toType);
 
     // Retrieve high-importance items from source
-    const items = await fromStore.retrieve("", 100, {userId: this.userId});
+    const items = await fromStore.retrieve("", 100, { userId: this.userId });
     const eligible = items.filter((m: MemoryItem) => m.importance >= threshold);
 
     let count = 0;
@@ -265,9 +260,8 @@ export class MemoryManager {
     for (const type of this.enabledTypes) {
       const stats = await this.getStore(type).getStats();
       const count = typeof stats.count === "number" ? stats.count : 0;
-      const avgImportance =
-        typeof stats.avgImportance === "number" ? stats.avgImportance : 0;
-      memoriesByType[type] = {count, avgImportance};
+      const avgImportance = typeof stats.avgImportance === "number" ? stats.avgImportance : 0;
+      memoriesByType[type] = { count, avgImportance };
       total += count;
     }
 
@@ -304,7 +298,7 @@ export class MemoryManager {
   private classifyMemory(content: string, importance: number): MemoryType {
     if (importance >= 0.8 && this.enabledTypes.has("semantic")) return "semantic";
     if (importance >= 0.6 && this.enabledTypes.has("episodic")) return "episodic";
-    return this.enabledTypes.has("working") ? "working" : [...this.enabledTypes][0] ?? "working";
+    return this.enabledTypes.has("working") ? "working" : ([...this.enabledTypes][0] ?? "working");
   }
 }
 

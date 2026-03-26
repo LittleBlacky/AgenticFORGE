@@ -1,9 +1,6 @@
 export type PromptTemplateValues = Record<string, string | number>;
 
-export function formatPrompt(
-  template: string,
-  values: PromptTemplateValues = {},
-): string {
+export function formatPrompt(template: string, values: PromptTemplateValues = {}): string {
   return template.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key) => {
     if (Object.prototype.hasOwnProperty.call(values, key)) {
       return String(values[key]);

@@ -1,10 +1,6 @@
-import {z} from "zod";
-import {Tool, type ToolParameter, toolAction} from "@agenticforge/tools";
-import {
-  MemoryManager,
-  type MemoryConfig,
-  type MemoryType,
-} from "@agenticforge/memory";
+import { z } from "zod";
+import { Tool, type ToolParameter, toolAction } from "@agenticforge/tools";
+import { MemoryManager, type MemoryConfig, type MemoryType } from "@agenticforge/memory";
 
 export interface MemoryToolOptions {
   userId?: string;
@@ -101,17 +97,9 @@ export class MemoryTool extends Tool {
   private conversationCount = 0;
 
   constructor(options: MemoryToolOptions = {}) {
-    super(
-      "memory",
-      "记忆工具 - 可以存储和检索对话历史、知识和经验",
-      options.expandable ?? false,
-    );
+    super("memory", "记忆工具 - 可以存储和检索对话历史、知识和经验", options.expandable ?? false);
 
-    this.memoryTypes = options.memoryTypes ?? [
-      "working",
-      "episodic",
-      "semantic",
-    ];
+    this.memoryTypes = options.memoryTypes ?? ["working", "episodic", "semantic"];
     this.memoryManager = new MemoryManager({
       config: options.memoryConfig,
       userId: options.userId ?? "default_user",
@@ -137,17 +125,14 @@ export class MemoryTool extends Tool {
   async run(parameters: Record<string, unknown>): Promise<string> {
     const validation = this.validateAndNormalizeParameters(parameters);
     if (!validation.success) {
-      return `❌ 参数验证失败: ${(validation as {success: false; error: string}).error}`;
+      return `❌ 参数验证失败: ${(validation as { success: false; error: string }).error}`;
     }
 
     const action = String(validation.data.action ?? "") as MemoryAction;
-    const actionValidation = this.validateActionParameters(
-      action,
-      validation.data,
-    );
+    const actionValidation = this.validateActionParameters(action, validation.data);
 
     if (!actionValidation.success) {
-      return `❌ 参数验证失败: ${(actionValidation as {success: false; error: string}).error}`;
+      return `❌ 参数验证失败: ${(actionValidation as { success: false; error: string }).error}`;
     }
 
     const p = actionValidation.data;
@@ -204,8 +189,7 @@ export class MemoryTool extends Tool {
       {
         name: "action",
         type: "string",
-        description:
-          "操作: add/search/summary/stats/update/remove/forget/consolidate/clear_all",
+        description: "操作: add/search/summary/stats/update/remove/forget/consolidate/clear_all",
         required: true,
         default: null,
       },
@@ -378,8 +362,7 @@ export class MemoryTool extends Tool {
 
       const lines = [`🔍 找到 ${results.length} 条相关记忆:`];
       results.forEach((m, i) => {
-        const preview =
-          m.content.length > 80 ? `${m.content.slice(0, 80)}...` : m.content;
+        const preview = m.content.length > 80 ? `${m.content.slice(0, 80)}...` : m.content;
         lines.push(
           `${i + 1}. [${memoryTypeLabel(m.memoryType)}] ${preview} (重要性: ${m.importance.toFixed(2)})`,
         );
@@ -405,9 +388,8 @@ export class MemoryTool extends Tool {
 
       for (const [type, typeStats] of Object.entries(stats.memoriesByType)) {
         if (!typeStats) continue;
-        const record = typeStats as {count?: number; avgImportance?: number};
-        const avgImportance =
-          typeof record.avgImportance === "number" ? record.avgImportance : 0;
+        const record = typeStats as { count?: number; avgImportance?: number };
+        const avgImportance = typeof record.avgImportance === "number" ? record.avgImportance : 0;
         const count = typeof record.count === "number" ? record.count : 0;
         lines.push(
           `  • ${memoryTypeLabel(type as MemoryType)}: ${count} 条 (平均重要性: ${avgImportance.toFixed(2)})`,
@@ -422,11 +404,8 @@ export class MemoryTool extends Tool {
       if (important.length) {
         lines.push("", `⭐ 重要记忆 (前${important.length}条):`);
         important.forEach((m, i) => {
-          const preview =
-            m.content.length > 60 ? `${m.content.slice(0, 60)}...` : m.content;
-          lines.push(
-            `  ${i + 1}. ${preview} (重要性: ${m.importance.toFixed(2)})`,
-          );
+          const preview = m.content.length > 60 ? `${m.content.slice(0, 60)}...` : m.content;
+          lines.push(`  ${i + 1}. ${preview} (重要性: ${m.importance.toFixed(2)})`);
         });
       }
 
@@ -453,11 +432,7 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_update", "更新记忆")
-  async updateMemory(
-    memoryId?: string,
-    content?: string,
-    importance?: number,
-  ): Promise<string> {
+  async updateMemory(memoryId?: string, content?: string, importance?: number): Promise<string> {
     if (!memoryId) return "❌ 更新记忆失败: 缺少 memory_id";
     const ok = await this.memoryManager.updateMemory({
       memoryId,
@@ -475,17 +450,10 @@ export class MemoryTool extends Tool {
   }
 
   @toolAction("memory_forget", "批量遗忘")
-  async forget(
-    strategy = "importance_based",
-    threshold = 0.1,
-    maxAgeDays = 30,
-  ): Promise<string> {
+  async forget(strategy = "importance_based", threshold = 0.1, maxAgeDays = 30): Promise<string> {
     try {
       const count = await this.memoryManager.forgetMemories({
-        strategy: strategy as
-          | "importance_based"
-          | "time_based"
-          | "capacity_based",
+        strategy: strategy as "importance_based" | "time_based" | "capacity_based",
         threshold,
         maxAgeDays,
       });
@@ -519,42 +487,26 @@ export class MemoryTool extends Tool {
     return "🧽 已清空所有记忆";
   }
 
-  async autoRecordConversation(
-    userInput: string,
-    agentResponse: string,
-  ): Promise<void> {
+  async autoRecordConversation(userInput: string, agentResponse: string): Promise<void> {
     this.conversationCount += 1;
 
     if (!this.autoRecordRules.enabled) return;
 
-    const workingImportance = this.clamp01(
-      this.autoRecordRules.workingImportance,
-      0.6,
-    );
-    const episodicImportance = this.clamp01(
-      this.autoRecordRules.episodicImportance,
-      0.8,
-    );
+    const workingImportance = this.clamp01(this.autoRecordRules.workingImportance, 0.6);
+    const episodicImportance = this.clamp01(this.autoRecordRules.episodicImportance, 0.8);
 
     if (this.autoRecordRules.includeUser) {
       await this.addMemory(`用户: ${userInput}`, "working", workingImportance);
     }
     if (this.autoRecordRules.includeAssistant) {
-      await this.addMemory(
-        `助手: ${agentResponse}`,
-        "working",
-        workingImportance,
-      );
+      await this.addMemory(`助手: ${agentResponse}`, "working", workingImportance);
     }
 
     if (this.autoRecordRules.enableEpisodic) {
       const minLength = Math.max(0, this.autoRecordRules.minLengthForEpisodic);
       const keywords = this.autoRecordRules.keywordsForEpisodic;
-      const hitKeyword = keywords.some((k) =>
-        userInput.includes(k) || agentResponse.includes(k),
-      );
-      const hitLength =
-        userInput.length + agentResponse.length >= Math.max(1, minLength);
+      const hitKeyword = keywords.some((k) => userInput.includes(k) || agentResponse.includes(k));
+      const hitLength = userInput.length + agentResponse.length >= Math.max(1, minLength);
 
       if (hitKeyword || hitLength) {
         await this.addMemory(
@@ -690,14 +642,12 @@ export class MemoryTool extends Tool {
   private validateActionParameters(
     action: MemoryAction,
     parameters: Record<string, unknown>,
-  ):
-    | {success: true; data: MemoryActionInput}
-    | {success: false; error: string} {
+  ): { success: true; data: MemoryActionInput } | { success: false; error: string } {
     const schemas = this.buildActionSchemas();
     const schema = schemas[action];
 
     if (!schema) {
-      return {success: false, error: `不支持的操作: ${action}`};
+      return { success: false, error: `不支持的操作: ${action}` };
     }
 
     const parsed = schema.safeParse(parameters);
@@ -705,10 +655,10 @@ export class MemoryTool extends Tool {
       const details = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
         .join("; ");
-      return {success: false, error: details};
+      return { success: false, error: details };
     }
 
-    return {success: true, data: parsed.data};
+    return { success: true, data: parsed.data };
   }
 }
 
@@ -733,8 +683,7 @@ function memoryTypeLabel(type: MemoryType): string {
 
 function inferModality(filePath: string): "text" | "image" | "audio" {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-  if (["png", "jpg", "jpeg", "bmp", "gif", "webp"].includes(ext))
-    return "image";
+  if (["png", "jpg", "jpeg", "bmp", "gif", "webp"].includes(ext)) return "image";
   if (["mp3", "wav", "flac", "m4a", "ogg"].includes(ext)) return "audio";
   return "text";
 }

@@ -1,4 +1,4 @@
-import {ToolRegistry} from "./ToolRegistry";
+import type { ToolRegistry } from "./ToolRegistry";
 
 export interface ToolCallRequest {
   id: string;
@@ -40,7 +40,7 @@ export class AsyncToolExecutor {
       }
     };
 
-    const workers = Array.from({length: Math.min(this.concurrency, requests.length)}, worker);
+    const workers = Array.from({ length: Math.min(this.concurrency, requests.length) }, worker);
     await Promise.all(workers);
     return results;
   }

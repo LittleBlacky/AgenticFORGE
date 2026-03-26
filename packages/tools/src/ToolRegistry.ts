@@ -1,4 +1,5 @@
-import {Tool, type FunctionTool, type OpenAIFunctionSchema} from "./Tool";
+import type { Tool } from "./Tool";
+import { type FunctionTool, type OpenAIFunctionSchema } from "./Tool";
 
 /**
  * Central registry that manages Tool instances and raw FunctionTools.
@@ -55,10 +56,7 @@ export class ToolRegistry {
   }
 
   listTools(): string[] {
-    return [
-      ...Array.from(this.tools.keys()),
-      ...Array.from(this.functions.keys()),
-    ];
+    return [...Array.from(this.tools.keys()), ...Array.from(this.functions.keys())];
   }
 
   hasTool(name: string): boolean {
@@ -118,7 +116,7 @@ export class ToolRegistry {
           parameters: {
             type: "object",
             properties: {
-              input: {type: "string", description: "输入文本"},
+              input: { type: "string", description: "输入文本" },
             },
           },
         },

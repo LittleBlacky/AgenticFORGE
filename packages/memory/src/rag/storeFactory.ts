@@ -1,6 +1,6 @@
-import type {VectorStoreAdapter} from "../storage/types";
-import {InMemoryVectorStore} from "../storage/inMemory";
-import {QdrantVectorStore} from "../storage/qdrant";
+import type { VectorStoreAdapter } from "../storage/types";
+import { InMemoryVectorStore } from "../storage/inMemory";
+import { QdrantVectorStore } from "../storage/qdrant";
 
 export interface RagVectorStoreFactoryOptions {
   backend?: string;
@@ -27,8 +27,7 @@ export function createDefaultVectorStore(
     return ragVectorStoreFactory(options);
   }
 
-  const backend =
-    options.backend ?? process.env.RAG_VECTOR_STORE_BACKEND ?? "memory";
+  const backend = options.backend ?? process.env.RAG_VECTOR_STORE_BACKEND ?? "memory";
 
   if (backend === "qdrant") {
     return new QdrantVectorStore({
@@ -38,16 +37,12 @@ export function createDefaultVectorStore(
         options.qdrantCollection ??
         process.env.QDRANT_COLLECTION_NAME ??
         "hello_agents_rag_vectors",
-      vectorSize:
-        options.qdrantVectorSize ??
-        Number(process.env.QDRANT_VECTOR_SIZE ?? 384),
+      vectorSize: options.qdrantVectorSize ?? Number(process.env.QDRANT_VECTOR_SIZE ?? 384),
       distance:
         options.qdrantDistance ??
         (process.env.QDRANT_DISTANCE as "Cosine" | "Euclid" | "Dot" | undefined) ??
         "Cosine",
-      timeoutMs:
-        options.qdrantTimeoutMs ??
-        Number(process.env.QDRANT_TIMEOUT ?? 30) * 1000,
+      timeoutMs: options.qdrantTimeoutMs ?? Number(process.env.QDRANT_TIMEOUT ?? 30) * 1000,
     });
   }
 

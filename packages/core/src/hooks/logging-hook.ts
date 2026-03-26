@@ -1,4 +1,4 @@
-import type {AgentHook, AgentHookContext, AgentHookEvent} from "./types";
+import type { AgentHook, AgentHookContext, AgentHookEvent } from "./types";
 
 export interface ConsoleLoggingHookOptions {
   name?: string;
@@ -8,9 +8,7 @@ export interface ConsoleLoggingHookOptions {
   logger?: (line: string, context: AgentHookContext) => void;
 }
 
-export function createConsoleLoggingHook(
-  options: ConsoleLoggingHookOptions = {},
-): AgentHook {
+export function createConsoleLoggingHook(options: ConsoleLoggingHookOptions = {}): AgentHook {
   const logger = options.logger ?? ((line: string) => console.log(line));
 
   return {

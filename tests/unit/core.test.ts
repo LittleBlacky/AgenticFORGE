@@ -13,9 +13,7 @@ import { z } from "zod";
 // ---------------------------------------------------------------------------
 class TestAgent extends Agent {
   async run(inputText: string): Promise<string> {
-    const response = await this.llm.think([
-      { role: "user", content: inputText },
-    ]);
+    const response = await this.llm.think([{ role: "user", content: inputText }]);
     this.addMessage(new Message({ role: "user", content: inputText }));
     this.addMessage(new Message({ role: "assistant", content: response }));
     return response;
@@ -158,14 +156,14 @@ describe("Agent (base class)", () => {
     it("throws after maxRetries on persistent JSON parse failure", async () => {
       mockLLM.think.mockResolvedValue("not json at all");
       await expect(
-        agent.runStructured({ inputText: "q", schema, maxRetries: 1 })
+        agent.runStructured({ inputText: "q", schema, maxRetries: 1 }),
       ).rejects.toThrow();
     });
 
     it("throws after maxRetries on schema validation failure", async () => {
       mockLLM.think.mockResolvedValue('{"wrong":"shape"}');
       await expect(
-        agent.runStructured({ inputText: "q", schema, maxRetries: 0 })
+        agent.runStructured({ inputText: "q", schema, maxRetries: 0 }),
       ).rejects.toThrow();
     });
 
@@ -227,10 +225,10 @@ describe("Agent.streamRun() (base class)", () => {
   });
 
   it("includes systemPrompt and prior history in messages", async () => {
-    const captured: Array<{role: string}> = [];
+    const captured: Array<{ role: string }> = [];
     const mockLLM = {
       think: vi.fn(),
-      streamThink: vi.fn(async function* (msgs: Array<{role: string}>) {
+      streamThink: vi.fn(async function* (msgs: Array<{ role: string }>) {
         for (const m of msgs) captured.push(m);
         yield "ok";
       }),
@@ -240,7 +238,9 @@ describe("Agent.streamRun() (base class)", () => {
     const agent = new TestAgent({ name: "s", llm: mockLLM, systemPrompt: "be helpful" });
     agent.addMessage(new Message({ role: "user", content: "prev" }));
     agent.addMessage(new Message({ role: "assistant", content: "sure" }));
-    for await (const _ of agent.streamRun("new question")) { /* consume */ }
+    for await (const _ of agent.streamRun("new question")) {
+      /* consume */
+    }
     expect(captured.map((m) => m.role)).toEqual(["system", "user", "assistant", "user"]);
   });
 
@@ -256,7 +256,9 @@ describe("Agent.streamRun() (base class)", () => {
       model: "mock",
     } as any;
     const agent = new TestAgent({ name: "t", llm: mockLLM });
-    for await (const _ of agent.streamRun("q", { temperature: 0.7 })) { /* consume */ }
+    for await (const _ of agent.streamRun("q", { temperature: 0.7 })) {
+      /* consume */
+    }
     expect(capturedTemp).toBe(0.7);
   });
 });
@@ -273,7 +275,9 @@ describe("Agent Hooks", () => {
     const events: string[] = [];
     const mockLLM = {
       think: vi.fn(),
-      streamThink: vi.fn(async function* () { yield "ok"; }),
+      streamThink: vi.fn(async function* () {
+        yield "ok";
+      }),
       client: {},
       model: "mock",
     } as any;
@@ -288,7 +292,9 @@ describe("Agent Hooks", () => {
     const agent = new TestAgent({ name: "hooked", llm: mockLLM });
     agent.useHook(hook);
 
-    for await (const _ of agent.streamRun("hello")) { /* consume */ }
+    for await (const _ of agent.streamRun("hello")) {
+      /* consume */
+    }
 
     expect(events).toEqual(["beforeRun", "beforeLLMCall", "afterLLMCall", "afterRun"]);
   });
@@ -300,10 +306,14 @@ describe("Agent Hooks", () => {
     agent.useHook({
       name: "after-run-only",
       events: ["afterRun"],
-      handle: (ctx) => { events.push(ctx.event); },
+      handle: (ctx) => {
+        events.push(ctx.event);
+      },
     });
 
-    for await (const _ of agent.streamRun("q")) { /* consume */ }
+    for await (const _ of agent.streamRun("q")) {
+      /* consume */
+    }
 
     expect(events).toEqual(["afterRun"]);
   });
@@ -321,7 +331,9 @@ describe("Agent Hooks", () => {
     });
 
     await expect(async () => {
-      for await (const _ of agent.streamRun("q")) { /* consume */ }
+      for await (const _ of agent.streamRun("q")) {
+        /* consume */
+      }
     }).rejects.toThrow("hook failed");
   });
 
@@ -332,7 +344,9 @@ describe("Agent Hooks", () => {
     agent.useHook({ name: "temp", handle: spy });
     agent.removeHook("temp");
 
-    for await (const _ of agent.streamRun("q")) { /* consume */ }
+    for await (const _ of agent.streamRun("q")) {
+      /* consume */
+    }
 
     expect(spy).not.toHaveBeenCalled();
   });
@@ -345,7 +359,9 @@ describe("Agent Hooks", () => {
     const agent = new TestAgent({ name: "logger", llm: makeMockLLM("ok") });
     agent.useHook(hook);
 
-    for await (const _ of agent.streamRun("ping")) { /* consume */ }
+    for await (const _ of agent.streamRun("ping")) {
+      /* consume */
+    }
 
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain("event=afterRun");
@@ -357,7 +373,9 @@ describe("Agent Hooks", () => {
     const agent = new TestAgent({ name: "metrics", llm: makeMockLLM("ok") });
     agent.useHook(metrics.hook);
 
-    for await (const _ of agent.streamRun("ping")) { /* consume */ }
+    for await (const _ of agent.streamRun("ping")) {
+      /* consume */
+    }
 
     const snapshot = metrics.getSnapshot();
     expect(snapshot.totals.runStarted).toBe(1);
@@ -390,10 +408,7 @@ describe("LLMClient.streamThinkChunked()", () => {
   }
 
   it("yields content chunks from normal model", async () => {
-    const llm = makeLLMWithDeltas([
-      { content: "hello " },
-      { content: "world" },
-    ]);
+    const llm = makeLLMWithDeltas([{ content: "hello " }, { content: "world" }]);
     const chunks: StreamChunk[] = [];
     for await (const c of llm.streamThinkChunked([])) chunks.push(c);
     expect(chunks).toEqual([
@@ -403,10 +418,7 @@ describe("LLMClient.streamThinkChunked()", () => {
   });
 
   it("yields thinking chunks from thinking model", async () => {
-    const llm = makeLLMWithDeltas([
-      { reasoning_content: "let me think" },
-      { content: "answer" },
-    ]);
+    const llm = makeLLMWithDeltas([{ reasoning_content: "let me think" }, { content: "answer" }]);
     const chunks: StreamChunk[] = [];
     for await (const c of llm.streamThinkChunked([])) chunks.push(c);
     expect(chunks).toEqual([
@@ -426,20 +438,14 @@ describe("LLMClient.streamThinkChunked()", () => {
   });
 
   it("streamThink thinking-only mode skips content chunks", async () => {
-    const llm = makeLLMWithDeltas([
-      { reasoning_content: "reasoning" },
-      { content: "answer" },
-    ]);
+    const llm = makeLLMWithDeltas([{ reasoning_content: "reasoning" }, { content: "answer" }]);
     const chunks: string[] = [];
     for await (const c of llm.streamThink([], 0, "thinking-only")) chunks.push(c);
     expect(chunks).toEqual(["reasoning"]);
   });
 
   it("streamThink all mode yields both thinking and content", async () => {
-    const llm = makeLLMWithDeltas([
-      { reasoning_content: "step1" },
-      { content: "result" },
-    ]);
+    const llm = makeLLMWithDeltas([{ reasoning_content: "step1" }, { content: "result" }]);
     const chunks: string[] = [];
     for await (const c of llm.streamThink([], 0, "all")) chunks.push(c);
     expect(chunks).toEqual(["step1", "result"]);

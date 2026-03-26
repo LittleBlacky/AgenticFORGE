@@ -1,5 +1,5 @@
-import type {LLMClient} from "@agenticforge/core";
-import type {ToolRegistry} from "@agenticforge/tools";
+import type { LLMClient } from "@agenticforge/core";
+import type { ToolRegistry } from "@agenticforge/tools";
 
 // ---------------------------------------------------------------------------
 // Context
@@ -126,13 +126,7 @@ export interface LoopNode extends BaseNode {
  * - `branch`      条件分支
  * - `loop`        循环执行
  */
-export type WorkflowNode =
-  | ToolNode
-  | LLMNode
-  | FnNode
-  | PassthroughNode
-  | BranchNode
-  | LoopNode;
+export type WorkflowNode = ToolNode | LLMNode | FnNode | PassthroughNode | BranchNode | LoopNode;
 
 // ---------------------------------------------------------------------------
 // Workflow definition

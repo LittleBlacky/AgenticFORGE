@@ -30,6 +30,9 @@ export default function ChatPanel({ messages, loading }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  // loading 仅在完全没有助手气泡时才显示三点动画
+  const hasStreamingMsg = messages.some((m) => m.streaming);
+
   return (
     <div className="chat-panel">
       {messages.length === 0 && (
@@ -48,6 +51,7 @@ export default function ChatPanel({ messages, loading }: Props) {
           </div>
         </div>
       )}
+
       {messages.map((msg) => (
         <div key={msg.id} className={`message message--${msg.role}`}>
           {msg.role === "assistant" && msg.skillUsed && (
@@ -58,25 +62,34 @@ export default function ChatPanel({ messages, loading }: Props) {
               {AGENT_LABELS[msg.skillUsed] ?? msg.skillUsed}
             </span>
           )}
+
           <div className="message__content">
             {msg.role === "assistant" ? (
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <>
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                {/* 流式光标：仅在 streaming 时显示 */}
+                {msg.streaming && <span className="stream-cursor" />}
+              </>
             ) : (
               <p>{msg.content}</p>
             )}
           </div>
-          {msg.agent && (
+
+          {msg.agent && !msg.streaming && (
             <span className="agent-name">{msg.agent}</span>
           )}
         </div>
       ))}
-      {loading && (
+
+      {/* 仅当没有流式气泡且还在 loading 时显示三点动画（兜底） */}
+      {loading && !hasStreamingMsg && (
         <div className="message message--assistant">
           <div className="thinking-dots">
             <span /><span /><span />
           </div>
         </div>
       )}
+
       <div ref={bottomRef} />
     </div>
   );

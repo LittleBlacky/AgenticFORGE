@@ -1,8 +1,8 @@
-import {Message} from "./message";
-import {LLMClient} from "./llm";
-import {Config} from "./config";
-import {z, type ZodType} from "zod";
-import type {AgentHook, AgentHookContext, AgentHookEvent} from "./hooks";
+import { Message } from "./message";
+import type { LLMClient } from "./llm";
+import { Config } from "./config";
+import { z, type ZodType } from "zod";
+import type { AgentHook, AgentHookContext, AgentHookEvent } from "./hooks";
 
 /** Agent 基类 */
 export abstract class Agent {
@@ -13,12 +13,7 @@ export abstract class Agent {
   protected readonly history: Message[] = [];
   private readonly hooks: AgentHook[] = [];
 
-  constructor(params: {
-    name: string;
-    llm: LLMClient;
-    systemPrompt?: string;
-    config?: Config;
-  }) {
+  constructor(params: { name: string; llm: LLMClient; systemPrompt?: string; config?: Config }) {
     this.name = params.name;
     this.llm = params.llm;
     this.systemPrompt = params.systemPrompt;
@@ -40,34 +35,31 @@ export abstract class Agent {
    * }
    * ```
    */
-  async *streamRun(
-    inputText: string,
-    options?: {temperature?: number},
-  ): AsyncGenerator<string> {
+  async *streamRun(inputText: string, options?: { temperature?: number }): AsyncGenerator<string> {
     const traceId = this.createTraceId();
     await this.emitHook("beforeRun", {
       traceId,
       inputText,
-      metadata: {mode: "stream"},
+      metadata: { mode: "stream" },
     });
 
-    const messages: Array<{role: "system" | "user" | "assistant"; content: string}> = [];
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
     if (this.systemPrompt) {
-      messages.push({role: "system", content: this.systemPrompt});
+      messages.push({ role: "system", content: this.systemPrompt });
     }
     for (const msg of this.history) {
       if (msg.role === "user" || msg.role === "assistant" || msg.role === "system") {
-        messages.push({role: msg.role, content: msg.content});
+        messages.push({ role: msg.role, content: msg.content });
       }
     }
-    messages.push({role: "user", content: inputText});
+    messages.push({ role: "user", content: inputText });
 
     let fullResponse = "";
     try {
       await this.emitHook("beforeLLMCall", {
         traceId,
         inputText,
-        llmRequest: {messages, temperature: options?.temperature, mode: "stream"},
+        llmRequest: { messages, temperature: options?.temperature, mode: "stream" },
       });
 
       for await (const chunk of this.llm.streamThink(messages, options?.temperature)) {
@@ -78,17 +70,17 @@ export abstract class Agent {
       await this.emitHook("afterLLMCall", {
         traceId,
         inputText,
-        llmResponse: {outputText: fullResponse, mode: "stream"},
+        llmResponse: { outputText: fullResponse, mode: "stream" },
       });
 
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: fullResponse}));
+      this.addMessage(new Message({ role: "user", content: inputText }));
+      this.addMessage(new Message({ role: "assistant", content: fullResponse }));
 
       await this.emitHook("afterRun", {
         traceId,
         inputText,
         outputText: fullResponse,
-        metadata: {mode: "stream"},
+        metadata: { mode: "stream" },
       });
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -96,7 +88,7 @@ export abstract class Agent {
         traceId,
         inputText,
         error: err,
-        metadata: {mode: "stream"},
+        metadata: { mode: "stream" },
       });
       throw err;
     }
@@ -186,9 +178,7 @@ export abstract class Agent {
     maxRetries?: number;
     options?: unknown;
   }): Promise<T> {
-    const autoInstruction = this.buildStructuredInstructionFromSchema(
-      params.schema,
-    );
+    const autoInstruction = this.buildStructuredInstructionFromSchema(params.schema);
     const instruction = params.instruction ?? autoInstruction;
     const maxRetries = Math.max(0, params.maxRetries ?? 2);
 
@@ -220,9 +210,7 @@ export abstract class Agent {
           continue;
         }
 
-        throw new Error(
-          `结构化输出 JSON 解析失败: ${message}。原始输出: ${rawText}`,
-        );
+        throw new Error(`结构化输出 JSON 解析失败: ${message}。原始输出: ${rawText}`);
       }
 
       const validation = params.schema.safeParse(parsed);
@@ -252,7 +240,7 @@ export abstract class Agent {
    * 根据 Zod schema 自动生成结构化输出提示词。
    */
   protected buildStructuredInstructionFromSchema<T>(schema: ZodType<T>): string {
-    const jsonSchema = z.toJSONSchema(schema, {target: "draft-7"});
+    const jsonSchema = z.toJSONSchema(schema, { target: "draft-7" });
     return [
       "请严格只返回 JSON，不要包含解释、Markdown 代码块或额外文本。",
       "输出必须严格符合以下 JSON Schema：",

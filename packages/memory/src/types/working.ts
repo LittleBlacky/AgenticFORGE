@@ -1,4 +1,4 @@
-import {BaseMemory, type MemoryConfig, type MemoryItem} from "./base";
+import { BaseMemory, type MemoryConfig, type MemoryItem } from "./base";
 
 export class WorkingMemory extends BaseMemory {
   private readonly maxCapacity: number;
@@ -31,11 +31,8 @@ export class WorkingMemory extends BaseMemory {
     this.expireOldMemories();
     if (this.memories.length === 0) return [];
 
-    const userId =
-      typeof options.userId === "string" ? options.userId : undefined;
-    const filtered = userId
-      ? this.memories.filter((m) => m.userId === userId)
-      : this.memories;
+    const userId = typeof options.userId === "string" ? options.userId : undefined;
+    const filtered = userId ? this.memories.filter((m) => m.userId === userId) : this.memories;
     const q = query.trim().toLowerCase();
 
     const scored = filtered
@@ -43,7 +40,7 @@ export class WorkingMemory extends BaseMemory {
         const relevance = this.keywordScore(q, m.content.toLowerCase());
         const timeDecay = this.calculateTimeDecay(m.timestamp);
         const importanceWeight = 0.8 + m.importance * 0.4;
-        return {score: relevance * timeDecay * importanceWeight, item: m};
+        return { score: relevance * timeDecay * importanceWeight, item: m };
       })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score);
@@ -65,16 +62,12 @@ export class WorkingMemory extends BaseMemory {
     const next: MemoryItem = {
       ...old,
       content: content ?? old.content,
-      importance:
-        typeof importance === "number" ? clamp01(importance) : old.importance,
-      metadata: metadata ? {...old.metadata, ...metadata} : old.metadata,
+      importance: typeof importance === "number" ? clamp01(importance) : old.importance,
+      metadata: metadata ? { ...old.metadata, ...metadata } : old.metadata,
     };
 
     this.memories[idx] = next;
-    this.currentTokens = Math.max(
-      0,
-      this.currentTokens - oldTokens + tokenLen(next.content),
-    );
+    this.currentTokens = Math.max(0, this.currentTokens - oldTokens + tokenLen(next.content));
     this.enforceCapacityLimits();
     return true;
   }
@@ -83,10 +76,7 @@ export class WorkingMemory extends BaseMemory {
     const idx = this.memories.findIndex((m) => m.id === memoryId);
     if (idx < 0) return false;
     const [removed] = this.memories.splice(idx, 1);
-    this.currentTokens = Math.max(
-      0,
-      this.currentTokens - tokenLen(removed.content),
-    );
+    this.currentTokens = Math.max(0, this.currentTokens - tokenLen(removed.content));
     return true;
   }
 
@@ -102,8 +92,7 @@ export class WorkingMemory extends BaseMemory {
   async getStats(): Promise<Record<string, unknown>> {
     this.expireOldMemories();
     const avgImportance = this.memories.length
-      ? this.memories.reduce((acc, cur) => acc + cur.importance, 0) /
-        this.memories.length
+      ? this.memories.reduce((acc, cur) => acc + cur.importance, 0) / this.memories.length
       : 0;
 
     return {
@@ -114,21 +103,15 @@ export class WorkingMemory extends BaseMemory {
       maxCapacity: this.maxCapacity,
       maxTokens: this.maxTokens,
       maxAgeMinutes: this.maxAgeMinutes,
-      sessionDurationMinutes:
-        (Date.now() - this.sessionStart.getTime()) / 60000,
+      sessionDurationMinutes: (Date.now() - this.sessionStart.getTime()) / 60000,
       avgImportance,
-      capacityUsage:
-        this.maxCapacity > 0 ? this.memories.length / this.maxCapacity : 0,
+      capacityUsage: this.maxCapacity > 0 ? this.memories.length / this.maxCapacity : 0,
       tokenUsage: this.maxTokens > 0 ? this.currentTokens / this.maxTokens : 0,
       memoryType: "working",
     };
   }
 
-  async forget(
-    strategy = "importance_based",
-    threshold = 0.1,
-    maxAgeDays = 1,
-  ): Promise<number> {
+  async forget(strategy = "importance_based", threshold = 0.1, maxAgeDays = 1): Promise<number> {
     this.expireOldMemories();
     const before = this.memories.length;
 
@@ -136,23 +119,13 @@ export class WorkingMemory extends BaseMemory {
       this.memories = this.memories.filter((m) => m.importance >= threshold);
     } else if (strategy === "time_based") {
       const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
-      this.memories = this.memories.filter(
-        (m) => m.timestamp.getTime() >= cutoff,
-      );
-    } else if (
-      strategy === "capacity_based" &&
-      this.memories.length > this.maxCapacity
-    ) {
-      this.memories.sort(
-        (a, b) => this.calculatePriority(b) - this.calculatePriority(a),
-      );
+      this.memories = this.memories.filter((m) => m.timestamp.getTime() >= cutoff);
+    } else if (strategy === "capacity_based" && this.memories.length > this.maxCapacity) {
+      this.memories.sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
       this.memories = this.memories.slice(0, this.maxCapacity);
     }
 
-    this.currentTokens = this.memories.reduce(
-      (acc, m) => acc + tokenLen(m.content),
-      0,
-    );
+    this.currentTokens = this.memories.reduce((acc, m) => acc + tokenLen(m.content), 0);
     return before - this.memories.length;
   }
 
@@ -200,8 +173,7 @@ export class WorkingMemory extends BaseMemory {
 
   private keywordScore(query: string, content: string): number {
     if (!query) return 0.1;
-    if (content.includes(query))
-      return Math.max(0.2, query.length / Math.max(content.length, 1));
+    if (content.includes(query)) return Math.max(0.2, query.length / Math.max(content.length, 1));
 
     const qWords = new Set(query.split(/\s+/g).filter(Boolean));
     const cWords = new Set(content.split(/\s+/g).filter(Boolean));
@@ -221,10 +193,7 @@ export class WorkingMemory extends BaseMemory {
   }
 
   private enforceCapacityLimits(): void {
-    while (
-      this.memories.length > this.maxCapacity ||
-      this.currentTokens > this.maxTokens
-    ) {
+    while (this.memories.length > this.maxCapacity || this.currentTokens > this.maxTokens) {
       this.removeLowestPriorityMemory();
       if (this.memories.length === 0) break;
     }
@@ -253,10 +222,7 @@ export class WorkingMemory extends BaseMemory {
     }
 
     const [removed] = this.memories.splice(lowestIdx, 1);
-    this.currentTokens = Math.max(
-      0,
-      this.currentTokens - tokenLen(removed.content),
-    );
+    this.currentTokens = Math.max(0, this.currentTokens - tokenLen(removed.content));
   }
 }
 

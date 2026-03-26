@@ -1,15 +1,9 @@
-import {Agent} from "@agenticforge/core";
-import {Message} from "@agenticforge/core";
-import {ToolRegistry} from "@agenticforge/tools";
-import {
-  type Plan,
-  createPlan,
-  markStepDone,
-  markStepFailed,
-  getCompletedResults,
-} from "./Plan";
-import {buildPlanPrompt, buildFinalPrompt, PLAN_SYSTEM_PROMPT} from "./prompts";
-import {StepExecutor} from "./Executor";
+import { Agent } from "@agenticforge/core";
+import { Message } from "@agenticforge/core";
+import type { ToolRegistry } from "@agenticforge/tools";
+import { type Plan, createPlan, markStepDone, markStepFailed, getCompletedResults } from "./Plan";
+import { buildPlanPrompt, buildFinalPrompt, PLAN_SYSTEM_PROMPT } from "./prompts";
+import { StepExecutor } from "./Executor";
 
 export interface PlanSolveAgentOptions {
   name: string;
@@ -52,23 +46,27 @@ export class PlanSolveAgent extends Agent {
 
   async run(inputText: string): Promise<string> {
     const traceId = this.createTraceId();
-    await this.emitHook("beforeRun", {traceId, inputText, metadata: {mode: "run", agent: "plan-solve"}});
+    await this.emitHook("beforeRun", {
+      traceId,
+      inputText,
+      metadata: { mode: "run", agent: "plan-solve" },
+    });
 
     try {
       const planPrompt = buildPlanPrompt(inputText);
       await this.emitHook("beforeLLMCall", {
         traceId,
         inputText,
-        llmRequest: {phase: "plan", planPrompt},
+        llmRequest: { phase: "plan", planPrompt },
       });
       const planRaw = await this.llm.think([
-        {role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT},
-        {role: "user", content: planPrompt},
+        { role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT },
+        { role: "user", content: planPrompt },
       ]);
       await this.emitHook("afterLLMCall", {
         traceId,
         inputText,
-        llmResponse: {phase: "plan", planRaw},
+        llmResponse: { phase: "plan", planRaw },
       });
 
       const plan = this.parsePlan(inputText, planRaw);
@@ -90,17 +88,17 @@ export class PlanSolveAgent extends Agent {
             traceId,
             inputText,
             toolName: step.tool ?? "step-executor",
-            toolInput: {step, context},
-            metadata: {phase: "execute-step"},
+            toolInput: { step, context },
+            metadata: { phase: "execute-step" },
           });
           const result = await this.executor.execute(step, context);
           await this.emitHook("afterToolCall", {
             traceId,
             inputText,
             toolName: step.tool ?? "step-executor",
-            toolInput: {step, context},
+            toolInput: { step, context },
             toolOutput: result,
-            metadata: {phase: "execute-step"},
+            metadata: { phase: "execute-step" },
           });
           markStepDone(plan, step.id, result);
           context += `\n步骤${step.id}(${step.description}): ${result}`;
@@ -116,28 +114,33 @@ export class PlanSolveAgent extends Agent {
       await this.emitHook("beforeLLMCall", {
         traceId,
         inputText,
-        llmRequest: {phase: "final", finalPrompt},
+        llmRequest: { phase: "final", finalPrompt },
       });
       const finalAnswer = await this.llm.think([
         {
           role: "system",
           content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。",
         },
-        {role: "user", content: finalPrompt},
+        { role: "user", content: finalPrompt },
       ]);
       await this.emitHook("afterLLMCall", {
         traceId,
         inputText,
-        llmResponse: {phase: "final", finalAnswer},
+        llmResponse: { phase: "final", finalAnswer },
       });
 
-      this.addMessage(new Message({role: "user", content: inputText}));
-      this.addMessage(new Message({role: "assistant", content: finalAnswer}));
-      await this.emitHook("afterRun", {traceId, inputText, outputText: finalAnswer, metadata: {mode: "run"}});
+      this.addMessage(new Message({ role: "user", content: inputText }));
+      this.addMessage(new Message({ role: "assistant", content: finalAnswer }));
+      await this.emitHook("afterRun", {
+        traceId,
+        inputText,
+        outputText: finalAnswer,
+        metadata: { mode: "run" },
+      });
       return finalAnswer;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      await this.emitHook("onError", {traceId, inputText, error: err, metadata: {mode: "run"}});
+      await this.emitHook("onError", { traceId, inputText, error: err, metadata: { mode: "run" } });
       throw err;
     }
   }
@@ -151,12 +154,12 @@ export class PlanSolveAgent extends Agent {
    * Planning and step-execution run non-streaming; only the final
    * "write the report" call is streamed.
    */
-  async *streamRun(inputText: string, options?: {temperature?: number}): AsyncGenerator<string> {
+  async *streamRun(inputText: string, options?: { temperature?: number }): AsyncGenerator<string> {
     const planPrompt = buildPlanPrompt(inputText);
     const planRaw = await this.llm.think(
       [
-        {role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT},
-        {role: "user", content: planPrompt},
+        { role: "system", content: this.systemPrompt ?? PLAN_SYSTEM_PROMPT },
+        { role: "user", content: planPrompt },
       ],
       options?.temperature,
     );
@@ -188,9 +191,9 @@ export class PlanSolveAgent extends Agent {
 
     const results = getCompletedResults(plan);
     const finalPrompt = buildFinalPrompt(inputText, results);
-    const finalMessages: Array<{role: "system" | "user" | "assistant"; content: string}> = [
-      {role: "system", content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。"},
-      {role: "user", content: finalPrompt},
+    const finalMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: "你是一个综合分析助手，根据执行结果给出清晰的最终答案。" },
+      { role: "user", content: finalPrompt },
     ];
 
     let fullResponse = "";
@@ -199,18 +202,17 @@ export class PlanSolveAgent extends Agent {
       yield chunk;
     }
 
-    this.addMessage(new Message({role: "user", content: inputText}));
-    this.addMessage(new Message({role: "assistant", content: fullResponse}));
+    this.addMessage(new Message({ role: "user", content: inputText }));
+    this.addMessage(new Message({ role: "assistant", content: fullResponse }));
   }
 
   private parsePlan(goal: string, raw: string): Plan {
     try {
-      const jsonMatch =
-        raw.match(/```json\s*([\s\S]*?)\s*```/i) ?? raw.match(/\{[\s\S]*\}/);
+      const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/i) ?? raw.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : raw;
       const parsed = JSON.parse(jsonStr) as {
         goal?: string;
-        steps?: Array<{id?: number; description?: string; tool?: string}>;
+        steps?: Array<{ id?: number; description?: string; tool?: string }>;
       };
       const steps = (parsed.steps ?? []).map((s, idx) => ({
         id: s.id ?? idx + 1,
@@ -219,7 +221,7 @@ export class PlanSolveAgent extends Agent {
       }));
       return createPlan(goal, steps);
     } catch {
-      return createPlan(goal, [{id: 1, description: raw.slice(0, 200)}]);
+      return createPlan(goal, [{ id: 1, description: raw.slice(0, 200) }]);
     }
   }
 }

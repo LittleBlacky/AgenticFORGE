@@ -7,7 +7,7 @@ import type {
   AdapterHealthStatus,
   AdapterWithHealth,
 } from "./types";
-import type {MemoryItem} from "../types/base";
+import type { MemoryItem } from "../types/base";
 
 export interface AdapterRegistryOptions {
   enableFallback?: boolean;
@@ -98,9 +98,7 @@ export class AdapterRegistry {
     return Object.values(this.lastHealthStatus).every((v) => v);
   }
 
-  private async checkAdapterHealth(
-    adapter: AdapterWithHealth | undefined,
-  ): Promise<boolean> {
+  private async checkAdapterHealth(adapter: AdapterWithHealth | undefined): Promise<boolean> {
     if (!adapter) return true;
     if (typeof adapter === "object" && "health" in adapter) {
       try {

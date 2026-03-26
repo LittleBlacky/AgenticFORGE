@@ -14,7 +14,7 @@ export class ReflectionMemory {
   private readonly entries: ReflectionEntry[] = [];
 
   add(entry: Omit<ReflectionEntry, "timestamp">): void {
-    this.entries.push({...entry, timestamp: new Date()});
+    this.entries.push({ ...entry, timestamp: new Date() });
   }
 
   getAll(): ReflectionEntry[] {

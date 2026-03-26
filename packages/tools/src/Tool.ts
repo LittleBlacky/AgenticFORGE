@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import {z, type ZodType} from "zod";
-import type {ToolParameter} from "./types";
+import { z, type ZodType } from "zod";
+import type { ToolParameter } from "./types";
 
-export type {ToolParameter};
+export type { ToolParameter };
 
 // ---------------------------------------------------------------------------
 // OpenAI function-calling schema
@@ -34,14 +34,9 @@ export interface ToolActionMeta {
  * Usage: @toolAction("action_key", "Description")
  */
 export function toolAction(key: string, description: string) {
-  return function (
-    target: object,
-    propertyKey: string,
-    _descriptor: PropertyDescriptor,
-  ): void {
-    const existing: ToolActionMeta[] =
-      Reflect.getMetadata(TOOL_ACTIONS_META_KEY, target) ?? [];
-    existing.push({key, description, method: propertyKey});
+  return function (target: object, propertyKey: string, _descriptor: PropertyDescriptor): void {
+    const existing: ToolActionMeta[] = Reflect.getMetadata(TOOL_ACTIONS_META_KEY, target) ?? [];
+    existing.push({ key, description, method: propertyKey });
     Reflect.defineMetadata(TOOL_ACTIONS_META_KEY, existing, target);
   };
 }
@@ -83,7 +78,7 @@ export abstract class Tool {
    */
   validateAndNormalizeParameters(
     parameters: Record<string, unknown>,
-  ): {success: true; data: Record<string, unknown>} | {success: false; error: string} {
+  ): { success: true; data: Record<string, unknown> } | { success: false; error: string } {
     const params = this.getParameters();
     const data: Record<string, unknown> = {};
 
@@ -91,7 +86,7 @@ export abstract class Tool {
       const val = parameters[p.name];
       if (val === undefined || val === null) {
         if (p.required) {
-          return {success: false, error: `Missing required parameter: ${p.name}`};
+          return { success: false, error: `Missing required parameter: ${p.name}` };
         }
         data[p.name] = p.default;
       } else {
@@ -104,7 +99,7 @@ export abstract class Tool {
       if (!(key in data)) data[key] = val;
     }
 
-    return {success: true, data};
+    return { success: true, data };
   }
 
   /**
@@ -119,9 +114,7 @@ export abstract class Tool {
       properties[p.name] = {
         type: mapType(p.type),
         description: p.description,
-        ...(p.default !== null && p.default !== undefined
-          ? {default: p.default}
-          : {}),
+        ...(p.default !== null && p.default !== undefined ? { default: p.default } : {}),
       };
       if (p.required) required.push(p.name);
     }
@@ -134,7 +127,7 @@ export abstract class Tool {
         parameters: {
           type: "object",
           properties,
-          ...(required.length > 0 ? {required} : {}),
+          ...(required.length > 0 ? { required } : {}),
         },
       },
     };
@@ -146,10 +139,7 @@ export abstract class Tool {
   describe(): string {
     const params = this.getParameters();
     const paramStr = params
-      .map(
-        (p) =>
-          `  - ${p.name} (${p.type}${p.required ? ", required" : ""}): ${p.description}`,
-      )
+      .map((p) => `  - ${p.name} (${p.type}${p.required ? ", required" : ""}): ${p.description}`)
       .join("\n");
     return `Tool: ${this.name}\nDescription: ${this.description}\nParameters:\n${paramStr}`;
   }
@@ -192,4 +182,4 @@ export function defineFunctionTool<TArgs extends Record<string, unknown>>(
   return options;
 }
 
-export {z};
+export { z };

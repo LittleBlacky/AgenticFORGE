@@ -19,7 +19,7 @@ export interface MCPResourceInfo {
 export interface MCPPromptInfo {
   name: string;
   description: string;
-  arguments: Array<{name: string; description?: string; required?: boolean}>;
+  arguments: Array<{ name: string; description?: string; required?: boolean }>;
 }
 
 /** MCP 提示词消息 */
@@ -55,10 +55,7 @@ export interface SseTransportConfig {
 }
 
 /** 所有传输配置的联合类型 */
-export type MCPTransportConfig =
-  | StdioTransportConfig
-  | HttpTransportConfig
-  | SseTransportConfig;
+export type MCPTransportConfig = StdioTransportConfig | HttpTransportConfig | SseTransportConfig;
 
 /** MCP 服务器信息 */
 export interface MCPServerInfo {
@@ -68,9 +65,7 @@ export interface MCPServerInfo {
 }
 
 /** MCP 工具处理函数 */
-export type MCPToolHandler = (
-  params: Record<string, unknown>,
-) => string | Promise<string>;
+export type MCPToolHandler = (params: Record<string, unknown>) => string | Promise<string>;
 
 /** MCP 资源处理函数 */
 export type MCPResourceHandler = () => string | Promise<string>;
@@ -101,6 +96,6 @@ export interface RegisteredResource {
 export interface RegisteredPrompt {
   name: string;
   description: string;
-  arguments: Array<{name: string; description?: string; required?: boolean}>;
+  arguments: Array<{ name: string; description?: string; required?: boolean }>;
   handler: MCPPromptHandler;
 }

@@ -33,7 +33,7 @@ export class LruCache<T> {
       this.cache.delete(key);
     }
 
-    this.cache.set(key, {value, timestamp: Date.now()});
+    this.cache.set(key, { value, timestamp: Date.now() });
 
     if (this.cache.size > this.maxSize) {
       const oldestKey = this.cache.keys().next().value as string | undefined;

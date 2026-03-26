@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
-import { initGateway, route } from "./gateway/index.js";
+import { initGateway, route, routeStream } from "./gateway/index.js";
 import { initANP } from "./protocols/index.js";
 import { memoryManager, semanticMemory, episodicMemory, vectorStore, graphStore, shutdownMemory } from "./memory/index.js";
 import { generateWeeklyInsight } from "./agents/generator.js";
@@ -27,6 +27,51 @@ function broadcast(data: unknown) {
 wss.on("connection", (ws) => {
   console.log("[WS] Client connected");
   ws.send(JSON.stringify({ type: "connected", message: "Second Brain ready" }));
+});
+
+// ── SSE 流式对话端点 ──────────────────────────────────────────────────────
+// 协议：每条 SSE 消息为 `data: <JSON>\n\n`
+// 消息类型：
+//   { type: "token",  token: string }       — 逐 token 文本
+//   { type: "meta",   agent: string, skillUsed: string } — 最终元数据
+//   { type: "error",  message: string }     — 错误
+//   { type: "done" }                        — 结束标记
+app.post("/api/chat/stream", async (req, res) => {
+  const { message } = req.body as { message: string };
+  if (!message) { res.status(400).json({ error: "message is required" }); return; }
+
+  res.setHeader("Content-Type",  "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection",    "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // 关闭 Nginx 缓冲
+  res.flushHeaders();
+
+  const send = (payload: unknown) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    // 强制冲刷底层 socket，确保每条 SSE 帧立即送达客户端
+    const socket = (res as unknown as { socket?: { flush?: () => void; write?: (d: string) => void } }).socket;
+    socket?.flush?.();
+  };
+
+  broadcast({ type: "thinking", message: "Streaming response...", agent: "Gateway" });
+
+  try {
+    for await (const chunk of routeStream(message)) {
+      if (chunk.token !== undefined) {
+        send({ type: "token", token: chunk.token });
+      } else if (chunk.meta) {
+        send({ type: "meta", agent: chunk.meta.agent, skillUsed: chunk.meta.skillUsed });
+        broadcast({ type: "done", agent: chunk.meta.agent, skillUsed: chunk.meta.skillUsed });
+      }
+    }
+    send({ type: "done" });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    send({ type: "error", message: msg });
+    broadcast({ type: "error", message: msg });
+  } finally {
+    res.end();
+  }
 });
 
 app.post("/api/chat", async (req, res) => {

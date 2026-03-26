@@ -1,8 +1,8 @@
-import {spawn} from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import {z} from "zod";
-import {Tool, type ToolParameter} from "@agenticforge/tools";
+import { z } from "zod";
+import { Tool, type ToolParameter } from "@agenticforge/tools";
 
 export interface TerminalToolOptions {
   workspace?: string;
@@ -73,7 +73,7 @@ export class TerminalTool extends Tool {
     this.osType = this.detectOs(options.osType ?? "auto");
     this.currentDir = this.workspace;
 
-    fs.mkdirSync(this.workspace, {recursive: true});
+    fs.mkdirSync(this.workspace, { recursive: true });
   }
 
   async run(parameters: Record<string, unknown>): Promise<string> {
@@ -114,7 +114,7 @@ export class TerminalTool extends Tool {
     ];
   }
 
-  private get schema(): z.ZodSchema<{command: string}> {
+  private get schema(): z.ZodSchema<{ command: string }> {
     return z.object({
       command: z.string().min(1),
     });

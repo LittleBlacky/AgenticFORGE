@@ -1,6 +1,6 @@
-import {MarkdownSkill} from "./MarkdownSkill";
-import type {IAgentSkill} from "./types";
-import {SkillRegistry} from "./SkillRegistry";
+import { MarkdownSkill } from "./MarkdownSkill";
+import type { IAgentSkill } from "./types";
+import { SkillRegistry } from "./SkillRegistry";
 
 // ---------------------------------------------------------------------------
 // SkillLoader
@@ -46,10 +46,10 @@ export class SkillLoader {
    */
   static async fromDirectory(
     dir: string,
-    options: {recursive?: boolean} = {},
+    options: { recursive?: boolean } = {},
   ): Promise<MarkdownSkill[]> {
-    const {readdir, stat} = await import("node:fs/promises");
-    const {join, resolve} = await import("node:path");
+    const { readdir, stat } = await import("node:fs/promises");
+    const { join, resolve } = await import("node:path");
 
     const recursive = options.recursive ?? true;
     const skills: MarkdownSkill[] = [];
@@ -66,7 +66,11 @@ export class SkillLoader {
       for (const entry of entries) {
         const full = join(current, entry);
         let s;
-        try { s = await stat(full); } catch { continue; }
+        try {
+          s = await stat(full);
+        } catch {
+          continue;
+        }
 
         if (s.isDirectory()) {
           if (recursive) await walk(full);
@@ -91,7 +95,7 @@ export class SkillLoader {
    * Load skills from an explicit list of file paths.
    */
   static async fromFiles(filePaths: string[]): Promise<MarkdownSkill[]> {
-    const {resolve} = await import("node:path");
+    const { resolve } = await import("node:path");
     const results: MarkdownSkill[] = [];
 
     for (const fp of filePaths) {
@@ -109,22 +113,15 @@ export class SkillLoader {
    * Load skills from raw markdown source strings.
    * Useful for testing or browser environments where `fs` is unavailable.
    */
-  static fromSources(
-    sources: Array<{source: string; filePath?: string}>,
-  ): MarkdownSkill[] {
-    return sources.map(({source, filePath}) =>
-      MarkdownSkill.fromSource(source, filePath),
-    );
+  static fromSources(sources: Array<{ source: string; filePath?: string }>): MarkdownSkill[] {
+    return sources.map(({ source, filePath }) => MarkdownSkill.fromSource(source, filePath));
   }
 
   /**
    * Create a SkillRegistry populated with the given skills.
    * If `existingRegistry` is provided, skills are added to it.
    */
-  static toRegistry(
-    skills: IAgentSkill[],
-    existingRegistry?: SkillRegistry,
-  ): SkillRegistry {
+  static toRegistry(skills: IAgentSkill[], existingRegistry?: SkillRegistry): SkillRegistry {
     const registry = existingRegistry ?? new SkillRegistry();
     for (const skill of skills) {
       registry.register(skill);
@@ -137,7 +134,7 @@ export class SkillLoader {
    */
   static async registryFromDirectory(
     dir: string,
-    options?: {recursive?: boolean},
+    options?: { recursive?: boolean },
   ): Promise<SkillRegistry> {
     const skills = await SkillLoader.fromDirectory(dir, options);
     return SkillLoader.toRegistry(skills);

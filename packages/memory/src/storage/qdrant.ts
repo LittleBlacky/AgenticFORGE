@@ -1,5 +1,5 @@
-import {QdrantClient} from "@qdrant/js-client-rest";
-import type {VectorStoreAdapter} from "./types";
+import { QdrantClient } from "@qdrant/js-client-rest";
+import type { VectorStoreAdapter } from "./types";
 
 export interface QdrantVectorStoreOptions {
   url?: string;
@@ -53,13 +53,13 @@ export class QdrantVectorStore implements VectorStoreAdapter {
     vector: number[];
     limit: number;
     filter?: Record<string, unknown>;
-  }): Promise<Array<{id: string; score: number; payload: Record<string, unknown>}>> {
+  }): Promise<Array<{ id: string; score: number; payload: Record<string, unknown> }>> {
     await this.ensureCollection(params.vector.length);
     const qdrantFilter = params.filter
       ? buildQdrantFilter(
           Object.entries(params.filter)
             .filter(([, v]) => v !== undefined && v !== null)
-            .map(([key, value]) => ({key, value: value as FilterValue | FilterValue[]}))
+            .map(([key, value]) => ({ key, value: value as FilterValue | FilterValue[] })),
         )
       : undefined;
     const res = await this.client.search(this.collection, {
@@ -122,9 +122,9 @@ export type RangeCondition = {
   lt?: number;
   lte?: number;
 };
-export type GeoPoint = {lat: number; lon: number};
-export type GeoRadius = {center: GeoPoint; radius: number};
-export type GeoBoundingBox = {top_left: GeoPoint; bottom_right: GeoPoint};
+export type GeoPoint = { lat: number; lon: number };
+export type GeoRadius = { center: GeoPoint; radius: number };
+export type GeoBoundingBox = { top_left: GeoPoint; bottom_right: GeoPoint };
 
 export type FilterClause = {
   key: string;
@@ -137,21 +137,21 @@ export type FilterClause = {
 export type QdrantFilter = {
   must?: Array<{
     key: string;
-    match?: {value: FilterValue | FilterValue[]};
+    match?: { value: FilterValue | FilterValue[] };
     range?: RangeCondition;
     geo_radius?: GeoRadius;
     geo_bounding_box?: GeoBoundingBox;
   }>;
   should?: Array<{
     key: string;
-    match?: {value: FilterValue | FilterValue[]};
+    match?: { value: FilterValue | FilterValue[] };
     range?: RangeCondition;
     geo_radius?: GeoRadius;
     geo_bounding_box?: GeoBoundingBox;
   }>;
   must_not?: Array<{
     key: string;
-    match?: {value: FilterValue | FilterValue[]};
+    match?: { value: FilterValue | FilterValue[] };
     range?: RangeCondition;
     geo_radius?: GeoRadius;
     geo_bounding_box?: GeoBoundingBox;
@@ -195,12 +195,10 @@ export function buildQdrantFilter(
       key: clause.key,
       match: {
         value:
-          clause.operator === "in" && Array.isArray(clause.value)
-            ? clause.value
-            : clause.value,
+          clause.operator === "in" && Array.isArray(clause.value) ? clause.value : clause.value,
       },
     };
   });
 
-  return {[mode]: conditions};
+  return { [mode]: conditions };
 }

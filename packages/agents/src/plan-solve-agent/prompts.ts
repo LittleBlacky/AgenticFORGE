@@ -21,15 +21,11 @@ export function buildPlanPrompt(goal: string): string {
 }
 
 export function buildStepPrompt(stepDescription: string, context: string): string {
-  const contextSection = context
-    ? `\n\n已有上下文信息：\n${context}`
-    : "";
+  const contextSection = context ? `\n\n已有上下文信息：\n${context}` : "";
   return `请执行以下步骤：${stepDescription}${contextSection}`;
 }
 
 export function buildFinalPrompt(goal: string, results: string[]): string {
-  const resultsText = results
-    .map((r, i) => `步骤 ${i + 1} 结果：${r}`)
-    .join("\n");
+  const resultsText = results.map((r, i) => `步骤 ${i + 1} 结果：${r}`).join("\n");
   return `${FINAL_ANSWER_PROMPT}\n\n原始目标：${goal}\n\n${resultsText}\n\n请给出综合最终答案。`;
 }

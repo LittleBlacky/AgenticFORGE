@@ -20,13 +20,8 @@
  * ```
  */
 
-import type {MCPServer} from "./server";
-import type {
-  MCPToolInfo,
-  MCPResourceInfo,
-  MCPPromptInfo,
-  MCPPromptMessage,
-} from "./types";
+import type { MCPServer } from "./server";
+import type { MCPToolInfo, MCPResourceInfo, MCPPromptInfo, MCPPromptMessage } from "./types";
 
 export type MCPClientSource =
   | MCPServer // in-memory
@@ -85,22 +80,18 @@ export class MCPClient {
         };
       });
     }
-    const data = await this._get<{tools: MCPToolInfo[]}>("/tools");
+    const data = await this._get<{ tools: MCPToolInfo[] }>("/tools");
     return data.tools;
   }
 
-  async callTool(
-    toolName: string,
-    args: Record<string, unknown>,
-  ): Promise<string> {
+  async callTool(toolName: string, args: Record<string, unknown>): Promise<string> {
     this._ensureConnected();
     if (this._isInMemory()) {
       return (this.source as MCPServer).callTool(toolName, args);
     }
-    const data = await this._post<{data: string}>(
-      `/tools/${encodeURIComponent(toolName)}`,
-      {arguments: args},
-    );
+    const data = await this._post<{ data: string }>(`/tools/${encodeURIComponent(toolName)}`, {
+      arguments: args,
+    });
     return data.data;
   }
 
@@ -112,14 +103,14 @@ export class MCPClient {
     this._ensureConnected();
     if (this._isInMemory()) {
       const server = this.source as MCPServer;
-      return server.listResources().map(({uri, name, mimeType}) => ({
+      return server.listResources().map(({ uri, name, mimeType }) => ({
         uri,
         name,
         description: server.getResourceInfo(uri)?.description ?? "",
         mimeType,
       }));
     }
-    const data = await this._get<{resources: MCPResourceInfo[]}>("/resources");
+    const data = await this._get<{ resources: MCPResourceInfo[] }>("/resources");
     return data.resources;
   }
 
@@ -128,9 +119,7 @@ export class MCPClient {
     if (this._isInMemory()) {
       return (this.source as MCPServer).readResource(uri);
     }
-    const data = await this._get<{data: string}>(
-      `/resources/${encodeURIComponent(uri)}`,
-    );
+    const data = await this._get<{ data: string }>(`/resources/${encodeURIComponent(uri)}`);
     return data.data;
   }
 
@@ -151,7 +140,7 @@ export class MCPClient {
         };
       });
     }
-    const data = await this._get<{prompts: MCPPromptInfo[]}>("/prompts");
+    const data = await this._get<{ prompts: MCPPromptInfo[] }>("/prompts");
     return data.prompts;
   }
 
@@ -163,9 +152,9 @@ export class MCPClient {
     if (this._isInMemory()) {
       return (this.source as MCPServer).getPrompt(promptName, args);
     }
-    const data = await this._post<{data: MCPPromptMessage[]}>(
+    const data = await this._post<{ data: MCPPromptMessage[] }>(
       `/prompts/${encodeURIComponent(promptName)}`,
-      {arguments: args},
+      { arguments: args },
     );
     return data.data;
   }
@@ -187,12 +176,12 @@ export class MCPClient {
     }
   }
 
-  getTransportInfo(): {mode: "memory" | "http"; source: string} {
+  getTransportInfo(): { mode: "memory" | "http"; source: string } {
     if (this._isInMemory()) {
       const server = this.source as MCPServer;
-      return {mode: "memory", source: server.name};
+      return { mode: "memory", source: server.name };
     }
-    return {mode: "http", source: this.source as string};
+    return { mode: "http", source: this.source as string };
   }
 
   // ---------------------------------------------------------------------------
@@ -215,7 +204,7 @@ export class MCPClient {
     const baseUrl = (this.source as string).replace(/\/$/, "");
     const res = await fetch(`${baseUrl}${path}`, {
       method: "GET",
-      headers: {Accept: "application/json"},
+      headers: { Accept: "application/json" },
     });
     if (!res.ok) {
       const text = await res.text();
@@ -228,7 +217,7 @@ export class MCPClient {
     const baseUrl = (this.source as string).replace(/\/$/, "");
     const res = await fetch(`${baseUrl}${path}`, {
       method: "POST",
-      headers: {"Content-Type": "application/json", Accept: "application/json"},
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(body),
     });
     if (!res.ok) {

@@ -1,4 +1,4 @@
-import {ToolRegistry} from "./ToolRegistry";
+import type { ToolRegistry } from "./ToolRegistry";
 
 // ---------------------------------------------------------------------------
 // ToolChain step definition
@@ -38,7 +38,7 @@ export class ToolChain {
   }
 
   addStep(toolName: string, inputTemplate: string, outputKey: string): this {
-    this.steps.push({toolName, inputTemplate, outputKey});
+    this.steps.push({ toolName, inputTemplate, outputKey });
     return this;
   }
 
@@ -53,11 +53,11 @@ export class ToolChain {
    * @returns         The value stored under the last step's outputKey.
    */
   async execute(registry: ToolRegistry, input: string): Promise<string> {
-    const context: Record<string, string> = {input};
+    const context: Record<string, string> = { input };
 
     for (const step of this.steps) {
       const resolvedInput = interpolate(step.inputTemplate, context);
-      const result = await registry.execute(step.toolName, {input: resolvedInput});
+      const result = await registry.execute(step.toolName, { input: resolvedInput });
       context[step.outputKey] = result;
     }
 

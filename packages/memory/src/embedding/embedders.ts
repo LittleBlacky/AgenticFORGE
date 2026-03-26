@@ -63,26 +63,18 @@ export class OpenAITextEmbedder implements TextEmbedder {
 
   constructor(options: OpenAITextEmbedderOptions = {}) {
     const model = options.model ?? process.env.EMBEDDING_MODEL_ID;
-    const apiKey =
-      options.apiKey ??
-      process.env.EMBEDDING_API_KEY ??
-      process.env.LLM_API_KEY;
-    const baseURL =
-      options.baseURL ??
-      process.env.EMBEDDING_BASE_URL ??
-      process.env.LLM_BASE_URL;
-    const timeoutMs =
-      options.timeoutMs ??
-      Number(process.env.EMBEDDING_TIMEOUT ?? 60) * 1000;
+    const apiKey = options.apiKey ?? process.env.EMBEDDING_API_KEY ?? process.env.LLM_API_KEY;
+    const baseURL = options.baseURL ?? process.env.EMBEDDING_BASE_URL ?? process.env.LLM_BASE_URL;
+    const timeoutMs = options.timeoutMs ?? Number(process.env.EMBEDDING_TIMEOUT ?? 60) * 1000;
 
     if (!model || !apiKey || !baseURL) {
       throw new Error(
-        "EMBEDDING_MODEL_ID, EMBEDDING_API_KEY, EMBEDDING_BASE_URL 必须在参数或 .env 中提供"
+        "EMBEDDING_MODEL_ID, EMBEDDING_API_KEY, EMBEDDING_BASE_URL 必须在参数或 .env 中提供",
       );
     }
 
     this.model = model;
-    this.client = new OpenAI({apiKey, baseURL, timeout: timeoutMs});
+    this.client = new OpenAI({ apiKey, baseURL, timeout: timeoutMs });
   }
 
   async encode(text: string | string[]): Promise<number[] | number[][]> {

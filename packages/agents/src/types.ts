@@ -1,4 +1,4 @@
-import type {Message} from "@agenticforge/core";
+import type { Message } from "@agenticforge/core";
 
 export interface AgentRunOptions {
   temperature?: number;

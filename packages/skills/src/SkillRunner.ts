@@ -1,6 +1,6 @@
-import type {LLMClient, Config} from "@agenticforge/core";
-import type {IAgentSkill, SkillContext, SkillResult} from "./types";
-import {SkillRegistry} from "./SkillRegistry";
+import type { LLMClient, Config } from "@agenticforge/core";
+import type { IAgentSkill, SkillContext, SkillResult } from "./types";
+import { SkillRegistry } from "./SkillRegistry";
 
 // ---------------------------------------------------------------------------
 // SkillAgent
@@ -102,7 +102,7 @@ export class SkillRunner {
       .replace("{skills}", this.skillRegistry.describeAll())
       .replace("{query}", query);
 
-    const raw = (await this.llm.think([{role: "user", content: prompt}])).trim().toLowerCase();
+    const raw = (await this.llm.think([{ role: "user", content: prompt }])).trim().toLowerCase();
 
     return (
       this.skillRegistry.get(raw) ??
@@ -123,7 +123,7 @@ export class SkillRunner {
     options?: {
       skillName?: string;
       metadata?: Record<string, unknown>;
-      history?: Array<{role: "user" | "assistant" | "system"; content: string}>;
+      history?: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     },
   ): Promise<SkillResult> {
     let skill: IAgentSkill | undefined;
@@ -141,11 +141,11 @@ export class SkillRunner {
 
     if (!skill) {
       const output = await this.llm.think([
-        {role: "system", content: this.fallbackPrompt},
+        { role: "system", content: this.fallbackPrompt },
         ...(options?.history ?? []),
-        {role: "user", content: query},
+        { role: "user", content: query },
       ]);
-      return {output};
+      return { output };
     }
 
     const context: SkillContext = {
@@ -165,9 +165,9 @@ export class SkillRunner {
     query: string,
     options?: {
       metadata?: Record<string, unknown>;
-      history?: Array<{role: "user" | "assistant" | "system"; content: string}>;
+      history?: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     },
   ): Promise<SkillResult> {
-    return this.run(query, {skillName, ...options});
+    return this.run(query, { skillName, ...options });
   }
 }

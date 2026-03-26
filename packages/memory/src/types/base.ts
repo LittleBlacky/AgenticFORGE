@@ -1,4 +1,4 @@
-import {randomUUID} from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 export type MemoryType = "working" | "episodic" | "semantic" | "perceptual";
 
@@ -38,7 +38,7 @@ export abstract class BaseMemory {
   protected readonly config: MemoryConfig;
 
   protected constructor(config: Partial<MemoryConfig> = {}) {
-    this.config = {...DEFAULT_MEMORY_CONFIG, ...config};
+    this.config = { ...DEFAULT_MEMORY_CONFIG, ...config };
   }
 
   abstract add(memoryItem: MemoryItem): Promise<string>;
@@ -65,11 +65,7 @@ export abstract class BaseMemory {
   protected calculateImportance(content: string, baseImportance = 0.5): number {
     let importance = baseImportance;
     if (content.length > 100) importance += 0.1;
-    if (
-      ["重要", "关键", "必须", "注意", "警告", "错误"].some((k) =>
-        content.includes(k),
-      )
-    ) {
+    if (["重要", "关键", "必须", "注意", "警告", "错误"].some((k) => content.includes(k))) {
       importance += 0.2;
     }
     return Math.max(0, Math.min(1, importance));

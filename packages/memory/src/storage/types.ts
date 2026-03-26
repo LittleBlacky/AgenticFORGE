@@ -1,4 +1,4 @@
-import type {MemoryItem} from "../types/base";
+import type { MemoryItem } from "../types/base";
 
 export type PrimitiveValue = string | number | boolean | null;
 export type PrimitiveArray = PrimitiveValue[];
@@ -27,7 +27,7 @@ export interface KVStoreAdapter<T> {
   put(id: string, item: T): Promise<void>;
   get(id: string): Promise<T | null>;
   delete(id: string): Promise<void>;
-  list(params?: {limit?: number; filter?: Record<string, unknown>}): Promise<T[]>;
+  list(params?: { limit?: number; filter?: Record<string, unknown> }): Promise<T[]>;
   clear?(): Promise<void>;
   health?(): Promise<boolean>;
 }
@@ -42,7 +42,7 @@ export interface VectorStoreAdapter {
     vector: number[];
     limit: number;
     filter?: Record<string, unknown>;
-  }): Promise<Array<{id: string; score: number; payload: Record<string, unknown>}>>;
+  }): Promise<Array<{ id: string; score: number; payload: Record<string, unknown> }>>;
   deleteVector(id: string): Promise<void>;
   clear?(): Promise<void>;
   health?(): Promise<boolean>;
@@ -54,7 +54,7 @@ export interface GraphStoreAdapter {
   queryGraph(params: {
     queryText: string;
     limit: number;
-  }): Promise<Array<{entityId: string; score: number}>>;
+  }): Promise<Array<{ entityId: string; score: number }>>;
   deleteByMemoryId(memoryId: string): Promise<void>;
   clear?(): Promise<void>;
   health?(): Promise<boolean>;
