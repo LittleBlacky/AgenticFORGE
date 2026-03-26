@@ -1,5 +1,4 @@
-import { Agent } from "@agenticforge/core";
-import { Message } from "@agenticforge/core";
+import { Agent, createAgentMessage } from "@agenticforge/core";
 import type { ToolRegistry } from "@agenticforge/tools";
 import type { AgentStep } from "../types";
 
@@ -94,8 +93,8 @@ export class ReActAgent extends Agent {
         if (finalMatch) {
           const answer = finalMatch[1]!.trim();
           this.steps.push({ thought: raw, isFinal: true, finalAnswer: answer });
-          this.addMessage(new Message({ role: "user", content: inputText }));
-          this.addMessage(new Message({ role: "assistant", content: answer }));
+          this.addMessage(createAgentMessage("user", inputText));
+          this.addMessage(createAgentMessage("assistant", answer));
           await this.emitHook("afterRun", {
             traceId,
             inputText,
@@ -145,8 +144,8 @@ export class ReActAgent extends Agent {
           });
         } else {
           this.steps.push({ thought: raw, isFinal: true, finalAnswer: raw });
-          this.addMessage(new Message({ role: "user", content: inputText }));
-          this.addMessage(new Message({ role: "assistant", content: raw }));
+          this.addMessage(createAgentMessage("user", inputText));
+          this.addMessage(createAgentMessage("assistant", raw));
           await this.emitHook("afterRun", {
             traceId,
             inputText,
@@ -159,8 +158,8 @@ export class ReActAgent extends Agent {
 
       const lastStep = this.steps[this.steps.length - 1];
       const fallback = lastStep?.finalAnswer ?? lastStep?.observation ?? inputText;
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: fallback }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", fallback));
       await this.emitHook("afterRun", {
         traceId,
         inputText,
@@ -281,7 +280,7 @@ export class ReActAgent extends Agent {
       yield chunk;
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: fullResponse || finalAnswer }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", fullResponse || finalAnswer));
   }
 }

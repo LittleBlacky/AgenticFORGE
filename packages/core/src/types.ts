@@ -14,8 +14,10 @@ export interface LLMOptions {
   timeoutMs?: number;
 }
 
+export type MessageRole = "user" | "assistant" | "system" | "tool";
+
 export interface LLMMessage {
-  role: "system" | "user" | "assistant" | "tool";
+  role: MessageRole;
   content: string;
   /** 思考模型（DeepSeek R1、Claude 等）的 thinking token，仅在流式响应中填充 */
   reasoning_content?: string;

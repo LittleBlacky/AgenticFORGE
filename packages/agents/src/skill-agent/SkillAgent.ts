@@ -1,4 +1,4 @@
-import { Agent, Message } from "@agenticforge/core";
+import { Agent, Message, createAgentMessage } from "@agenticforge/core";
 import type { LLMClient, Config } from "@agenticforge/core";
 import { SkillRegistry, SkillDispatcher } from "@agenticforge/skills";
 import type { IAgentSkill, SkillContext, SkillResult } from "@agenticforge/skills";
@@ -92,8 +92,8 @@ export class SkillAgent extends Agent {
     options?: { skillName?: string; metadata?: Record<string, unknown> },
   ): Promise<string> {
     const result = await this.runInternal(inputText, options);
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: result.output }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", result.output));
     return result.output;
   }
 
@@ -136,8 +136,8 @@ export class SkillAgent extends Agent {
         full += chunk;
         yield chunk;
       }
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: full }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", full));
       return;
     }
 
@@ -147,8 +147,8 @@ export class SkillAgent extends Agent {
       history: this.getHistoryMessages(),
     };
     const result = await skill.execute(context, this.llm);
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: result.output }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", result.output));
     yield result.output;
   }
 

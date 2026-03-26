@@ -1,4 +1,4 @@
-import { Message } from "@agenticforge/core";
+import { Message, createAgentMessage } from "@agenticforge/core";
 import type { Agent } from "@agenticforge/core";
 import { SkillRegistry, SkillDispatcher, SkillLoader } from "@agenticforge/skills";
 import type { IAgentSkill, SkillContext, SkillDispatcherOptions } from "@agenticforge/skills";
@@ -108,8 +108,8 @@ export function withSkills<TBase extends ConcreteAgentConstructor>(
             })),
           };
           const result = await skill.execute(context, agent.llm);
-          agent.addMessage(new Message({ role: "user", content: inputText }));
-          agent.addMessage(new Message({ role: "assistant", content: result.output }));
+          agent.addMessage(createAgentMessage("user", inputText));
+          agent.addMessage(createAgentMessage("assistant", result.output));
           return result.output;
         }
       }

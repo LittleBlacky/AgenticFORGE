@@ -1,9 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { Agent } from "../../packages/core/src/agent";
-import { Message } from "../../packages/core/src/message";
+import { createAgentMessage } from "../../packages/core/src/message";
 import { SimpleAgent } from "../../packages/agents/src/simple-agent/SimpleAgent";
-import { ContextBuilder, fromMemoryEmbedder, type ContextPacket } from "../../packages/context/src/ContextBuilder";
+import {
+  ContextBuilder,
+  fromMemoryEmbedder,
+  type ContextPacket,
+} from "../../packages/context/src/ContextBuilder";
 
 class TestAgent extends Agent {
   async run(inputText: string): Promise<string> {
@@ -125,7 +129,9 @@ describe("SimpleAgent branch coverage boost", () => {
       enableToolCalling: true,
     });
 
-    await expect(agent.run("q")).rejects.toThrow("LLMClient does not expose underlying OpenAI client");
+    await expect(agent.run("q")).rejects.toThrow(
+      "LLMClient does not expose underlying OpenAI client",
+    );
   });
 
   it("streamRun() handles tool execution error branch", async () => {
@@ -226,7 +232,7 @@ describe("ContextBuilder branch coverage boost", () => {
       userQuery: "q",
       systemInstructions: "sys",
       additionalPackets: packets,
-      conversationHistory: [new Message({ role: "user", content: "hello" }).toDict() as any],
+      conversationHistory: [{ role: "user" as const, content: "hello" }],
     });
 
     expect(ctx.structuredSystem).toContain("[State]");

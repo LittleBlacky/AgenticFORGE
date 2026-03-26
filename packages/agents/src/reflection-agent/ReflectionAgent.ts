@@ -1,5 +1,4 @@
-import { Agent } from "@agenticforge/core";
-import { Message } from "@agenticforge/core";
+import { Agent, createAgentMessage } from "@agenticforge/core";
 import { ReflectionMemory } from "./Memory";
 
 export interface ReflectionAgentOptions {
@@ -71,8 +70,8 @@ export class ReflectionAgent extends Agent {
       draft = revision;
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: draft }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", draft));
     return draft;
   }
 
@@ -153,7 +152,7 @@ export class ReflectionAgent extends Agent {
     }
 
     this.memory.add({ draft, critique, revision: fullResponse, round: totalRounds });
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: fullResponse }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", fullResponse));
   }
 }

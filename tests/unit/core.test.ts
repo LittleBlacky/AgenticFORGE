@@ -3,7 +3,13 @@
  * 覆盖：Message, Agent(基类), LLMClient(mock)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Message } from "../../packages/core/src/message";
+import {
+  Message,
+  AgentMessage,
+  createAgentMessage,
+  formatMessage,
+  toLLMMessage,
+} from "../../packages/core/src/message";
 import { Agent } from "../../packages/core/src/agent";
 import { Config } from "../../packages/core/src/config";
 import { z } from "zod";
@@ -14,8 +20,8 @@ import { z } from "zod";
 class TestAgent extends Agent {
   async run(inputText: string): Promise<string> {
     const response = await this.llm.think([{ role: "user", content: inputText }]);
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: response }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", response));
     return response;
   }
 }
@@ -35,38 +41,38 @@ function makeMockLLM(response = "mocked response") {
 }
 
 // ===========================================================================
-// Message
+// Message / AgentMessage
 // ===========================================================================
-describe("Message", () => {
-  it("constructs with required fields", () => {
-    const msg = new Message({ role: "user", content: "hello" });
+describe("Message (AgentMessage interface + helpers)", () => {
+  it("createAgentMessage creates with required fields", () => {
+    const msg = createAgentMessage("user", "hello");
     expect(msg.role).toBe("user");
     expect(msg.content).toBe("hello");
     expect(msg.timestamp).toBeInstanceOf(Date);
     expect(msg.metadata).toEqual({});
   });
 
-  it("accepts optional timestamp and metadata", () => {
+  it("createAgentMessage accepts optional timestamp and metadata", () => {
     const ts = new Date("2024-01-01");
     const meta = { sessionId: "abc" };
-    const msg = new Message({ role: "assistant", content: "hi", timestamp: ts, metadata: meta });
+    const msg = createAgentMessage("assistant", "hi", meta, ts);
     expect(msg.timestamp).toBe(ts);
     expect(msg.metadata).toEqual(meta);
   });
 
-  it("toDict returns role and content", () => {
-    const msg = new Message({ role: "system", content: "sys" });
-    expect(msg.toDict()).toEqual({ role: "system", content: "sys" });
+  it("toLLMMessage returns role and content only", () => {
+    const msg = createAgentMessage("system", "sys");
+    expect(toLLMMessage(msg)).toEqual({ role: "system", content: "sys" });
   });
 
-  it("toString formats correctly", () => {
-    const msg = new Message({ role: "user", content: "test" });
-    expect(msg.toString()).toBe("[user] test");
+  it("formatMessage formats correctly", () => {
+    const msg = createAgentMessage("user", "test");
+    expect(formatMessage(msg)).toBe("[user] test");
   });
 
   it("supports all valid roles", () => {
     for (const role of ["user", "assistant", "system", "tool"] as const) {
-      const msg = new Message({ role, content: "x" });
+      const msg = createAgentMessage(role, "x");
       expect(msg.role).toBe(role);
     }
   });
@@ -112,8 +118,8 @@ describe("Agent (base class)", () => {
   });
 
   it("addMessage() appends to history", () => {
-    agent.addMessage(new Message({ role: "user", content: "a" }));
-    agent.addMessage(new Message({ role: "assistant", content: "b" }));
+    agent.addMessage(createAgentMessage("user", "a"));
+    agent.addMessage(createAgentMessage("assistant", "b"));
     expect(agent.getHistory()).toHaveLength(2);
   });
 
@@ -124,7 +130,7 @@ describe("Agent (base class)", () => {
   });
 
   it("getHistory() returns a copy, not the internal reference", () => {
-    agent.addMessage(new Message({ role: "user", content: "x" }));
+    agent.addMessage(createAgentMessage("user", "x"));
     const h1 = agent.getHistory();
     const h2 = agent.getHistory();
     expect(h1).not.toBe(h2); // different array instances
@@ -236,8 +242,8 @@ describe("Agent.streamRun() (base class)", () => {
       model: "mock",
     } as any;
     const agent = new TestAgent({ name: "s", llm: mockLLM, systemPrompt: "be helpful" });
-    agent.addMessage(new Message({ role: "user", content: "prev" }));
-    agent.addMessage(new Message({ role: "assistant", content: "sure" }));
+    agent.addMessage(createAgentMessage("user", "prev"));
+    agent.addMessage(createAgentMessage("assistant", "sure"));
     for await (const _ of agent.streamRun("new question")) {
       /* consume */
     }

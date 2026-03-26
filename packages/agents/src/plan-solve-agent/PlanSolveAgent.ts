@@ -1,5 +1,4 @@
-import { Agent } from "@agenticforge/core";
-import { Message } from "@agenticforge/core";
+import { Agent, createAgentMessage } from "@agenticforge/core";
 import type { ToolRegistry } from "@agenticforge/tools";
 import { type Plan, createPlan, markStepDone, markStepFailed, getCompletedResults } from "./Plan";
 import { buildPlanPrompt, buildFinalPrompt, PLAN_SYSTEM_PROMPT } from "./prompts";
@@ -129,8 +128,8 @@ export class PlanSolveAgent extends Agent {
         llmResponse: { phase: "final", finalAnswer },
       });
 
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: finalAnswer }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", finalAnswer));
       await this.emitHook("afterRun", {
         traceId,
         inputText,
@@ -202,8 +201,8 @@ export class PlanSolveAgent extends Agent {
       yield chunk;
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: fullResponse }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", fullResponse));
   }
 
   private parsePlan(goal: string, raw: string): Plan {

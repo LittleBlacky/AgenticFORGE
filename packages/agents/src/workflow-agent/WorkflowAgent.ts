@@ -1,4 +1,4 @@
-import { Agent, Message } from "@agenticforge/core";
+import { Agent, Message, createAgentMessage } from "@agenticforge/core";
 import type { ToolRegistry } from "@agenticforge/tools";
 import { WorkflowEngine } from "@agenticforge/workflow";
 import type { WorkflowDefinition, WorkflowResult } from "@agenticforge/workflow";
@@ -109,8 +109,8 @@ export class WorkflowAgent extends Agent {
    */
   async runWorkflow(definition: WorkflowDefinition, input: string): Promise<WorkflowResult> {
     const result = await this.engine.execute(definition, input);
-    this.addMessage(new Message({ role: "user", content: input }));
-    this.addMessage(new Message({ role: "assistant", content: result.output }));
+    this.addMessage(createAgentMessage("user", input));
+    this.addMessage(createAgentMessage("assistant", result.output));
     return result;
   }
 

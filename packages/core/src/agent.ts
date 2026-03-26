@@ -1,4 +1,5 @@
-import { Message } from "./message";
+import type { AgentMessage, LLMMessage } from "./message";
+import { createAgentMessage } from "./message";
 import type { LLMClient } from "./llm";
 import { Config } from "./config";
 import { z, type ZodType } from "zod";
@@ -10,7 +11,7 @@ export abstract class Agent {
   protected readonly llm: LLMClient;
   protected readonly systemPrompt?: string;
   protected readonly config: Config;
-  protected readonly history: Message[] = [];
+  protected readonly history: AgentMessage[] = [];
   private readonly hooks: AgentHook[] = [];
 
   constructor(params: { name: string; llm: LLMClient; systemPrompt?: string; config?: Config }) {
@@ -43,7 +44,7 @@ export abstract class Agent {
       metadata: { mode: "stream" },
     });
 
-    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+    const messages: LLMMessage[] = [];
     if (this.systemPrompt) {
       messages.push({ role: "system", content: this.systemPrompt });
     }
@@ -73,8 +74,8 @@ export abstract class Agent {
         llmResponse: { outputText: fullResponse, mode: "stream" },
       });
 
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: fullResponse }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", fullResponse));
 
       await this.emitHook("afterRun", {
         traceId,
@@ -152,7 +153,7 @@ export abstract class Agent {
   }
 
   /** 添加消息到历史记录 */
-  addMessage(message: Message): void {
+  addMessage(message: AgentMessage): void {
     this.history.push(message);
   }
 
@@ -162,7 +163,7 @@ export abstract class Agent {
   }
 
   /** 获取历史记录 */
-  getHistory(): Message[] {
+  getHistory(): AgentMessage[] {
     return [...this.history];
   }
 

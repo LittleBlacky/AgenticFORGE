@@ -1,4 +1,4 @@
-import { Agent, Message, ToolCallExecutor } from "@agenticforge/core";
+import { Agent, Message, ToolCallExecutor, createAgentMessage } from "@agenticforge/core";
 import type { ChatMessage } from "@agenticforge/core";
 import { Tool, type FunctionTool, type OpenAIFunctionSchema } from "@agenticforge/tools";
 import { ToolRegistry } from "@agenticforge/tools";
@@ -225,8 +225,8 @@ export class FunctionCallAgent extends Agent {
         llmResponse: { outputText: result.output },
       });
 
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: result.output }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", result.output));
 
       await this.emitHook("afterRun", {
         traceId,
@@ -277,8 +277,8 @@ export class FunctionCallAgent extends Agent {
       yield chunk;
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: full }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", full));
   }
 
   // ---------------------------------------------------------------------------

@@ -1,5 +1,4 @@
-import { Agent } from "@agenticforge/core";
-import { Message } from "@agenticforge/core";
+import { Agent, createAgentMessage } from "@agenticforge/core";
 import {
   COT_SYSTEM_PROMPT,
   buildCotPrompt,
@@ -91,8 +90,8 @@ export class COTAgent extends Agent {
         this.printTrace(parsed);
       }
 
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: parsed.finalAnswer }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", parsed.finalAnswer));
 
       await this.emitHook("afterRun", {
         traceId,
@@ -163,8 +162,8 @@ export class COTAgent extends Agent {
       this.printTrace(parsed);
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: parsed.finalAnswer }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", parsed.finalAnswer));
 
     await this.emitHook("afterRun", {
       traceId,

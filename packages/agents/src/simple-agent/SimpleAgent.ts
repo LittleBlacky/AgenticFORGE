@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Agent, Message, ToolCallExecutor } from "@agenticforge/core";
+import { Agent, Message, ToolCallExecutor, createAgentMessage } from "@agenticforge/core";
 import type { FunctionTool } from "@agenticforge/tools";
 import { ToolRegistry } from "@agenticforge/tools";
 
@@ -103,8 +103,8 @@ export class SimpleAgent extends Agent {
         llmResponse: { outputText: result.output },
       });
 
-      this.addMessage(new Message({ role: "user", content: inputText }));
-      this.addMessage(new Message({ role: "assistant", content: result.output }));
+      this.addMessage(createAgentMessage("user", inputText));
+      this.addMessage(createAgentMessage("assistant", result.output));
 
       await this.emitHook("afterRun", {
         traceId,
@@ -151,8 +151,8 @@ export class SimpleAgent extends Agent {
       yield chunk;
     }
 
-    this.addMessage(new Message({ role: "user", content: inputText }));
-    this.addMessage(new Message({ role: "assistant", content: full }));
+    this.addMessage(createAgentMessage("user", inputText));
+    this.addMessage(createAgentMessage("assistant", full));
   }
 }
 
