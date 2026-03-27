@@ -1,0 +1,10 @@
+echo "[pre-push] 运行 lint 检查..."
+pnpm lint
+
+echo "[pre-push] 运行 typecheck..."
+pnpm typecheck
+
+echo "[pre-push] 运行测试..."
+pnpm test
+
+echo "[pre-push] 全部检查通过，允许 push."
