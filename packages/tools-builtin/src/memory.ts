@@ -123,13 +123,12 @@ export class MemoryTool extends Tool {
   }
 
   async run(parameters: Record<string, unknown>): Promise<string> {
-    const validation = this.validateAndNormalizeParameters(parameters);
-    if (!validation.success) {
-      return `❌ 参数验证失败: ${(validation as { success: false; error: string }).error}`;
-    }
+    const action = String(parameters.action ?? "") as MemoryAction;
 
-    const action = String(validation.data.action ?? "") as MemoryAction;
-    const actionValidation = this.validateActionParameters(action, validation.data);
+    // Validate action-specific parameters using strict per-action Zod schemas.
+    // We pass the original parameters so .strict() schemas don't reject
+    // unrelated fields that were normalized by the base-class validation.
+    const actionValidation = this.validateActionParameters(action, parameters);
 
     if (!actionValidation.success) {
       return `❌ 参数验证失败: ${(actionValidation as { success: false; error: string }).error}`;
@@ -620,7 +619,7 @@ export class MemoryTool extends Tool {
           action: z.literal("forget"),
           strategy: z.string().optional(),
           threshold: z.number().min(0).max(1).optional(),
-          max_age_days: z.number().int().min(1).optional(),
+          max_age_days: z.number().int().min(0).optional(),
         })
         .strict(),
       consolidate: z

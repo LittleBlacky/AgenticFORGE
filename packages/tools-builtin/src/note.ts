@@ -526,7 +526,7 @@ export class NoteTool extends Tool {
       `类型: ${note.type}`,
     ];
 
-    if (note.tags.length) {
+    if (note.tags?.length) {
       lines.push(`标签: ${note.tags.join(", ")}`);
     }
 
