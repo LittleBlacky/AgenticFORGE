@@ -38,6 +38,7 @@ export default defineConfig({
       "@agenticforge/workflow": resolve("packages/workflow/src/index.ts"),
       "@agenticforge/skills": resolve("packages/skills/src/index.ts"),
       "@agenticforge/utils": resolve("packages/utils/src/index.ts"),
+      "@agenticforge/tools-builtin": resolve("packages/tools-builtin/src/index.ts"),
       "@agenticforge/kit": resolve("packages/kit/src/index.ts"),
     },
   },
