@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/skills",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Agent Skills system for AgenticFORGE - composable, routable agent capability units",
   "type": "module",
   "sideEffects": false,

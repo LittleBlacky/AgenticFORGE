@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/protocols",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP / A2A / ANP protocol implementations for AgenticFORGE",
   "type": "module",
   "sideEffects": false,

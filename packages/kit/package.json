@@ -1,6 +1,6 @@
 {
   "name": "@agenticforge/kit",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "All-in-one AgenticFORGE bundle",
   "type": "module",
   "sideEffects": false,
@@ -14,7 +14,9 @@
       "require": "./dist/cjs/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "clean": "rimraf dist",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -55,8 +57,17 @@
   },
   "license": "CC-BY-NC-SA-4.0",
   "keywords": [
-    "agenticforge", "agent", "ai", "llm", "typescript",
-    "kit", "all-in-one", "bundle", "react-agent",
-    "function-call-agent", "memory", "rag"
+    "agenticforge",
+    "agent",
+    "ai",
+    "llm",
+    "typescript",
+    "kit",
+    "all-in-one",
+    "bundle",
+    "react-agent",
+    "function-call-agent",
+    "memory",
+    "rag"
   ]
 }
