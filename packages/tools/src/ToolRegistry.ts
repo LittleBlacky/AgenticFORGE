@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Tool } from "./Tool";
 import { type FunctionTool, type OpenAIFunctionSchema } from "./Tool";
 
@@ -70,11 +71,22 @@ export class ToolRegistry {
   async execute(name: string, parameters: Record<string, unknown>): Promise<string> {
     const tool = this.tools.get(name);
     if (tool) {
-      return await tool.run(parameters);
+      const validation = tool.validateAndNormalizeParameters(parameters);
+      if (!validation.success) {
+        return `Error: ${validation.error}`;
+      }
+      return await tool.run(validation.data);
     }
 
     const fn = this.functions.get(name);
     if (fn) {
+      if (fn.schema) {
+        const result = fn.schema.safeParse(parameters);
+        if (!result.success) {
+          return `Error: ${result.error.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ")}`;
+        }
+        return await fn.func(result.data as Record<string, unknown>);
+      }
       return await fn.func(parameters);
     }
 
@@ -108,18 +120,21 @@ export class ToolRegistry {
     }
 
     for (const fn of this.functions.values()) {
+      let parameters: Record<string, unknown> = {
+        type: "object",
+        properties: { input: { type: "string", description: "输入文本" } },
+        required: ["input"],
+      };
+      if (fn.schema) {
+        try {
+          parameters = z.toJSONSchema(fn.schema, { target: "draft-7" }) as Record<string, unknown>;
+        } catch {
+          // 降级使用默认 schema
+        }
+      }
       schemas.push({
         type: "function",
-        function: {
-          name: fn.name,
-          description: fn.description,
-          parameters: {
-            type: "object",
-            properties: {
-              input: { type: "string", description: "输入文本" },
-            },
-          },
-        },
+        function: { name: fn.name, description: fn.description, parameters },
       });
     }
 

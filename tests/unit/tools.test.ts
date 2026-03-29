@@ -11,29 +11,45 @@ import type { ToolParameter } from "../../packages/tools/src/types";
 import { z } from "zod";
 
 class EchoTool extends Tool {
-  constructor() { super("echo", "Echoes input"); }
+  constructor() {
+    super("echo", "Echoes input");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? ""); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "");
+  }
 }
 
 class UpperTool extends Tool {
-  constructor() { super("upper", "Uppercases"); }
+  constructor() {
+    super("upper", "Uppercases");
+  }
   getParameters(): ToolParameter[] {
     return [{ name: "input", type: "string", description: "text", required: true, default: null }];
   }
-  async run(p: Record<string, unknown>) { return String(p.input ?? "").toUpperCase(); }
+  async run(p: Record<string, unknown>) {
+    return String(p.input ?? "").toUpperCase();
+  }
 }
 
 class FailTool extends Tool {
-  constructor() { super("fail", "Always fails"); }
-  getParameters(): ToolParameter[] { return []; }
-  async run(_: Record<string, unknown>): Promise<string> { throw new Error("deliberate failure"); }
+  constructor() {
+    super("fail", "Always fails");
+  }
+  getParameters(): ToolParameter[] {
+    return [];
+  }
+  async run(_: Record<string, unknown>): Promise<string> {
+    throw new Error("deliberate failure");
+  }
 }
 
 class TypedTool extends Tool {
-  constructor() { super("typed", "Typed params"); }
+  constructor() {
+    super("typed", "Typed params");
+  }
   getParameters(): ToolParameter[] {
     return [
       { name: "name", type: "string", description: "str", required: true, default: null },
@@ -41,7 +57,9 @@ class TypedTool extends Tool {
       { name: "flag", type: "boolean", description: "bool", required: false, default: false },
     ];
   }
-  async run(p: Record<string, unknown>) { return JSON.stringify(p); }
+  async run(p: Record<string, unknown>) {
+    return JSON.stringify(p);
+  }
 }
 
 // ===========================================================================
@@ -49,7 +67,9 @@ class TypedTool extends Tool {
 // ===========================================================================
 describe("Tool", () => {
   let echo: EchoTool;
-  beforeEach(() => { echo = new EchoTool(); });
+  beforeEach(() => {
+    echo = new EchoTool();
+  });
 
   it("has correct name and description", () => {
     expect(echo.name).toBe("echo");
@@ -123,11 +143,169 @@ describe("Tool", () => {
 });
 
 // ===========================================================================
+// Tool — Zod 校验增强
+// ===========================================================================
+describe("Tool — Zod validation", () => {
+  it("coerces number string to number for number-typed param", () => {
+    class NumTool extends Tool {
+      constructor() {
+        super("num", "num");
+      }
+      getParameters(): ToolParameter[] {
+        return [{ name: "count", type: "number", description: "n", required: true, default: null }];
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.count);
+      }
+    }
+    const r = new NumTool().validateAndNormalizeParameters({ count: "42" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.count).toBe(42);
+  });
+
+  it("coerces boolean string to boolean for boolean-typed param", () => {
+    class BoolTool extends Tool {
+      constructor() {
+        super("bool", "bool");
+      }
+      getParameters(): ToolParameter[] {
+        return [{ name: "flag", type: "boolean", description: "f", required: true, default: null }];
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.flag);
+      }
+    }
+    const r = new BoolTool().validateAndNormalizeParameters({ flag: "true" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.flag).toBe(true);
+  });
+
+  it("returns error with field path when required param missing", () => {
+    class MultiTool extends Tool {
+      constructor() {
+        super("multi", "multi");
+      }
+      getParameters(): ToolParameter[] {
+        return [
+          { name: "a", type: "string", description: "a", required: true, default: null },
+          { name: "b", type: "string", description: "b", required: true, default: null },
+        ];
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.a);
+      }
+    }
+    const r = new MultiTool().validateAndNormalizeParameters({ a: "hello" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error).toContain("b");
+  });
+
+  it("zodSchema() override takes precedence over auto-built schema", () => {
+    class UrlTool extends Tool {
+      constructor() {
+        super("url", "url");
+      }
+      getParameters(): ToolParameter[] {
+        return [{ name: "url", type: "string", description: "url", required: true, default: null }];
+      }
+      protected zodSchema() {
+        return z.object({ url: z.string().url() });
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.url);
+      }
+    }
+    const tool = new UrlTool();
+    expect(tool.validateAndNormalizeParameters({ url: "not-a-url" }).success).toBe(false);
+    expect(tool.validateAndNormalizeParameters({ url: "https://example.com" }).success).toBe(true);
+  });
+
+  it("fills optional param with default when missing", () => {
+    class DefaultTool extends Tool {
+      constructor() {
+        super("def", "def");
+      }
+      getParameters(): ToolParameter[] {
+        return [
+          { name: "lang", type: "string", description: "lang", required: false, default: "en" },
+        ];
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.lang);
+      }
+    }
+    const r = new DefaultTool().validateAndNormalizeParameters({});
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.lang).toBe("en");
+  });
+});
+
+// ===========================================================================
+// ToolRegistry — execute with validation
+// ===========================================================================
+describe("ToolRegistry — execute validation", () => {
+  it("execute() returns error string when required param missing", async () => {
+    const registry = new ToolRegistry();
+    class StrictTool extends Tool {
+      constructor() {
+        super("strict", "strict");
+      }
+      getParameters(): ToolParameter[] {
+        return [
+          { name: "name", type: "string", description: "name", required: true, default: null },
+        ];
+      }
+      async run(p: Record<string, unknown>) {
+        return String(p.name);
+      }
+    }
+    registry.registerTool(new StrictTool());
+    const result = await registry.execute("strict", {});
+    expect(result).toMatch(/^Error:/);
+    expect(result).toContain("name");
+  });
+
+  it("execute() passes coerced params to run()", async () => {
+    const registry = new ToolRegistry();
+    class CoerceTool extends Tool {
+      constructor() {
+        super("coerce", "coerce");
+      }
+      getParameters(): ToolParameter[] {
+        return [{ name: "count", type: "number", description: "n", required: true, default: null }];
+      }
+      async run(p: Record<string, unknown>) {
+        return typeof p.count;
+      }
+    }
+    registry.registerTool(new CoerceTool());
+    const result = await registry.execute("coerce", { count: "7" });
+    expect(result).toBe("number");
+  });
+
+  it("execute() validates FunctionTool with Zod schema", async () => {
+    const registry = new ToolRegistry();
+    registry.registerFunction(
+      "fn-strict",
+      "strict fn",
+      async ({ q }: { q: string }) => q.toUpperCase(),
+      z.object({ q: z.string().min(3, "too short") }),
+    );
+    const fail = await registry.execute("fn-strict", { q: "hi" });
+    expect(fail).toMatch(/^Error:/);
+    const ok = await registry.execute("fn-strict", { q: "hello" });
+    expect(ok).toBe("HELLO");
+  });
+});
+
+// ===========================================================================
 // ToolRegistry
 // ===========================================================================
 describe("ToolRegistry", () => {
   let registry: ToolRegistry;
-  beforeEach(() => { registry = new ToolRegistry(); });
+  beforeEach(() => {
+    registry = new ToolRegistry();
+  });
 
   it("registerTool / getTool roundtrip", () => {
     const echo = new EchoTool();
@@ -160,7 +338,9 @@ describe("ToolRegistry", () => {
   });
 
   it("registerFunction / execute", async () => {
-    registry.registerFunction("shout", "Shouts", async ({ input }: any) => String(input).toUpperCase());
+    registry.registerFunction("shout", "Shouts", async ({ input }: any) =>
+      String(input).toUpperCase(),
+    );
     expect(await registry.execute("shout", { input: "hi" })).toBe("HI");
   });
 
@@ -332,7 +512,11 @@ describe("AsyncToolExecutor", () => {
   });
 
   it("executeSingle() returns result on success", async () => {
-    const r = await executor.executeSingle({ id: "1", toolName: "echo", parameters: { input: "hi" } });
+    const r = await executor.executeSingle({
+      id: "1",
+      toolName: "echo",
+      parameters: { input: "hi" },
+    });
     expect(r.id).toBe("1");
     expect(r.output).toBe("hi");
     expect(r.error).toBeUndefined();
@@ -351,8 +535,8 @@ describe("AsyncToolExecutor", () => {
       { id: "b", toolName: "upper", parameters: { input: "world" } },
     ]);
     expect(results).toHaveLength(2);
-    expect(results.find(r => r.id === "a")?.output).toBe("hello");
-    expect(results.find(r => r.id === "b")?.output).toBe("WORLD");
+    expect(results.find((r) => r.id === "a")?.output).toBe("hello");
+    expect(results.find((r) => r.id === "b")?.output).toBe("WORLD");
   });
 
   it("executeBatch() handles mixed success and failure", async () => {
@@ -360,8 +544,8 @@ describe("AsyncToolExecutor", () => {
       { id: "ok", toolName: "echo", parameters: { input: "fine" } },
       { id: "bad", toolName: "fail", parameters: {} },
     ]);
-    expect(results.find(r => r.id === "ok")?.output).toBe("fine");
-    expect(results.find(r => r.id === "bad")?.error).toBeDefined();
+    expect(results.find((r) => r.id === "ok")?.output).toBe("fine");
+    expect(results.find((r) => r.id === "bad")?.error).toBeDefined();
   });
 
   it("executeBatch() with empty array returns empty", async () => {
@@ -370,11 +554,13 @@ describe("AsyncToolExecutor", () => {
 
   it("executeBatch() handles 10 parallel requests", async () => {
     const requests = Array.from({ length: 10 }, (_, i) => ({
-      id: String(i), toolName: "echo", parameters: { input: String(i) },
+      id: String(i),
+      toolName: "echo",
+      parameters: { input: String(i) },
     }));
     const results = await executor.executeBatch(requests);
     expect(results).toHaveLength(10);
-    expect(results.every(r => r.error === undefined)).toBe(true);
+    expect(results.every((r) => r.error === undefined)).toBe(true);
   });
 
   it("constructor clamps concurrency to minimum 1", async () => {
@@ -383,4 +569,3 @@ describe("AsyncToolExecutor", () => {
     expect(r[0]?.output).toBe("x");
   });
 });
-

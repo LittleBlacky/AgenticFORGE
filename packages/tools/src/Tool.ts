@@ -50,6 +50,8 @@ export abstract class Tool {
   readonly description: string;
   readonly expandable: boolean;
 
+  private _zodSchemaCache: z.ZodObject<z.ZodRawShape> | null = null;
+
   constructor(name: string, description: string, expandable = false) {
     this.name = name;
     this.description = description;
@@ -60,46 +62,97 @@ export abstract class Tool {
   abstract getParameters(): ToolParameter[];
 
   /**
-   * Validate that required parameters are present and have basic types.
-   * Returns true if valid.
+   * Optional override: provide a custom Zod schema for precise validation.
+   * If not overridden, a schema is automatically built from getParameters().
+   *
+   * ```ts
+   * protected zodSchema() {
+   *   return z.object({
+   *     url: z.string().url("Must be a valid URL"),
+   *     count: z.number().int().min(1).max(100),
+   *   });
+   * }
+   * ```
    */
-  validateParameters(parameters: Record<string, unknown>): boolean {
-    const params = this.getParameters();
-    for (const p of params) {
-      if (p.required && (parameters[p.name] === undefined || parameters[p.name] === null)) {
-        return false;
-      }
-    }
-    return true;
+  protected zodSchema(): z.ZodObject<z.ZodRawShape> | null {
+    return null;
   }
 
   /**
-   * Validate and coerce parameters, returning a Result object.
+   * Build a Zod schema from getParameters() with type coercion.
+   * Uses cache to avoid rebuilding on every call.
+   */
+  private buildZodSchema(): z.ZodObject<z.ZodRawShape> {
+    if (this._zodSchemaCache) return this._zodSchemaCache;
+
+    const shape: Record<string, z.ZodTypeAny> = {};
+    for (const p of this.getParameters()) {
+      let base: z.ZodTypeAny;
+      switch (p.type) {
+        case "number":
+          base = z.coerce.number();
+          break;
+        case "integer":
+          base = z.coerce.number().int();
+          break;
+        case "boolean":
+          base = z.coerce.boolean();
+          break;
+        case "array":
+          base = z.array(z.unknown());
+          break;
+        case "object":
+          base = z.record(z.string(), z.unknown());
+          break;
+        default:
+          // For string type: use z.string() not z.coerce.string() so that
+          // null / undefined correctly fail required validation instead of
+          // being coerced to the literal string "null" / "undefined".
+          base = z.string();
+          break;
+      }
+
+      if (p.required) {
+        // Required: reject null and undefined explicitly
+        shape[p.name] = base;
+      } else {
+        // Optional: fill with default if provided, otherwise allow undefined
+        const withDefault =
+          p.default !== null && p.default !== undefined
+            ? base.default(p.default as never)
+            : base.optional();
+        shape[p.name] = withDefault;
+      }
+    }
+
+    this._zodSchemaCache = z.object(shape);
+    return this._zodSchemaCache;
+  }
+
+  /**
+   * Validate that required parameters are present.
+   * Returns true if valid.
+   */
+  validateParameters(parameters: Record<string, unknown>): boolean {
+    return this.validateAndNormalizeParameters(parameters).success;
+  }
+
+  /**
+   * Validate and coerce parameters using Zod.
+   * Uses zodSchema() override if provided, otherwise auto-builds from getParameters().
    */
   validateAndNormalizeParameters(
     parameters: Record<string, unknown>,
   ): { success: true; data: Record<string, unknown> } | { success: false; error: string } {
-    const params = this.getParameters();
-    const data: Record<string, unknown> = {};
-
-    for (const p of params) {
-      const val = parameters[p.name];
-      if (val === undefined || val === null) {
-        if (p.required) {
-          return { success: false, error: `Missing required parameter: ${p.name}` };
-        }
-        data[p.name] = p.default;
-      } else {
-        data[p.name] = val;
-      }
+    const schema = this.zodSchema() ?? this.buildZodSchema();
+    const result = schema.safeParse(parameters);
+    if (!result.success) {
+      const msg = result.error.issues
+        .map((i) => `${i.path.join(".") || "input"}: ${i.message}`)
+        .join("; ");
+      return { success: false, error: msg };
     }
-
-    // pass through any extra parameters
-    for (const [key, val] of Object.entries(parameters)) {
-      if (!(key in data)) data[key] = val;
-    }
-
-    return { success: true, data };
+    return { success: true, data: result.data as Record<string, unknown> };
   }
 
   /**
