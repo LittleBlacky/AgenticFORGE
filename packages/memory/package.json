@@ -52,7 +52,7 @@
   "dependencies": {
     "@qdrant/js-client-rest": "^1.17.0",
     "neo4j-driver": "^5.28.1",
-    "openai": "^6.25.0",
+    "openai": "^6.33.0",
     "@agenticforge/core": "workspace:^"
   },
   "devDependencies": {

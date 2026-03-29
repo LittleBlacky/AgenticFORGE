@@ -42,7 +42,7 @@
     "dotenv": "^17.3.1",
     "js-tiktoken": "^1.0.21",
     "neo4j-driver": "^5.28.1",
-    "openai": "^6.25.0",
+    "openai": "^6.33.0",
     "proper-lockfile": "^4.1.2",
     "reflect-metadata": "^0.2.2",
     "serpapi": "^2.2.1",
