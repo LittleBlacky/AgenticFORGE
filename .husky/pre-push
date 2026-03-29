@@ -1,3 +1,5 @@
+set -e
+
 echo "[pre-push] 运行 lint 检查..."
 pnpm lint
 
