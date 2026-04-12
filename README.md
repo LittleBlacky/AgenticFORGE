@@ -240,8 +240,3 @@ If you plan a larger feature or API change, please open an issue first so we can
 [CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
 
 ---
-
-## Acknowledgements
-
-This project builds upon and extends [Hello-Agents](https://github.com/datawhalechina/Hello-Agents) (licensed under CC BY-NC-SA 4.0).
-Thanks to the original authors and contributors. TypeScript porting and major extensions are by [LittleBlacky](https://github.com/LittleBlacky).
