@@ -240,8 +240,3 @@ pnpm test
 [CC BY-NC-SA 4.0](LICENSE) © LittleBlacky
 
 ---
-
-## 致谢
-
-本项目基于并扩展了 [Hello-Agents](https://github.com/datawhalechina/Hello-Agents)（CC BY-NC-SA 4.0）。
-感谢原作者与贡献者。TypeScript 移植与主要功能扩展由 [LittleBlacky](https://github.com/LittleBlacky) 完成。
