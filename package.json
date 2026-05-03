@@ -39,14 +39,14 @@
   "license": "CC-BY-NC-SA-4.0",
   "dependencies": {
     "@qdrant/js-client-rest": "^1.17.0",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "js-tiktoken": "^1.0.21",
     "neo4j-driver": "^5.28.1",
-    "openai": "^6.25.0",
+    "openai": "^6.35.0",
     "proper-lockfile": "^4.1.2",
     "reflect-metadata": "^0.2.2",
     "serpapi": "^2.2.1",
-    "zod": "^4.3.6"
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",

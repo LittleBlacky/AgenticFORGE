@@ -20,10 +20,10 @@
     "@agenticforge/tools-builtin": "workspace:^",
     "@agenticforge/utils": "workspace:^",
     "cors": "^2.8.5",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "express": "^5.1.0",
-    "ws": "^8.18.3",
-    "zod": "^4.3.6"
+    "ws": "^8.20.0",
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
