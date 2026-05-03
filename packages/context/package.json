@@ -27,7 +27,7 @@
   "dependencies": {
     "js-tiktoken": "^1.0.21",
     "reflect-metadata": "^0.2.2",
-    "zod": "^4.3.6",
+    "zod": "^4.4.2",
     "@agenticforge/core": "workspace:^",
     "@agenticforge/memory": "workspace:^"
   },
