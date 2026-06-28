@@ -50,9 +50,9 @@
     "build": "pnpm run clean && pnpm run typecheck && pnpm run build:types && pnpm run build:js"
   },
   "dependencies": {
-    "@qdrant/js-client-rest": "^1.17.0",
+    "@qdrant/js-client-rest": "^1.18.0",
     "neo4j-driver": "^5.28.1",
-    "openai": "^6.25.0",
+    "openai": "^6.45.0",
     "@agenticforge/core": "workspace:^"
   },
   "devDependencies": {
